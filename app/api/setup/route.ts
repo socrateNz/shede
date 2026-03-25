@@ -71,6 +71,31 @@ export async function POST(request: NextRequest) {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
 
+      -- Accompaniments (ne sont PAS des produits)
+      CREATE TABLE IF NOT EXISTS accompaniments (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        structure_id uuid NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        price DECIMAL(10, 2) NOT NULL,
+        is_available BOOLEAN DEFAULT TRUE,
+        is_deleted BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Product accompaniments (relation)
+      DROP TABLE IF EXISTS product_accompaniments;
+      CREATE TABLE IF NOT EXISTS product_accompaniments (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        structure_id uuid NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+        product_id uuid NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        accompaniment_id uuid NOT NULL REFERENCES accompaniments(id) ON DELETE CASCADE,
+        quantity INTEGER NOT NULL DEFAULT 1,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(structure_id, product_id, accompaniment_id)
+      );
+
       -- Orders
       CREATE TABLE IF NOT EXISTS orders (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -95,7 +120,27 @@ export async function POST(request: NextRequest) {
         unit_price DECIMAL(10, 2) NOT NULL,
         total_price DECIMAL(10, 2) NOT NULL,
         notes TEXT,
+        -- Indique si cette ligne contribue au total de la commande.
+        is_price_counted BOOLEAN NOT NULL DEFAULT TRUE,
+        -- Si cet order_item est généré automatiquement (accompagnement),
+        -- ce champ référence la ligne parent (produit principal).
+        parent_order_item_id uuid REFERENCES order_items(id) ON DELETE CASCADE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Order accompaniments (choix faits pendant la commande)
+      CREATE TABLE IF NOT EXISTS order_accompaniments (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        order_id uuid NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        parent_order_item_id uuid NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
+        accompaniment_id uuid NOT NULL REFERENCES accompaniments(id) ON DELETE CASCADE,
+        quantity INTEGER NOT NULL DEFAULT 1,
+        unit_price_snapshot DECIMAL(10, 2) NOT NULL,
+        total_price_snapshot DECIMAL(10, 2) NOT NULL,
+        is_price_counted BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(order_id, parent_order_item_id, accompaniment_id)
       );
 
       -- Payments
@@ -143,6 +188,10 @@ export async function POST(request: NextRequest) {
       CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
       CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
       CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);
+      CREATE INDEX IF NOT EXISTS idx_order_items_parent_order_item_id ON order_items(parent_order_item_id);
+      CREATE INDEX IF NOT EXISTS idx_order_accompaniments_order_id ON order_accompaniments(order_id);
+      CREATE INDEX IF NOT EXISTS idx_order_accompaniments_parent_order_item_id ON order_accompaniments(parent_order_item_id);
+      CREATE INDEX IF NOT EXISTS idx_order_accompaniments_accompaniment_id ON order_accompaniments(accompaniment_id);
       CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
       CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
       CREATE INDEX IF NOT EXISTS idx_push_user_id ON push_subscriptions(user_id);

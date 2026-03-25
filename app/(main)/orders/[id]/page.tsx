@@ -1,6 +1,16 @@
 'use client';
 
-import { getOrder, addOrderItem, removeOrderItem, updateOrderStatus, getAvailableProducts } from '@/app/actions/orders';
+import {
+  getOrder,
+  addOrderItem,
+  removeOrderItem,
+  removeOrderAccompaniment,
+  updateOrderStatus,
+  getAvailableProducts,
+  getOrderAccompanimentChoices,
+  addOrderAccompaniment,
+  setOrderItemPriceCounted,
+} from '@/app/actions/orders';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -29,9 +39,27 @@ interface OrderDetail {
     quantity: number;
     unit_price: number;
     total_price: number;
+    is_price_counted?: boolean;
+    parent_order_item_id?: string | null;
     products: Product;
   }>;
 }
+
+type AccompanimentChoice = {
+  accompanimentProductId: string;
+  name: string;
+  unitPrice: number;
+  quantityMultiplier: number;
+  defaultPriceIncluded: boolean;
+  existingOrderItemId: string | null;
+  existingIsPriceCounted: boolean | null;
+};
+
+type ParentAccompanimentChoices = {
+  parentOrderItemId: string;
+  parentProductId: string;
+  possibleAccompaniments: AccompanimentChoice[];
+};
 
 export default function OrderDetailPage() {
   const params = useParams();
@@ -43,6 +71,7 @@ export default function OrderDetailPage() {
   const [selectedProduct, setSelectedProduct] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [accompanimentChoices, setAccompanimentChoices] = useState<ParentAccompanimentChoices[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -51,6 +80,9 @@ export default function OrderDetailPage() {
         setOrder(orderData);
         const productsData = await getAvailableProducts();
         setProducts(productsData || []);
+
+        const accomp = await getOrderAccompanimentChoices(orderId);
+        setAccompanimentChoices(accomp?.parents || []);
       } catch (error) {
         console.error('Failed to fetch order:', error);
       } finally {
@@ -60,6 +92,14 @@ export default function OrderDetailPage() {
 
     fetchData();
   }, [orderId]);
+
+  const refreshOrderAndAccomp = async () => {
+    const updatedOrder = await getOrder(orderId);
+    setOrder(updatedOrder);
+
+    const accomp = await getOrderAccompanimentChoices(orderId);
+    setAccompanimentChoices(accomp?.parents || []);
+  };
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,25 +118,43 @@ export default function OrderDetailPage() {
     if (result.success) {
       setSelectedProduct('');
       setQuantity(1);
-      const updatedOrder = await getOrder(orderId);
-      setOrder(updatedOrder);
+      await refreshOrderAndAccomp();
     }
   };
 
   const handleRemoveItem = async (itemId: string) => {
     const result = await removeOrderItem(itemId);
     if (result.success) {
-      const updatedOrder = await getOrder(orderId);
-      setOrder(updatedOrder);
+      await refreshOrderAndAccomp();
     }
   };
 
   const handleStatusChange = async (newStatus: string) => {
     const result = await updateOrderStatus(orderId, newStatus);
     if (result.success) {
-      const updatedOrder = await getOrder(orderId);
-      setOrder(updatedOrder);
+      await refreshOrderAndAccomp();
     }
+  };
+
+  const handleToggleAccompanimentIncluded = async (parentOrderItemId: string, choice: AccompanimentChoice, include: boolean) => {
+    if (!include) {
+      if (!choice.existingOrderItemId) return;
+      const res = await removeOrderAccompaniment(choice.existingOrderItemId);
+      if (res.success) await refreshOrderAndAccomp();
+      return;
+    }
+
+    // include = true
+    if (choice.existingOrderItemId) return;
+    const priceCounted = choice.defaultPriceIncluded;
+    const res = await addOrderAccompaniment(orderId, parentOrderItemId, choice.accompanimentProductId, priceCounted);
+    if (res.success) await refreshOrderAndAccomp();
+  };
+
+  const handleToggleAccompanimentPrice = async (choice: AccompanimentChoice, counted: boolean) => {
+    if (!choice.existingOrderItemId) return;
+    const res = await setOrderItemPriceCounted(choice.existingOrderItemId, counted);
+    if (res.success) await refreshOrderAndAccomp();
   };
 
   if (loading) {
@@ -266,23 +324,81 @@ export default function OrderDetailPage() {
           {order.order_items.length === 0 ? (
             <p className="text-slate-400 text-center py-8">No items yet</p>
           ) : (
-            <div className="space-y-3">
-              {order.order_items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between bg-slate-700 p-4 rounded-lg">
-                  <div className="flex-1">
-                    <p className="text-slate-50 font-medium">{item.products.name}</p>
-                    <p className="text-slate-400 text-sm">
-                      {item.quantity}x ${item.unit_price.toFixed(2)} = ${item.total_price.toFixed(2)}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleRemoveItem(item.id)}
-                    className="text-red-400 hover:text-red-300 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+            <div className="space-y-4">
+              {order.order_items
+                .filter((it) => !it.parent_order_item_id)
+                .map((parent) => {
+                  const parentChoices = accompanimentChoices.find((p) => p.parentOrderItemId === parent.id);
+                  const possible = parentChoices?.possibleAccompaniments || [];
+
+                  return (
+                    <div key={parent.id} className="bg-slate-700 p-4 rounded-lg space-y-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <p className="text-slate-50 font-medium">{parent.products.name}</p>
+                          <p className="text-slate-400 text-sm">
+                            {parent.quantity}x ${parent.unit_price.toFixed(2)} = ${parent.total_price.toFixed(2)}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveItem(parent.id)}
+                          className="text-red-400 hover:text-red-300 transition-colors mt-1"
+                          aria-label="Remove product"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {possible.length === 0 ? (
+                        <p className="text-slate-400 text-sm">Aucun accompagnement disponible pour ce produit.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-xs text-slate-400">Accompagnements possibles</p>
+                          {possible.map((choice) => {
+                            const included = Boolean(choice.existingOrderItemId);
+                            const computedQty = parent.quantity * choice.quantityMultiplier;
+                            const lineTotal = choice.unitPrice * computedQty;
+
+                            return (
+                              <div key={choice.accompanimentProductId} className="flex items-center justify-between gap-4">
+                                <div className="flex-1">
+                                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                                    <input
+                                      type="checkbox"
+                                      checked={included}
+                                      onChange={(e) =>
+                                        handleToggleAccompanimentIncluded(parent.id, choice, e.target.checked)
+                                      }
+                                    />
+                                    <span className="text-slate-50 text-sm">{choice.name}</span>
+                                  </label>
+                                  <p className="text-slate-400 text-xs mt-0.5">
+                                    {computedQty} x ${choice.unitPrice.toFixed(2)} = ${lineTotal.toFixed(2)}
+                                  </p>
+                                  {included && choice.existingIsPriceCounted === false && (
+                                    <p className="text-amber-300 text-xs mt-0.5">Prix non pris en compte</p>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                  <label className={`flex items-center gap-2 text-xs ${included ? 'text-slate-200' : 'text-slate-500'}`}>
+                                    <input
+                                      type="checkbox"
+                                      checked={included ? Boolean(choice.existingIsPriceCounted) : true}
+                                      disabled={!included}
+                                      onChange={(e) => handleToggleAccompanimentPrice(choice, e.target.checked)}
+                                    />
+                                    Prix compté
+                                  </label>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           )}
         </CardContent>

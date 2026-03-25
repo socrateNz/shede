@@ -75,6 +75,17 @@ export interface Product {
   updated_at: string;
 }
 
+export interface Accompaniment {
+  id: string;
+  structure_id: string;
+  name: string;
+  price: number;
+  is_available: boolean;
+  is_deleted: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Order {
   id: string;
   structure_id: string;
@@ -95,8 +106,27 @@ export interface OrderItem {
   quantity: number;
   unit_price: number;
   total_price: number;
+  // True si le prix de cette ligne doit contribuer au `orders.total/subtotal`.
+  // Exemple: accompagnement dont le prix est optionnel / inclus dans le prix du produit.
+  is_price_counted?: boolean;
+  // Si cet order_item provient d'un accompagnement ajouté automatiquement,
+  // ce champ pointe vers l'order_item parent (le produit principal).
+  parent_order_item_id?: string | null;
   notes?: string;
   created_at: string;
+}
+
+export interface OrderAccompaniment {
+  id: string;
+  order_id: string;
+  parent_order_item_id: string;
+  accompaniment_id: string;
+  quantity: number;
+  unit_price_snapshot: number;
+  total_price_snapshot: number;
+  is_price_counted: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Payment {

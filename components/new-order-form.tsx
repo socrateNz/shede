@@ -15,12 +15,31 @@ interface OrderProduct {
   price: number;
 }
 
+type AccompanimentOption = {
+  accompanimentId: string;
+  name: string;
+  unitPrice: number;
+  quantityMultiplier: number;
+};
+
+type SelectedAccompaniment = {
+  accompanimentId: string;
+  priceCounted: boolean;
+};
+
 interface SelectedItem {
   productId: string;
   quantity: number;
+  accompaniments: SelectedAccompaniment[];
 }
 
-export function NewOrderForm({ products }: { products: OrderProduct[] }) {
+export function NewOrderForm({
+  products,
+  accompanimentsByProductId,
+}: {
+  products: OrderProduct[];
+  accompanimentsByProductId: Record<string, AccompanimentOption[]>;
+}) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(createOrderWithItems, {
     success: false,
@@ -39,9 +58,21 @@ export function NewOrderForm({ products }: { products: OrderProduct[] }) {
     return items.reduce((sum, item) => {
       const product = productsById.get(item.productId);
       if (!product) return sum;
-      return sum + product.price * item.quantity;
+
+      let lineTotal = product.price * item.quantity;
+
+      // Ajoute les accompagnements dont le prix est compté.
+      const possibleAccs = accompanimentsByProductId[item.productId] || [];
+      for (const selectedAcc of item.accompaniments) {
+        if (!selectedAcc.priceCounted) continue;
+        const opt = possibleAccs.find((a) => a.accompanimentId === selectedAcc.accompanimentId);
+        if (!opt) continue;
+        lineTotal += opt.unitPrice * item.quantity * opt.quantityMultiplier;
+      }
+
+      return sum + lineTotal;
     }, 0);
-  }, [items, productsById]);
+  }, [items, productsById, accompanimentsByProductId]);
 
   const total = subtotal;
 
@@ -57,7 +88,7 @@ export function NewOrderForm({ products }: { products: OrderProduct[] }) {
             : item
         );
       }
-      return [...prev, { productId: selectedProduct, quantity }];
+      return [...prev, { productId: selectedProduct, quantity, accompaniments: [] }];
     });
 
     setSelectedProduct('');
@@ -66,6 +97,42 @@ export function NewOrderForm({ products }: { products: OrderProduct[] }) {
 
   const removeItem = (productId: string) => {
     setItems((prev) => prev.filter((item) => item.productId !== productId));
+  };
+
+  const toggleAccompanimentIncluded = (productId: string, accompanimentId: string, include: boolean) => {
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.productId !== productId) return item;
+        if (!include) {
+          return {
+            ...item,
+            accompaniments: item.accompaniments.filter((a) => a.accompanimentId !== accompanimentId),
+          };
+        }
+
+        const already = item.accompaniments.find((a) => a.accompanimentId === accompanimentId);
+        if (already) return item;
+
+        return {
+          ...item,
+          accompaniments: [...item.accompaniments, { accompanimentId, priceCounted: true }],
+        };
+      })
+    );
+  };
+
+  const toggleAccompanimentPrice = (productId: string, accompanimentId: string, priceCounted: boolean) => {
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.productId !== productId) return item;
+        return {
+          ...item,
+          accompaniments: item.accompaniments.map((a) =>
+            a.accompanimentId === accompanimentId ? { ...a, priceCounted } : a
+          ),
+        };
+      })
+    );
   };
 
   useEffect(() => {
@@ -149,6 +216,7 @@ export function NewOrderForm({ products }: { products: OrderProduct[] }) {
                 const product = productsById.get(item.productId);
                 if (!product) return null;
                 const lineTotal = product.price * item.quantity;
+                const possibleAccs = accompanimentsByProductId[item.productId] || [];
                 return (
                   <div
                     key={item.productId}
@@ -159,6 +227,49 @@ export function NewOrderForm({ products }: { products: OrderProduct[] }) {
                       <p className="text-slate-400 text-sm">
                         {item.quantity} x ${product.price.toFixed(2)} = ${lineTotal.toFixed(2)}
                       </p>
+
+                      {possibleAccs.length > 0 && (
+                        <div className="mt-3 pl-3 border-l border-slate-600 space-y-2">
+                          {possibleAccs.map((acc) => {
+                            const selected = item.accompaniments.find((a) => a.accompanimentId === acc.accompanimentId);
+                            const included = Boolean(selected);
+
+                            return (
+                              <div key={acc.accompanimentId} className="flex items-center justify-between gap-3">
+                                <label className="flex items-center gap-2 text-sm text-slate-200">
+                                  <input
+                                    type="checkbox"
+                                    checked={included}
+                                    onChange={(e) => toggleAccompanimentIncluded(item.productId, acc.accompanimentId, e.target.checked)}
+                                  />
+                                  <span>
+                                    {acc.name} (${acc.unitPrice.toFixed(2)}) x {acc.quantityMultiplier}
+                                  </span>
+                                </label>
+
+                                <label
+                                  className="flex items-center gap-2 text-sm text-slate-200 opacity-100"
+                                  style={{ opacity: included ? 1 : 0.5 }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={selected?.priceCounted ?? false}
+                                    disabled={!included}
+                                    onChange={(e) =>
+                                      toggleAccompanimentPrice(
+                                        item.productId,
+                                        acc.accompanimentId,
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span>Prix compté</span>
+                                </label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                     <button
                       type="button"

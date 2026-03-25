@@ -58,6 +58,31 @@ CREATE TABLE IF NOT EXISTS products (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Accompaniments (ne sont pas des produits)
+CREATE TABLE IF NOT EXISTS accompaniments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  structure_id UUID NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  price DECIMAL(10, 2) NOT NULL,
+  is_available BOOLEAN DEFAULT TRUE,
+  is_deleted BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product accompaniments (relation produit -> accompagnement)
+DROP TABLE IF EXISTS product_accompaniments;
+CREATE TABLE IF NOT EXISTS product_accompaniments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  structure_id UUID NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  accompaniment_id UUID NOT NULL REFERENCES accompaniments(id) ON DELETE CASCADE,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(structure_id, product_id, accompaniment_id)
+);
+
 -- Orders
 CREATE TABLE IF NOT EXISTS orders (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -82,8 +107,42 @@ CREATE TABLE IF NOT EXISTS order_items (
   unit_price DECIMAL(10, 2) NOT NULL,
   total_price DECIMAL(10, 2) NOT NULL,
   notes TEXT,
+  is_price_counted BOOLEAN NOT NULL DEFAULT TRUE,
+  parent_order_item_id UUID REFERENCES order_items(id) ON DELETE CASCADE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Compat: si `order_items` existe déjà sans ces colonnes
+ALTER TABLE order_items
+  ADD COLUMN IF NOT EXISTS is_price_counted BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE order_items
+  ADD COLUMN IF NOT EXISTS parent_order_item_id UUID REFERENCES order_items(id) ON DELETE CASCADE;
+
+-- Order accompaniments (choix faits pendant la commande)
+CREATE TABLE IF NOT EXISTS order_accompaniments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  parent_order_item_id UUID NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
+  accompaniment_id UUID NOT NULL REFERENCES accompaniments(id) ON DELETE CASCADE,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  unit_price_snapshot DECIMAL(10, 2) NOT NULL,
+  total_price_snapshot DECIMAL(10, 2) NOT NULL,
+  is_price_counted BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(order_id, parent_order_item_id, accompaniment_id)
+);
+
+-- Compat: si table existe mais colonnes manquantes
+ALTER TABLE order_accompaniments
+  ADD COLUMN IF NOT EXISTS unit_price_snapshot DECIMAL(10, 2) NOT NULL DEFAULT 0;
+
+ALTER TABLE order_accompaniments
+  ADD COLUMN IF NOT EXISTS total_price_snapshot DECIMAL(10, 2) NOT NULL DEFAULT 0;
+
+ALTER TABLE order_accompaniments
+  ADD COLUMN IF NOT EXISTS is_price_counted BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- Payments
 CREATE TABLE IF NOT EXISTS payments (
@@ -125,17 +184,23 @@ CREATE TABLE IF NOT EXISTS notifications (
 -- Using server-side filtering and validation instead of database RLS policies
 
 -- Create indexes for performance
-CREATE INDEX idx_users_structure_id ON users(structure_id);
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_products_structure_id ON products(structure_id);
-CREATE INDEX idx_orders_structure_id ON orders(structure_id);
-CREATE INDEX idx_orders_user_id ON orders(user_id);
-CREATE INDEX idx_orders_status ON orders(status);
-CREATE INDEX idx_order_items_order_id ON order_items(order_id);
-CREATE INDEX idx_order_items_product_id ON order_items(product_id);
-CREATE INDEX idx_payments_order_id ON payments(order_id);
-CREATE INDEX idx_payments_status ON payments(status);
-CREATE INDEX idx_push_user_id ON push_subscriptions(user_id);
-CREATE INDEX idx_push_structure_id ON push_subscriptions(structure_id);
-CREATE INDEX idx_notifications_user_id ON notifications(user_id);
-CREATE INDEX idx_notifications_structure_id ON notifications(structure_id);
+CREATE INDEX IF NOT EXISTS idx_users_structure_id ON users(structure_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_products_structure_id ON products(structure_id);
+CREATE INDEX IF NOT EXISTS idx_orders_structure_id ON orders(structure_id);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_parent_order_item_id ON order_items(parent_order_item_id);
+CREATE INDEX IF NOT EXISTS idx_product_accompaniments_product_id ON product_accompaniments(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_accompaniments_accompaniment_id ON product_accompaniments(accompaniment_id);
+CREATE INDEX IF NOT EXISTS idx_order_accompaniments_order_id ON order_accompaniments(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_accompaniments_parent_order_item_id ON order_accompaniments(parent_order_item_id);
+CREATE INDEX IF NOT EXISTS idx_order_accompaniments_accompaniment_id ON order_accompaniments(accompaniment_id);
+CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
+CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+CREATE INDEX IF NOT EXISTS idx_push_user_id ON push_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_push_structure_id ON push_subscriptions(structure_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_structure_id ON notifications(structure_id);

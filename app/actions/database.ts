@@ -79,6 +79,22 @@ export async function initializeDatabase() {
       `,
     },
     {
+      name: 'accompaniments',
+      sql: `
+        CREATE TABLE IF NOT EXISTS accompaniments (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          structure_id UUID NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+          name VARCHAR(255) NOT NULL,
+          price DECIMAL(10, 2) NOT NULL,
+          is_available BOOLEAN DEFAULT TRUE,
+          is_deleted BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_accompaniments_structure_id ON accompaniments(structure_id);
+      `,
+    },
+    {
       name: 'orders',
       sql: `
         CREATE TABLE IF NOT EXISTS orders (
@@ -110,10 +126,58 @@ export async function initializeDatabase() {
           unit_price DECIMAL(10, 2) NOT NULL,
           total_price DECIMAL(10, 2) NOT NULL,
           notes TEXT,
+          -- Indique si cette ligne doit contribuer au total de la commande.
+          -- Cas typique: accompagnement avec prix optionnel/inclus.
+          is_price_counted BOOLEAN NOT NULL DEFAULT TRUE,
+          -- Si cet order_item est ajouté automatiquement à cause d'un autre item,
+          -- ce champ référence l'item parent (le produit principal).
+          parent_order_item_id UUID REFERENCES order_items(id) ON DELETE CASCADE,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
         CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);
+        CREATE INDEX IF NOT EXISTS idx_order_items_parent_order_item_id ON order_items(parent_order_item_id);
+      `,
+    },
+    {
+      name: 'product_accompaniments',
+      sql: `
+        DROP TABLE IF EXISTS product_accompaniments;
+
+        CREATE TABLE IF NOT EXISTS product_accompaniments (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          structure_id UUID NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+          product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+          accompaniment_id UUID NOT NULL REFERENCES accompaniments(id) ON DELETE CASCADE,
+          quantity INTEGER NOT NULL DEFAULT 1,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(structure_id, product_id, accompaniment_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_product_accompaniments_structure_id ON product_accompaniments(structure_id);
+        CREATE INDEX IF NOT EXISTS idx_product_accompaniments_product_id ON product_accompaniments(product_id);
+        CREATE INDEX IF NOT EXISTS idx_product_accompaniments_accompaniment_id ON product_accompaniments(accompaniment_id);
+      `,
+    },
+    {
+      name: 'order_accompaniments',
+      sql: `
+        CREATE TABLE IF NOT EXISTS order_accompaniments (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+          parent_order_item_id UUID NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
+          accompaniment_id UUID NOT NULL REFERENCES accompaniments(id) ON DELETE CASCADE,
+          quantity INTEGER NOT NULL DEFAULT 1,
+          unit_price_snapshot DECIMAL(10, 2) NOT NULL,
+          total_price_snapshot DECIMAL(10, 2) NOT NULL,
+          is_price_counted BOOLEAN NOT NULL DEFAULT TRUE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(order_id, parent_order_item_id, accompaniment_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_order_accompaniments_order_id ON order_accompaniments(order_id);
+        CREATE INDEX IF NOT EXISTS idx_order_accompaniments_parent_order_item_id ON order_accompaniments(parent_order_item_id);
+        CREATE INDEX IF NOT EXISTS idx_order_accompaniments_accompaniment_id ON order_accompaniments(accompaniment_id);
       `,
     },
     {
