@@ -197,7 +197,7 @@ export default async function HomePage() {
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-3xl blur-3xl" />
               <div className="relative bg-white rounded-2xl shadow-xl border border-slate-100 p-4">
                 <img
-                  src="/logo.webp"
+                  src="/dashbard.webp"
                   alt="Shede Dashboard Preview"
                   className="rounded-5xl w-full"
                 />
