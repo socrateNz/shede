@@ -9,9 +9,11 @@ import { cn } from '@/lib/utils';
 
 interface SidebarProps {
   session: SessionPayload;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-export function Sidebar({ session }: SidebarProps) {
+export function Sidebar({ session, mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
 
   const navigationItems = [
@@ -66,7 +68,13 @@ export function Sidebar({ session }: SidebarProps) {
   ];
 
   return (
-    <aside className="w-64 bg-slate-800 border-r border-slate-700 flex flex-col">
+    <aside
+      className={cn(
+        'z-50 flex w-64 shrink-0 flex-col border-r border-slate-700 bg-slate-800',
+        'fixed inset-y-0 left-0 transition-transform duration-200 ease-out lg:static lg:translate-x-0',
+        mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      )}
+    >
       {/* Logo */}
       <div className="p-6 border-b border-slate-700">
         <Link href="/dashboard" className="flex items-center gap-2">
@@ -90,11 +98,12 @@ export function Sidebar({ session }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => onMobileClose?.()}
               className={cn(
-                'flex items-center gap-3 px-4 py-2 rounded-lg transition-colors',
+                'flex items-center gap-3 rounded-lg px-4 py-2.5 text-[15px] transition-colors min-h-11 lg:min-h-0 lg:py-2 lg:text-base',
                 isActive
                   ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                  : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
               )}
             >
               <Icon className="w-5 h-5" />

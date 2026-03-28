@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { requireAuth } from '@/app/actions/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -83,48 +84,63 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-50 mb-2">Dashboard</h1>
-        <p className="text-slate-400">Welcome back to Shede POS System</p>
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-8">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="mb-1 text-2xl font-bold text-slate-50 sm:mb-2 sm:text-3xl">
+          Dashboard
+        </h1>
+        <p className="text-sm text-slate-400 sm:text-base">
+          Welcome back to Shede POS System
+        </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:mb-8 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
         {statCards.map((card, index) => {
           const Icon = card.icon;
           return (
-            <Card key={index} className="bg-slate-800 border-slate-700">
+            <Card key={index} className="min-w-0 border-slate-700 bg-slate-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-200">{card.title}</CardTitle>
-                <div className={`${card.bgColor} p-2 rounded-lg`}>
-                  <Icon className={`w-4 h-4 ${card.color}`} />
+                <CardTitle className="truncate text-xs font-medium text-slate-200 sm:text-sm">
+                  {card.title}
+                </CardTitle>
+                <div className={`shrink-0 rounded-lg p-2 ${card.bgColor}`}>
+                  <Icon className={`h-4 w-4 ${card.color}`} />
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-slate-50">{card.value}</div>
+              <CardContent className="min-w-0">
+                <div className="truncate text-xl font-bold tabular-nums text-slate-50 sm:text-2xl">
+                  {card.value}
+                </div>
               </CardContent>
             </Card>
           );
         })}
       </div>
 
-      {/* Recent Activity Section */}
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
+      <Card className="border-slate-700 bg-slate-800">
+        <CardHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
           <CardTitle className="text-slate-50">Quick Actions</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <a href="/orders/new" className="p-4 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors text-slate-50 font-medium">
+        <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3">
+            <Link
+              href="/orders/new"
+              className="flex min-h-11 items-center justify-center rounded-lg bg-slate-700 px-4 py-3 text-center text-sm font-medium text-slate-50 transition-colors hover:bg-slate-600 sm:min-h-0 sm:justify-start sm:text-base"
+            >
               Create New Order
-            </a>
-            <a href="/products" className="p-4 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors text-slate-50 font-medium">
+            </Link>
+            <Link
+              href="/products"
+              className="flex min-h-11 items-center justify-center rounded-lg bg-slate-700 px-4 py-3 text-center text-sm font-medium text-slate-50 transition-colors hover:bg-slate-600 sm:min-h-0 sm:justify-start sm:text-base"
+            >
               Manage Products
-            </a>
-            <a href="/users" className="p-4 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors text-slate-50 font-medium">
+            </Link>
+            <Link
+              href="/users"
+              className="flex min-h-11 items-center justify-center rounded-lg bg-slate-700 px-4 py-3 text-center text-sm font-medium text-slate-50 transition-colors hover:bg-slate-600 sm:min-h-0 sm:justify-start sm:text-base"
+            >
               Manage Team
-            </a>
+            </Link>
           </div>
         </CardContent>
       </Card>

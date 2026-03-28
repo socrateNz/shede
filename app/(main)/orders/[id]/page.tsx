@@ -178,7 +178,7 @@ export default function OrderDetailPage() {
         Back to Orders
       </Link>
 
-      <div className="grid grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Order Info */}
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
