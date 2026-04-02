@@ -2,17 +2,26 @@
 
 import { useEffect, useState } from 'react';
 import type { SessionPayload } from '@/lib/auth';
+import type { Structure } from '@/lib/supabase';
 import { Sidebar } from '@/components/sidebar';
 import { TopNav } from '@/components/top-nav';
+import { useAppStore } from '@/lib/store';
 
 export function MainShell({
   session,
+  structure,
   children,
 }: {
   session: SessionPayload;
+  structure: Structure | null;
   children: React.ReactNode;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const setActiveStructure = useAppStore(state => state.setActiveStructure);
+
+  useEffect(() => {
+    setActiveStructure(structure);
+  }, [structure, setActiveStructure]);
 
   useEffect(() => {
     const onResize = () => {

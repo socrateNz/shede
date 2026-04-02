@@ -9,8 +9,8 @@ const secretKey = new TextEncoder().encode(
 export interface SessionPayload {
   userId: string;
   email: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'CAISSE' | 'SERVEUR';
-  structureId: string;
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'CAISSE' | 'SERVEUR' | 'RECEPTION' | 'CLIENT';
+  structureId?: string;
   iat: number;
   exp: number;
 }
@@ -52,7 +52,7 @@ export async function getSession(): Promise<SessionPayload | null> {
     }
 
     const verified = await jwtVerify(token, secretKey);
-    return verified.payload as SessionPayload;
+    return verified.payload as unknown as SessionPayload;
   } catch (error) {
     return null;
   }

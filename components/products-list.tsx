@@ -12,12 +12,26 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { deleteProduct } from '@/app/actions/products';
+import { useState } from 'react';
 
 interface ProductsListProps {
   products: Product[];
 }
 
 export function ProductsList({ products }: ProductsListProps) {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (productId: string) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
+    
+    setDeletingId(productId);
+    const res = await deleteProduct(productId);
+    setDeletingId(null);
+    if (!res.success) alert(res.error);
+    else window.location.reload();
+  };
+
   return (
     <Table>
       <TableHeader>
@@ -46,12 +60,21 @@ export function ProductsList({ products }: ProductsListProps) {
                 {product.is_available ? 'Available' : 'Unavailable'}
               </span>
             </TableCell>
-            <TableCell className="text-right">
+            <TableCell className="text-right space-x-2">
               <Link href={`/products/${product.id}`}>
                 <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-200">
                   <Edit2 className="w-4 h-4" />
                 </Button>
               </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDelete(product.id)}
+                disabled={deletingId === product.id}
+                className="text-red-400 hover:text-red-300"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
             </TableCell>
           </TableRow>
         ))}

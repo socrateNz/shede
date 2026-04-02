@@ -24,6 +24,7 @@ const roleColors: Record<string, string> = {
   ADMIN: 'bg-purple-500/10 text-purple-400',
   CAISSE: 'bg-blue-500/10 text-blue-400',
   SERVEUR: 'bg-green-500/10 text-green-400',
+  RECEPTION: 'bg-teal-500/10 text-teal-400',
 };
 
 export function UsersList({ users }: UsersListProps) {

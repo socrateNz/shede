@@ -108,6 +108,7 @@ export default async function EditUserPage({
                 <option value="ADMIN">Admin</option>
                 <option value="CAISSE">Cashier</option>
                 <option value="SERVEUR">Waiter</option>
+                <option value="RECEPTION">Reception</option>
               </select>
             </div>
 

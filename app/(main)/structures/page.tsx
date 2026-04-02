@@ -3,7 +3,8 @@ import { getAllStructures, updateStructureLicense } from '@/app/actions/structur
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Building2, Plus } from 'lucide-react';
+import { Building2, Plus, Eye } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 function toLocalDateTimeInput(isoDate?: string | null) {
   if (!isoDate) return '';
@@ -56,10 +57,11 @@ export default async function StructuresPage() {
                   </div>
 
                   <form
-                    action={updateStructureLicense.bind(null, structure.id, {
-                      success: false,
-                      error: '',
-                    })}
+                    action={async (formData) => {
+                      'use server';
+                      const { updateStructureLicense } = await import('@/app/actions/structures');
+                      await updateStructureLicense(structure.id, { success: false, error: '' }, formData);
+                    }}
                     className="grid md:grid-cols-3 gap-3 items-end"
                   >
                     <div className="space-y-1">
@@ -88,10 +90,40 @@ export default async function StructuresPage() {
                         className="w-full bg-slate-800 border border-slate-600 text-slate-100 rounded-md px-3 py-2 text-sm"
                       />
                     </div>
-                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
-                      Mettre à jour
-                    </Button>
+                    <div className="flex gap-2">
+                       <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white flex-1">
+                         Update
+                       </Button>
+                    </div>
                   </form>
+                  <div className="flex gap-2 justify-end pt-2 border-t border-slate-800">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="border-slate-600 text-blue-400 hover:bg-slate-700">
+                          <Eye className="w-4 h-4 mr-2" />
+                          Voir
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-5xl h-[85vh] p-0 bg-slate-900 border-slate-700 sm:max-w-5xl">
+                        <DialogTitle className="sr-only">Aperçu de la structure</DialogTitle>
+                        <iframe src={`/structures/${structure.id}`} className="w-full h-full rounded-md border-0 bg-white" />
+                      </DialogContent>
+                    </Dialog>
+                    <Link href={`/structures/${structure.id}/edit`}>
+                      <Button variant="outline" size="sm" className="border-slate-600 text-slate-200 hover:bg-slate-700">
+                        Edit
+                      </Button>
+                    </Link>
+                    <form action={async () => {
+                      'use server';
+                      const { deleteStructure } = await import('@/app/actions/structures');
+                      await deleteStructure(structure.id);
+                    }}>
+                       <Button type="submit" variant="destructive" size="sm" className="bg-red-900/40 text-red-400 hover:bg-red-900/60 hover:text-red-300">
+                         Delete
+                       </Button>
+                    </form>
+                  </div>
                 </div>
               ))}
             </div>

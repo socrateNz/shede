@@ -38,10 +38,13 @@ export async function createStructureWithAdmin(
 
   const structureName = String(formData.get('structureName') || '').trim();
   const structureEmail = String(formData.get('structureEmail') || '').trim().toLowerCase();
+  const city = String(formData.get('city') || '').trim();
   const adminFirstName = String(formData.get('adminFirstName') || '').trim();
   const adminLastName = String(formData.get('adminLastName') || '').trim();
   const adminEmail = String(formData.get('adminEmail') || '').trim().toLowerCase();
   const adminPassword = String(formData.get('adminPassword') || '');
+  const type = String(formData.get('structureType') || 'RESTAURANT');
+  const modules = formData.getAll('modules').map(String);
 
   if (!structureName || !structureEmail || !adminFirstName || !adminLastName || !adminEmail || !adminPassword) {
     return { success: false, error: 'All fields are required' };
@@ -59,6 +62,9 @@ export async function createStructureWithAdmin(
       .insert({
         name: structureName,
         email: structureEmail,
+        city: city || null,
+        type: type,
+        modules: modules.length > 0 ? modules : ['POS'],
       })
       .select('id')
       .single();
@@ -94,7 +100,7 @@ export async function createStructureWithAdmin(
       is_active: true,
     });
 
-    return { success: true, structureId: structure.id };
+    return { success: true, error: '', structureId: structure.id };
   } catch (error) {
     return { success: false, error: 'Failed to create structure' };
   }
@@ -132,5 +138,76 @@ export async function updateStructureLicense(
     return { success: true, error: '' };
   } catch (error) {
     return { success: false, error: 'Failed to update license' };
+  }
+}
+
+export async function updateStructure(
+  structureId: string,
+  _prevState: { success: boolean; error: string },
+  formData: FormData
+) {
+  const session = await getSession();
+  if (!session || session.role !== 'SUPER_ADMIN') {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const name = String(formData.get('structureName') || '').trim();
+  const email = String(formData.get('structureEmail') || '').trim().toLowerCase();
+  const city = String(formData.get('city') || '').trim();
+  const type = String(formData.get('structureType') || '');
+  const modules = formData.getAll('modules').map(String);
+
+  if (!name || !email) {
+    return { success: false, error: 'Name and email are required' };
+  }
+
+  try {
+    const admin = getAdminSupabase();
+    const { error } = await admin
+      .from('structures')
+      .update({
+        name,
+        email,
+        ...(city ? { city } : {}),
+        ...(type ? { type } : {}),
+        ...(modules.length > 0 ? { modules } : {}),
+      })
+      .eq('id', structureId);
+
+    if (error) {
+      console.error('Structure Update Error:', error);
+      return { success: false, error: error.message || 'Failed to update structure' };
+    }
+
+    revalidatePath('/structures');
+    return { success: true, error: '' };
+  } catch (error: any) {
+    console.error('Structure Update Catch Error:', error);
+    return { success: false, error: error.message || 'Failed to update structure' };
+  }
+}
+
+export async function deleteStructure(structureId: string) {
+  const session = await getSession();
+  if (!session || session.role !== 'SUPER_ADMIN') {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  try {
+    const admin = getAdminSupabase();
+    // This assumes cascading deletes are configured via foreign keys for related items (users, rooms, orders, etc.)
+    const { error } = await admin
+      .from('structures')
+      .delete()
+      .eq('id', structureId);
+
+    if (error) {
+      return { success: false, error: 'Failed to delete structure' };
+    }
+
+    revalidatePath('/structures');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Failed to delete structure' };
   }
 }

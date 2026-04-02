@@ -842,7 +842,7 @@ export async function getOrder(orderId: string) {
 
     const { data: order } = await admin
       .from('orders')
-      .select('*, order_items(*, products(*))')
+      .select('*, rooms(number), order_items(*, products(*))')
       .eq('id', orderId)
       .eq('structure_id', session.structureId)
       .single();
@@ -863,7 +863,7 @@ export async function getOrders(
 
     let query = admin
       .from('orders')
-      .select('*')
+      .select('*, rooms(number)')
       .eq('structure_id', structureId)
       .order('created_at', { ascending: false })
       .limit(limit);

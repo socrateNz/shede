@@ -57,6 +57,44 @@ export default function NewStructurePage() {
               />
             </div>
 
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-200">Lieu / Ville *</label>
+              <Input
+                name="city"
+                type="text"
+                placeholder="Ex: Douala, Akwa"
+                className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-200">Type de Structure *</label>
+                <select
+                  name="structureType"
+                  className="w-full bg-slate-700 border-slate-600 text-slate-50 rounded-md px-3 py-2 text-sm"
+                  required
+                >
+                  <option value="RESTAURANT">Restaurant</option>
+                  <option value="HOTEL">Hôtel</option>
+                  <option value="MIXTE">Mixte</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-200">Modules (Maintenez Ctrl pour plusieurs)</label>
+                <select
+                  name="modules"
+                  multiple
+                  className="w-full bg-slate-700 border-slate-600 text-slate-50 rounded-md px-3 py-2 text-sm h-20"
+                >
+                  <option value="POS" selected>Caisse (POS)</option>
+                  <option value="HOTEL">Hôtel (Chambres)</option>
+                  <option value="CLIENT_APP">Application Client (B2C)</option>
+                </select>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-200">Admin First Name *</label>

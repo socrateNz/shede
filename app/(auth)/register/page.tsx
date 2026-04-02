@@ -31,7 +31,7 @@ export default function RegisterPage() {
       <CardContent>
         <form action={formAction} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-200">Restaurant Name</label>
+            <label className="text-sm font-medium text-slate-200">Nom de l'Établissement</label>
             <Input
               type="text"
               name="structureName"
@@ -42,11 +42,22 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-200">Restaurant Email</label>
+            <label className="text-sm font-medium text-slate-200">Email de l'Établissement</label>
             <Input
               type="email"
               name="structureEmail"
               placeholder="restaurant@example.com"
+              className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-200">Lieu / Ville de l'Établissement</label>
+            <Input
+              type="text"
+              name="city"
+              placeholder="Ex: Douala, Akwa"
               className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
               required
             />

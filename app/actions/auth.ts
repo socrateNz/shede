@@ -72,7 +72,7 @@ export async function login(
       structureId: users.structure_id,
     });
 
-    return { success: true, redirect: users.role === 'SUPER_ADMIN' ? '/structures' : '/dashboard' };
+    return { success: true, error: '', redirect: users.role === 'SUPER_ADMIN' ? '/structures' : '/dashboard' };
   } catch (error) {
     console.error('Login error:', error);
     return { success: false, error: 'Login failed' };
@@ -85,14 +85,22 @@ export async function logout() {
 }
 
 export async function register(
-  structureName: string,
-  structureEmail: string,
-  firstName: string,
-  lastName: string,
-  email: string,
-  password: string
+  _prevState: { success: boolean; error: string; redirect?: string },
+  formData: FormData
 ) {
   try {
+    const structureName = String(formData.get('structureName') || '').trim();
+    const structureEmail = String(formData.get('structureEmail') || '').trim().toLowerCase();
+    const city = String(formData.get('city') || '').trim();
+    const firstName = String(formData.get('firstName') || '').trim();
+    const lastName = String(formData.get('lastName') || '').trim();
+    const email = String(formData.get('email') || '').trim().toLowerCase();
+    const password = String(formData.get('password') || '');
+
+    if (!structureName || !email || !password) {
+      return { success: false, error: 'Veuillez remplir les informations obligatoires.' };
+    }
+
     const admin = getAdminSupabase();
 
     // Create structure
@@ -101,6 +109,7 @@ export async function register(
       .insert({
         name: structureName,
         email: structureEmail,
+        city: city || null,
       })
       .select()
       .single();
@@ -150,7 +159,7 @@ export async function register(
       structureId: structure.id,
     });
 
-    return { success: true, redirect: '/setup/products' };
+    return { success: true, error: '', redirect: '/setup/products' };
   } catch (error) {
     console.error('Register error:', error);
     return { success: false, error: 'Registration failed' };
@@ -193,7 +202,7 @@ export async function requireAuth() {
 
 export async function requireRole(...roles: string[]) {
   const session = await requireAuth();
-  if (!roles.includes(session.role)) {
+  if (!session.role || !roles.includes(session.role as string)) {
     redirect('/unauthorized');
   }
   return session;

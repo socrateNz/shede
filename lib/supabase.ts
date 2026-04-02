@@ -19,7 +19,7 @@ export function getAdminSupabase() {
   if (!supabaseServiceRoleKey) {
     throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY');
   }
-  return createClient(supabaseUrl, supabaseServiceRoleKey);
+  return createClient(supabaseUrl!, supabaseServiceRoleKey);
 }
 
 // Database type definitions
@@ -31,19 +31,51 @@ export interface Structure {
   address?: string;
   city?: string;
   country?: string;
+  type?: 'RESTAURANT' | 'HOTEL' | 'MIXTE';
+  modules?: string[];
   created_at: string;
   updated_at: string;
 }
 
 export interface User {
   id: string;
-  structure_id: string;
+  structure_id?: string;
   email: string;
   password_hash: string;
   first_name?: string;
   last_name?: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'CAISSE' | 'SERVEUR';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'CAISSE' | 'SERVEUR' | 'CLIENT';
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserStructure {
+  id: string;
+  user_id: string;
+  structure_id: string;
+  role: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Room {
+  id: string;
+  structure_id: string;
+  number: string;
+  type?: string;
+  status: 'AVAILABLE' | 'OCCUPIED' | 'CLEANING';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Booking {
+  id: string;
+  room_id: string;
+  client_id?: string;
+  check_in?: string;
+  check_out?: string;
+  status: 'PENDING' | 'CONFIRMED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED';
   created_at: string;
   updated_at: string;
 }
@@ -89,7 +121,10 @@ export interface Accompaniment {
 export interface Order {
   id: string;
   structure_id: string;
-  user_id: string;
+  user_id?: string;
+  client_id?: string;
+  room_id?: string;
+  source?: 'CAISSE' | 'CLIENT';
   table_number?: number;
   status: 'PENDING' | 'IN_PROGRESS' | 'READY' | 'SERVED' | 'COMPLETED' | 'CANCELLED';
   subtotal: number;

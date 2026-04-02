@@ -42,7 +42,8 @@ export function OrdersList({
       <TableHeader>
         <TableRow className="border-slate-700 hover:bg-slate-800">
           <TableHead className="text-slate-300">Order ID</TableHead>
-          <TableHead className="text-slate-300">Table</TableHead>
+          <TableHead className="text-slate-300">Source</TableHead>
+          <TableHead className="text-slate-300">Table / Chambre</TableHead>
           <TableHead className="text-slate-300 text-right">Total</TableHead>
           <TableHead className="text-slate-300">Status</TableHead>
           <TableHead className="text-slate-300">Time</TableHead>
@@ -55,7 +56,28 @@ export function OrdersList({
           return (
             <TableRow key={order.id} className="border-slate-700 hover:bg-slate-700/50">
               <TableCell className="text-slate-50 font-mono text-sm">{order.id.slice(0, 8)}</TableCell>
-              <TableCell className="text-slate-400">{order.table_number ? `Table ${order.table_number}` : '-'}</TableCell>
+              <TableCell className="text-slate-400 text-xs font-semibold">
+                <span className={order.source === 'CLIENT' ? 'text-green-400' : 'text-blue-400'}>
+                  {order.source || 'CAISSE'}
+                </span>
+              </TableCell>
+              <TableCell className="text-slate-400">
+                {(order as any).rooms?.number ? (
+                  <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    <span className="mr-1.5 shrink-0">🛏️</span>
+                    Chambre {(order as any).rooms.number}
+                  </span>
+                ) : order.table_number ? (
+                  <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20">
+                    <span className="mr-1.5 shrink-0">🍽️</span>
+                    Table {order.table_number}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                    À emporter
+                  </span>
+                )}
+              </TableCell>
               <TableCell className="text-slate-50 text-right font-medium">${order.total.toFixed(2)}</TableCell>
               <TableCell>
                 {canManageStatus ? (

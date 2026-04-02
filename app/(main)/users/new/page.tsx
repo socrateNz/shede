@@ -92,6 +92,7 @@ export default function NewUserPage() {
                 <option value="ADMIN">Admin</option>
                 <option value="CAISSE">Cashier</option>
                 <option value="SERVEUR">Waiter</option>
+                <option value="RECEPTION">Reception</option>
               </select>
             </div>
 

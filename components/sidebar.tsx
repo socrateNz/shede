@@ -3,9 +3,22 @@
 import { SessionPayload } from '@/lib/auth';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, ShoppingCart, Users, Package, Settings, LogOut, Home, Building2, Bell } from 'lucide-react';
+import {
+  BarChart3,
+  ShoppingCart,
+  Users,
+  Package,
+  Settings,
+  LogOut,
+  Home,
+  Building2,
+  Bell,
+  Bed,
+  CalendarDays,
+} from 'lucide-react';
 import { logout } from '@/app/actions/auth';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/lib/store';
 
 interface SidebarProps {
   session: SessionPayload;
@@ -15,31 +28,50 @@ interface SidebarProps {
 
 export function Sidebar({ session, mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
+  const hasModule = useAppStore(state => state.hasModule);
 
   const navigationItems = [
     {
-      name: 'Dashboard',
+      name: 'Tableau de bord',
       href: '/dashboard',
       icon: Home,
       visible: true,
     },
     {
-      name: 'Orders',
+      name: 'Commandes',
       href: '/orders',
       icon: ShoppingCart,
       visible: ['CAISSE', 'SERVEUR', 'ADMIN', 'SUPER_ADMIN'].includes(session.role),
     },
     {
-      name: 'Products',
+      name: 'Produits',
       href: '/products',
       icon: Package,
       visible: ['ADMIN', 'SUPER_ADMIN'].includes(session.role),
     },
     {
-      name: 'Users',
+      name: 'Utilisateurs',
       href: '/users',
       icon: Users,
       visible: ['ADMIN', 'SUPER_ADMIN'].includes(session.role),
+    },
+    {
+      name: 'Accompagnements',
+      href: '/accompaniments',
+      icon: Package,
+      visible: ['ADMIN', 'SUPER_ADMIN'].includes(session.role),
+    },
+    {
+      name: 'Chambres',
+      href: '/rooms',
+      icon: Bed,
+      visible: hasModule('HOTEL') && ['ADMIN', 'SUPER_ADMIN', 'RECEPTION'].includes(session.role),
+    },
+    {
+      name: 'Réservations',
+      href: '/bookings',
+      icon: CalendarDays,
+      visible: hasModule('HOTEL') && ['ADMIN', 'SUPER_ADMIN', 'RECEPTION'].includes(session.role),
     },
     {
       name: 'Structures',
@@ -48,7 +80,7 @@ export function Sidebar({ session, mobileOpen = false, onMobileClose }: SidebarP
       visible: ['SUPER_ADMIN'].includes(session.role),
     },
     {
-      name: 'Analytics',
+      name: 'Analytiques',
       href: '/analytics',
       icon: BarChart3,
       visible: ['ADMIN', 'SUPER_ADMIN'].includes(session.role),
@@ -60,7 +92,7 @@ export function Sidebar({ session, mobileOpen = false, onMobileClose }: SidebarP
       visible: true,
     },
     {
-      name: 'Settings',
+      name: 'Paramètres',
       href: '/settings',
       icon: Settings,
       visible: true,
