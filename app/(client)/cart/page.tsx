@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase';
 
 export default function CartPage() {
   const { items, structureId, updateQuantity, removeItem, getTotal, clearCart } = useCartStore();
-  const [deliveryMode, setDeliveryMode] = useState<'TABLE'|'ROOM'|'TAKEAWAY'>('TABLE');
+  const [deliveryMode, setDeliveryMode] = useState<'TABLE' | 'ROOM' | 'TAKEAWAY'>('TABLE');
   const [roomId, setRoomId] = useState('');
   const [tableNumber, setTableNumber] = useState('');
   const [phone, setPhone] = useState('');
@@ -45,17 +45,17 @@ export default function CartPage() {
     }
 
     setLoading(true);
-    const result = await createClientOrder(structureId, items, { 
-       roomId: deliveryMode === 'ROOM' ? roomId : undefined,
-       tableNumber: deliveryMode === 'TABLE' ? tableNumber : undefined,
-       phone
+    const result = await createClientOrder(structureId, items, {
+      roomId: deliveryMode === 'ROOM' ? roomId : undefined,
+      tableNumber: deliveryMode === 'TABLE' ? tableNumber : undefined,
+      phone
     });
-    
+
     if (result.success) {
       toast.success('Commande confirmée !');
       clearCart();
       // On success, redirecting to a fake success page or home
-      router.push('/');
+      router.push('/client');
     } else {
       toast.error(result.error || 'Erreur lors de la commande');
     }
@@ -72,7 +72,7 @@ export default function CartPage() {
             <div className="flex-1 min-w-0">
               <h3 className="font-bold text-slate-900 truncate">{item.name}</h3>
               <p className="text-blue-600 font-medium pb-2">{formatFCFA(item.price)}</p>
-              
+
               {item.selectedAccompaniments && item.selectedAccompaniments.length > 0 && (
                 <div className="mt-1 mb-3 space-y-1">
                   {item.selectedAccompaniments.map((acc, idx) => (
@@ -107,83 +107,80 @@ export default function CartPage() {
 
         <div className="space-y-4 border-t border-slate-200 pt-6">
           <h3 className="font-semibold text-slate-800">Mode de livraison</h3>
-          
+
           <div className="grid grid-cols-3 gap-3">
             <button
               onClick={() => setDeliveryMode('TABLE')}
-              className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${
-                deliveryMode === 'TABLE' ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-              }`}
+              className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${deliveryMode === 'TABLE' ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                }`}
             >
-               <UtensilsCrossed className="w-5 h-5" />
-               <span className="text-xs font-semibold">Sur place</span>
+              <UtensilsCrossed className="w-5 h-5" />
+              <span className="text-xs font-semibold">Sur place</span>
             </button>
             <button
               onClick={() => setDeliveryMode('ROOM')}
-              className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${
-                deliveryMode === 'ROOM' ? 'bg-purple-50 border-purple-500 text-purple-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-              }`}
+              className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${deliveryMode === 'ROOM' ? 'bg-purple-50 border-purple-500 text-purple-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                }`}
             >
-               <Bed className="w-5 h-5" />
-               <span className="text-xs font-semibold">En chambre</span>
+              <Bed className="w-5 h-5" />
+              <span className="text-xs font-semibold">En chambre</span>
             </button>
             <button
               onClick={() => setDeliveryMode('TAKEAWAY')}
-              className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${
-                deliveryMode === 'TAKEAWAY' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-              }`}
+              className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${deliveryMode === 'TAKEAWAY' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                }`}
             >
-               <ShoppingBag className="w-5 h-5" />
-               <span className="text-xs font-semibold">À emporter</span>
+              <ShoppingBag className="w-5 h-5" />
+              <span className="text-xs font-semibold">À emporter</span>
             </button>
           </div>
 
           <div className="mt-4">
-             {deliveryMode === 'TABLE' && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 block">Numéro de table *</label>
-                  <input 
-                    type="number" 
-                    value={tableNumber}
-                    onChange={(e) => setTableNumber(e.target.value)}
-                    placeholder="Ex: 12" 
-                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 transition-all"
-                  />
-                </div>
-             )}
-             {deliveryMode === 'ROOM' && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 block">Sélectionnez votre chambre *</label>
-                  <select
-                     value={roomId}
-                     onChange={(e) => setRoomId(e.target.value)}
-                     className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                  >
-                     <option value="">Sélectionner une chambre...</option>
-                     {rooms.map((r: any) => (
-                        <option key={r.id} value={r.id}>Chambre {r.number}</option>
-                     ))}
-                  </select>
-                  {rooms.length === 0 && <p className="text-xs text-red-500">Aucune chambre disponible pour cet établissement.</p>}
-                </div>
-             )}
-             
-             <div className="space-y-2 mt-4 pt-4 border-t border-slate-200">
-               <label className="text-sm font-medium text-slate-700 block">Numéro de téléphone *</label>
-               <input 
-                 type="tel" 
-                 value={phone}
-                 onChange={(e) => setPhone(e.target.value)}
-                 placeholder="Ex: 06 12 34 56 78" 
-                 className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                 required
-               />
-               <p className="text-xs text-slate-500">Requis pour vous contacter en cas de besoin concernant votre commande.</p>
-             </div>
+            {deliveryMode === 'TABLE' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 block">Numéro de table *</label>
+                <input
+                  type="number"
+                  value={tableNumber}
+                  onChange={(e) => setTableNumber(e.target.value)}
+                  placeholder="Ex: 12"
+                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                />
+              </div>
+            )}
+            {deliveryMode === 'ROOM' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 block">Sélectionnez votre chambre *</label>
+                <select
+                  value={roomId}
+                  onChange={(e) => setRoomId(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                >
+                  <option value="">Sélectionner une chambre...</option>
+                  {rooms.map((r: any) => (
+                    <option key={r.id} value={r.id}>Chambre {r.number}</option>
+                  ))}
+                </select>
+                {rooms.length === 0 && <p className="text-xs text-red-500">Aucune chambre disponible pour cet établissement.</p>}
+              </div>
+            )}
+
+            <div className="space-y-2 mt-4 pt-4 border-t border-slate-200">
+              <label className="text-sm font-medium text-slate-700 block">Numéro de téléphone *</label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Ex: 06 12 34 56 78"
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                required
+              />
+              <p className="text-xs text-slate-500">Requis pour vous contacter en cas de besoin concernant votre commande.</p>
+            </div>
           </div>
         </div>
 
-        <button 
+        <button
           onClick={handleCheckout}
           disabled={loading}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-4 font-bold text-lg shadow-md transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
