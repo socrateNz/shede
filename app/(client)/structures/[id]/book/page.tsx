@@ -9,12 +9,14 @@ import { Input } from '@/components/ui/input';
 import { ArrowLeft, Calendar, BedDouble } from 'lucide-react';
 import Link from 'next/link';
 import { createClientBooking } from '@/app/actions/client-bookings';
+import { formatFCFA } from '@/lib/utils';
 
 interface Room {
   id: string;
   number: string;
   type: string;
   status: string;
+  price: number
 }
 
 export default function ClientBookRoomPage() {
@@ -24,13 +26,13 @@ export default function ClientBookRoomPage() {
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [selectedRoom, setSelectedRoom] = useState<string>('');
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [guestName, setGuestName] = useState('');
   const [phone, setPhone] = useState('');
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorStr, setErrorStr] = useState('');
   const [success, setSuccess] = useState(false);
@@ -52,7 +54,7 @@ export default function ClientBookRoomPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRoom || !checkIn || !checkOut || !guestName || !phone) return;
-    
+
     setIsSubmitting(true);
     setErrorStr('');
 
@@ -106,13 +108,14 @@ export default function ClientBookRoomPage() {
               ) : (
                 <div className="grid grid-cols-2 gap-3">
                   {rooms.map(room => (
-                    <div 
+                    <div
                       key={room.id}
                       onClick={() => setSelectedRoom(room.id)}
                       className={`cursor-pointer border-2 rounded-xl p-4 text-center transition-all ${selectedRoom === room.id ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-blue-300'}`}
                     >
-                       <div className="font-bold text-lg">{room.number}</div>
-                       <div className="text-xs opacity-75">{room.type}</div>
+                      <div className="font-bold text-lg">{room.number}</div>
+                      <div className="text-xs opacity-75">{room.type}</div>
+                      <div className="text-md font-semibold opacity-75">{formatFCFA(room.price)}</div>
                     </div>
                   ))}
                 </div>
@@ -143,8 +146,8 @@ export default function ClientBookRoomPage() {
 
             {errorStr && <p className="text-red-600 text-sm font-medium bg-red-50 p-3 rounded-md">{errorStr}</p>}
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={isSubmitting || !selectedRoom || rooms.length === 0 || !guestName || !phone}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 text-lg rounded-xl"
             >
