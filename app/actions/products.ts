@@ -5,6 +5,29 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
+export async function getProducts() {
+  const session = await getSession();
+  if (!session || !session.structureId || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
+    return [];
+  }
+
+  try {
+    const admin = getAdminSupabase();
+    const { data } = await admin
+      .from('products')
+      .select('*')
+      .eq('structure_id', session.structureId)
+      .eq('is_deleted', false)
+      .order('name', { ascending: true });
+
+    return data || [];
+  } catch (error) {
+    console.error('getProducts error:', error);
+    return [];
+  }
+}
+
+
 type ProductAccompanimentFormItem =
   | {
     kind: 'existing';

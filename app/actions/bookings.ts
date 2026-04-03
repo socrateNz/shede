@@ -184,3 +184,31 @@ export async function updateBookingStatus(bookingId: string, status: string, roo
     return { success: false, error: 'An unexpected error occurred' };
   }
 }
+
+export async function markBookingAsPaid(bookingId: string) {
+  const session = await getSession();
+  if (!session || !['ADMIN', 'SUPER_ADMIN', 'RECEPTION'].includes(session.role)) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  try {
+    const admin = getAdminSupabase();
+    // Assuming we add a new column `is_paid`
+    // If we don't have it yet, this will error in Supabase but we'll then add the column
+    const { error } = await admin
+      .from('bookings')
+      .update({ is_paid: true })
+      .eq('id', bookingId);
+
+    if (error) {
+      console.error('markBookingAsPaid error:', error);
+      return { success: false, error: 'Failed to record payment' };
+    }
+
+    revalidatePath('/bookings');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+}
+

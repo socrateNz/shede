@@ -4,7 +4,7 @@ import { getOrders, updateOrderStatus } from '@/app/actions/orders';
 import { OrdersList } from '@/components/orders-list';
 import type { Order } from '@/lib/supabase';
 import { useEffect, useRef, useState } from 'react';
-import { Bell, CheckCircle, RefreshCw } from 'lucide-react';
+import { Bell, CheckCircle, RefreshCw, Eye } from 'lucide-react';
 
 interface OrdersLiveListProps {
   initialOrders: Order[];
@@ -81,7 +81,7 @@ export function OrdersLiveList({ initialOrders, structureId, canManageStatus = f
     <div className="space-y-4">
       {/* Notification de nouvelle commande */}
       {hasNewOrder && (
-        <div className="rounded-xl border border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-purple-500/10 backdrop-blur-sm px-4 py-3 text-sm text-blue-300 flex items-center justify-between animate-in slide-in-from-top-2">
+        <div className="mx-4 mt-4 rounded-xl border border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-purple-500/10 backdrop-blur-sm px-4 py-3 text-sm text-blue-300 flex items-center justify-between animate-in slide-in-from-top-2">
           <div className="flex items-center gap-2">
             <div className="relative">
               <Bell className="w-4 h-4 animate-pulse" />
@@ -101,7 +101,7 @@ export function OrdersLiveList({ initialOrders, structureId, canManageStatus = f
       )}
 
       {/* Barre d'outils */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 px-4 pt-4">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -127,7 +127,7 @@ export function OrdersLiveList({ initialOrders, structureId, canManageStatus = f
 
       {/* Liste des commandes */}
       {orders.length === 0 ? (
-        <div className="text-center py-12 text-slate-400 bg-slate-800/30 rounded-xl border border-slate-700/50">
+        <div className="text-center py-12 text-slate-400 bg-slate-800/30 rounded-xl border border-slate-700/50 mx-4 mb-4">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-700/50 flex items-center justify-center">
             <Bell className="w-8 h-8 opacity-30" />
           </div>

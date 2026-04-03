@@ -76,7 +76,11 @@ export interface Booking {
   check_in?: string;
   check_out?: string;
   phone?: string;
-  status: 'PENDING' | 'CONFIRMED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED';
+  status: 'PENDING' | 'CONFIRMED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED' | 'IN_PROGRESS' | 'COMPLETED';
+  is_paid?: boolean;
+  payment_method?: string;
+  total_amount?: number;
+  guest_name?: string;
   created_at: string;
   updated_at: string;
 }

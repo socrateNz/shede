@@ -18,15 +18,25 @@ import {
 interface AnalyticsChartsProps {
   paymentsByMethod: Record<string, number>;
   ordersByStatus: Record<string, number>;
+  bookingsByStatus?: Record<string, number>;
   orderRevenue?: number;
   hotelRevenue?: number;
 }
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
+const bookingStatusLabels: Record<string, string> = {
+  PENDING: 'En attente',
+  CONFIRMED: 'Confirmée',
+  IN_PROGRESS: 'En cours',
+  COMPLETED: 'Terminée',
+  CANCELLED: 'Annulée',
+};
+
 export function AnalyticsCharts({ 
   paymentsByMethod, 
   ordersByStatus,
+  bookingsByStatus = {},
   orderRevenue = 0,
   hotelRevenue = 0
 }: AnalyticsChartsProps) {
@@ -37,6 +47,11 @@ export function AnalyticsCharts({
 
   const orderData = Object.entries(ordersByStatus).map(([status, count]) => ({
     name: status,
+    count,
+  }));
+
+  const bookingData = Object.entries(bookingsByStatus).map(([status, count]) => ({
+    name: bookingStatusLabels[status] || status,
     count,
   }));
 
@@ -133,35 +148,68 @@ export function AnalyticsCharts({
         </Card>
       </div>
 
-      {/* Orders by Status */}
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-slate-50">Commandes par Statut</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {orderData.length === 0 ? (
-            <div className="h-80 flex items-center justify-center text-slate-400">
-              Aucune donnée de commande
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={orderData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
-                <XAxis dataKey="name" stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1e293b',
-                    border: '1px solid #475569',
-                    borderRadius: '6px',
-                  }}
-                />
-                <Bar dataKey="count" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Orders by Status */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-slate-50">Commandes par Statut</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {orderData.length === 0 ? (
+              <div className="h-80 flex items-center justify-center text-slate-400">
+                Aucune donnée de commande
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={orderData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                  <XAxis dataKey="name" stroke="#94a3b8" />
+                  <YAxis stroke="#94a3b8" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#1e293b',
+                      border: '1px solid #475569',
+                      borderRadius: '6px',
+                    }}
+                  />
+                  <Bar dataKey="count" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Bookings by Status */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-slate-50">Réservations par Statut</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {bookingData.length === 0 ? (
+              <div className="h-80 flex items-center justify-center text-slate-400">
+                Aucune donnée de réservation
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={bookingData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                  <XAxis dataKey="name" stroke="#94a3b8" />
+                  <YAxis stroke="#94a3b8" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#1e293b',
+                      border: '1px solid #475569',
+                      borderRadius: '6px',
+                    }}
+                  />
+                  <Bar dataKey="count" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
+

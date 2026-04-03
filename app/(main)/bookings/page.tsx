@@ -1,10 +1,10 @@
 import { requireRole } from '@/app/actions/auth';
-import { getBookings, updateBookingStatus } from '@/app/actions/bookings';
+import { getBookings, updateBookingStatus, markBookingAsPaid } from '@/app/actions/bookings';
 import { getSession } from '@/lib/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Plus, CalendarDays, CheckCircle, XCircle, Clock, UserCheck, DollarSign, MoreVertical } from 'lucide-react';
+import { Plus, CalendarDays, CheckCircle, XCircle, Clock, UserCheck, DollarSign, MoreVertical, CreditCard, Receipt } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -26,7 +26,7 @@ const statusColors: Record<string, { bg: string; text: string; icon: any }> = {
   PENDING: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', icon: Clock },
   CONFIRMED: { bg: 'bg-blue-500/10', text: 'text-blue-400', icon: CheckCircle },
   IN_PROGRESS: { bg: 'bg-purple-500/10', text: 'text-purple-400', icon: UserCheck },
-  COMPLETED: { bg: 'bg-green-500/10', text: 'text-green-400', icon: DollarSign },
+  COMPLETED: { bg: 'bg-green-500/10', text: 'text-green-400', icon: Receipt },
   CANCELLED: { bg: 'bg-red-500/10', text: 'text-red-400', icon: XCircle },
 };
 
@@ -122,6 +122,7 @@ export default async function BookingsPage() {
                       <TableHead className="text-slate-300 font-semibold">Arrivée</TableHead>
                       <TableHead className="text-slate-300 font-semibold">Départ</TableHead>
                       <TableHead className="text-slate-300 font-semibold">Montant</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Paiement</TableHead>
                       <TableHead className="text-slate-300 font-semibold">Statut</TableHead>
                       <TableHead className="text-slate-300 font-semibold text-right">Actions</TableHead>
                     </TableRow>
@@ -168,6 +169,19 @@ export default async function BookingsPage() {
                           </TableCell>
                           <TableCell className="text-slate-300">
                             <span className="font-bold text-white">{booking.total_amount?.toLocaleString()} FCFA</span>
+                          </TableCell>
+                          <TableCell>
+                            {booking.is_paid ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 text-[10px] font-bold uppercase tracking-wider border border-green-500/30">
+                                <DollarSign className="w-3 h-3" />
+                                Payé
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 text-[10px] font-bold uppercase tracking-wider border border-slate-600">
+                                <Clock className="w-3 h-3" />
+                                En attente
+                              </span>
+                            )}
                           </TableCell>
                           <TableCell>
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[booking.status]?.bg} ${statusColors[booking.status]?.text}`}>
@@ -232,18 +246,19 @@ export default async function BookingsPage() {
                                         </button>
                                       </DropdownMenuItem>
                                     </form>
-                                    <DropdownMenuSeparator className="bg-slate-700" />
-                                    <form action={async () => {
-                                      'use server';
-                                      await updateBookingStatus(booking.id, 'COMPLETED', booking.room_id);
-                                    }}>
-                                      <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
-                                        <button type="submit" className="w-full flex items-center gap-2 text-green-400">
-                                          <DollarSign className="w-4 h-4" />
-                                          <span>Encaisser directement</span>
-                                        </button>
-                                      </DropdownMenuItem>
-                                    </form>
+                                    {!booking.is_paid && (
+                                      <form action={async () => {
+                                        'use server';
+                                        await markBookingAsPaid(booking.id);
+                                      }}>
+                                        <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
+                                          <button type="submit" className="w-full flex items-center gap-2 text-green-400">
+                                            <CreditCard className="w-4 h-4" />
+                                            <span>Encaisser l'acompte</span>
+                                          </button>
+                                        </DropdownMenuItem>
+                                      </form>
+                                    )}
                                     <DropdownMenuSeparator className="bg-slate-700" />
                                     <form action={async () => {
                                       'use server';
@@ -261,14 +276,27 @@ export default async function BookingsPage() {
 
                                 {booking.status === 'IN_PROGRESS' && (
                                   <>
+                                    {!booking.is_paid && (
+                                      <form action={async () => {
+                                        'use server';
+                                        await markBookingAsPaid(booking.id);
+                                      }}>
+                                        <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
+                                          <button type="submit" className="w-full flex items-center gap-2 text-green-400">
+                                            <CreditCard className="w-4 h-4" />
+                                            <span>Encaisser paiement</span>
+                                          </button>
+                                        </DropdownMenuItem>
+                                      </form>
+                                    )}
                                     <form action={async () => {
                                       'use server';
                                       await updateBookingStatus(booking.id, 'COMPLETED', booking.room_id);
                                     }}>
                                       <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
-                                        <button type="submit" className="w-full flex items-center gap-2 text-green-400">
-                                          <DollarSign className="w-4 h-4" />
-                                          <span>Finaliser et encaisser</span>
+                                        <button type="submit" className="w-full flex items-center gap-2 text-blue-400">
+                                          <Receipt className="w-4 h-4" />
+                                          <span>Finaliser (Check-out)</span>
                                         </button>
                                       </DropdownMenuItem>
                                     </form>
