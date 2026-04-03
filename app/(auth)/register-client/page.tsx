@@ -18,7 +18,7 @@ export default function RegisterClientPage() {
 
   useEffect(() => {
     if (state.success) {
-      router.push('/(client)'); // Can be a dashboard or redirect back to homepage
+      router.push('/client');
     }
   }, [state.success, router]);
 
