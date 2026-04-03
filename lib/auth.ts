@@ -11,6 +11,7 @@ export interface SessionPayload {
   email: string;
   role: 'SUPER_ADMIN' | 'ADMIN' | 'CAISSE' | 'SERVEUR' | 'RECEPTION' | 'CLIENT';
   structureId?: string;
+  modules?: string[];
   iat: number;
   exp: number;
 }

@@ -52,6 +52,12 @@ export default async function EditProductPage({
     .eq('structure_id', session.structureId)
     .eq('product_id', productId);
 
+  const { data: stockData } = await admin
+    .from('stocks')
+    .select('threshold')
+    .eq('product_id', productId)
+    .single();
+
   const initialAccompaniments: Record<string, { quantity: number; priceIncluded?: boolean }> = {};
   (mappings || []).forEach((m: any) => {
     const accId = m.accompaniment_id as string;
@@ -124,6 +130,7 @@ export default async function EditProductPage({
             price: Number(p.price),
           }))}
           initialAccompaniments={initialAccompaniments}
+          initialThreshold={stockData?.threshold ?? 5}
         />
       </div>
     </div>

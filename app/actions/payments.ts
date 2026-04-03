@@ -11,7 +11,7 @@ export async function createPayment(
   notes?: string
 ) {
   const session = await getSession();
-  if (!session || !['CAISSE', 'SUPER_ADMIN'].includes(session.role)) {
+  if (!session || !['ADMIN', 'CAISSE', 'SUPER_ADMIN'].includes(session.role)) {
     return { success: false, error: 'Unauthorized' };
   }
 

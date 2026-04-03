@@ -509,7 +509,7 @@ export default async function DashboardPage() {
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-700/50">
-                    {recentNotifications.map((notif) => (
+                    {recentNotifications.slice(0, 3).map((notif) => (
                       <div key={notif.id} className="p-4 hover:bg-slate-700/20 transition-colors">
                         <div className="flex gap-3">
                           <div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${!notif.is_read ? 'bg-blue-500 shadow-[0_0_8px_#3b82f6]' : 'bg-slate-600'}`} />

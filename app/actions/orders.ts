@@ -22,7 +22,7 @@ export async function createOrder(
   notes: string | null
 ) {
   const session = await getSession();
-  if (!session || !['CAISSE', 'SERVEUR', 'SUPER_ADMIN'].includes(session.role)) {
+  if (!session || !['ADMIN', 'CAISSE', 'SERVEUR', 'SUPER_ADMIN'].includes(session.role)) {
     return { success: false, error: 'Unauthorized' };
   }
 
@@ -66,7 +66,7 @@ export async function createOrderWithItems(
   formData: FormData
 ) {
   const session = await getSession();
-  if (!session || !['CAISSE', 'SERVEUR', 'SUPER_ADMIN'].includes(session.role)) {
+  if (!session || !['ADMIN', 'CAISSE', 'SERVEUR', 'SUPER_ADMIN'].includes(session.role)) {
     return { success: false, error: 'Unauthorized' };
   }
 
@@ -727,12 +727,14 @@ async function updateOrderTotal(orderId: string) {
     .eq('id', orderId);
 }
 
+import { processOrderStock } from './stock';
+
 export async function updateOrderStatus(
   orderId: string,
   status: string
 ) {
   const session = await getSession();
-  if (!session || !['CAISSE', 'SUPER_ADMIN'].includes(session.role)) {
+  if (!session || !['ADMIN', 'CAISSE', 'SUPER_ADMIN'].includes(session.role)) {
     return { success: false, error: 'Unauthorized' };
   }
 
@@ -747,6 +749,11 @@ export async function updateOrderStatus(
 
     if (error) {
       return { success: false, error: 'Failed to update order' };
+    }
+
+    // REDUIRE LE STOCK SI COMMANDE TERMINEE
+    if (status === 'COMPLETED') {
+      await processOrderStock(orderId);
     }
 
     // Notify client if applicable

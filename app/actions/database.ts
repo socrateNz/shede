@@ -17,9 +17,62 @@ export async function initializeDatabase() {
           address TEXT,
           city VARCHAR(100),
           country VARCHAR(100),
+          type VARCHAR(50) DEFAULT 'RESTAURANT',
+          modules JSONB DEFAULT '["POS"]'::jsonb,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+      `,
+    },
+    {
+      name: 'stocks',
+      sql: `
+        CREATE TABLE IF NOT EXISTS stocks (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          structure_id UUID NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+          product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+          quantity DECIMAL(12, 3) NOT NULL DEFAULT 0,
+          threshold DECIMAL(12, 3) DEFAULT 5,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(structure_id, product_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_stocks_structure_id ON stocks(structure_id);
+        CREATE INDEX IF NOT EXISTS idx_stocks_product_id ON stocks(product_id);
+      `,
+    },
+    {
+      name: 'stock_movements',
+      sql: `
+        CREATE TABLE IF NOT EXISTS stock_movements (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          structure_id UUID NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+          product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+          type VARCHAR(20) NOT NULL, -- IN, OUT, ADJUSTMENT
+          quantity DECIMAL(12, 3) NOT NULL,
+          reason VARCHAR(255), -- purchase, sale, loss, manual_adjustment
+          reference_id UUID, -- order_id if type=OUT and reason=sale
+          user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_stock_movements_structure_id ON stock_movements(structure_id);
+        CREATE INDEX IF NOT EXISTS idx_stock_movements_product_id ON stock_movements(product_id);
+        CREATE INDEX IF NOT EXISTS idx_stock_movements_created_at ON stock_movements(created_at);
+      `,
+    },
+    {
+      name: 'product_recipes',
+      sql: `
+        CREATE TABLE IF NOT EXISTS product_recipes (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          structure_id UUID NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+          product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+          ingredient_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+          quantity DECIMAL(12, 3) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(product_id, ingredient_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_product_recipes_product_id ON product_recipes(product_id);
       `,
     },
     {

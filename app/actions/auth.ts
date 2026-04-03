@@ -71,6 +71,7 @@ export async function login(
       email: users.email,
       role: users.role,
       structureId: users.structure_id,
+      modules: users.structures?.modules || [],
     });
 
     return { 
@@ -108,13 +109,14 @@ export async function register(
 
     const admin = getAdminSupabase();
 
-    // Create structure
+    // Create structure with default POS module
     const { data: structure, error: structureError } = await admin
       .from('structures')
       .insert({
         name: structureName,
         email: structureEmail,
         city: city || null,
+        modules: ['POS'],
       })
       .select()
       .single();
@@ -162,6 +164,7 @@ export async function register(
       email: user.email,
       role: user.role,
       structureId: structure.id,
+      modules: (structure as any).modules || ['POS'],
     });
 
     return { success: true, error: '', redirect: '/setup/products' };
@@ -181,11 +184,11 @@ export async function getCurrentUser() {
     const admin = getAdminSupabase();
     const { data: user } = await admin
       .from('users')
-      .select()
+      .select('*, structures(modules)')
       .eq('id', session.userId)
       .single();
 
-    return user as User | null;
+    return user;
   } catch (error) {
     return null;
   }
@@ -211,6 +214,18 @@ export async function requireRole(...roles: string[]) {
   const session = await requireAuth();
   if (!session.role || !roles.includes(session.role as string)) {
     redirect('/unauthorized');
+  }
+  return session;
+}
+
+export async function requireModule(moduleName: string) {
+  const session = await requireAuth();
+  
+  // SUPER_ADMIN has access to everything
+  if (session.role === 'SUPER_ADMIN') return session;
+
+  if (!session.modules || !session.modules.includes(moduleName)) {
+    redirect('/unauthorized?error=module_required&module=' + moduleName);
   }
   return session;
 }

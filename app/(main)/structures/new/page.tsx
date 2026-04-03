@@ -35,7 +35,8 @@ export default function NewStructurePage() {
   };
 
   const modules = [
-    { value: 'POS', label: '💳 Caisse (POS)', description: 'Gestion des ventes et du stock' },
+    { value: 'POS', label: '💳 Caisse (POS)', description: 'Gestion des ventes' },
+    { value: 'STOCK', label: '📦 Stock (Inventaire)', description: 'Gestion des stocks et mouvements' },
     { value: 'HOTEL', label: '🏨 Hôtel (PMS)', description: 'Gestion des chambres et réservations' },
     { value: 'CLIENT_APP', label: '📱 Application Client (B2C)', description: 'Visibilité sur l\'app client' }
   ];

@@ -26,7 +26,7 @@ export default async function EditStructurePage({
   if (!structure) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl">
           <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-red-400">
             Structure non trouvée
           </div>
@@ -38,7 +38,8 @@ export default async function EditStructurePage({
   const selectedModules = Array.isArray(structure.modules) ? structure.modules : [];
 
   const modules = [
-    { value: 'POS', label: '💳 Caisse (POS)', description: 'Gestion des ventes et du stock' },
+    { value: 'POS', label: '💳 Caisse (POS)', description: 'Gestion des ventes' },
+    { value: 'STOCK', label: '📦 Stock (Inventaire)', description: 'Gestion des stocks et mouvements' },
     { value: 'HOTEL', label: '🏨 Hôtel (PMS)', description: 'Gestion des chambres et réservations' },
     { value: 'CLIENT_APP', label: '📱 Application Client (B2C)', description: 'Visibilité sur l\'app client' }
   ];
@@ -51,7 +52,7 @@ export default async function EditStructurePage({
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="max-w-4xl mx-auto relative">
+      <div className="max-w-4xl relative">
         {/* Back Button */}
         <Link
           href="/structures"
@@ -62,7 +63,7 @@ export default async function EditStructurePage({
         </Link>
 
         {/* Header */}
-        <div className="mb-8 text-center">
+        <div className="mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
             <Sparkles className="w-4 h-4 text-blue-400" />
             <span className="text-sm text-blue-400 font-medium">Modification</span>
@@ -88,7 +89,7 @@ export default async function EditStructurePage({
 
         {/* Formulaire Card */}
         <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-2xl hover:shadow-blue-500/5 transition-all duration-500 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 pointer-events-none" />
 
           <CardHeader className="border-b border-slate-700/50 pb-6">
             <CardTitle className="text-2xl font-bold text-white flex items-center gap-3">
@@ -103,6 +104,11 @@ export default async function EditStructurePage({
             <form
               action={async (formData) => {
                 'use server';
+                // Récupérer tous les modules sélectionnés
+                const selectedModulesValues = formData.getAll('modules');
+                // Ajouter les modules au formData
+                formData.append('modules', JSON.stringify(selectedModulesValues));
+
                 const result = await updateStructure(structureId, { success: false, error: '' }, formData);
                 if (!result.success) {
                   redirect(`/structures/${structureId}/edit?error=${result.error}`);
@@ -184,7 +190,7 @@ export default async function EditStructurePage({
                   </div>
                 </div>
 
-                {/* Modules avec Checkboxes */}
+                {/* Modules avec Checkboxes - Version corrigée */}
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                     <ChevronRight className="w-4 h-4 text-blue-400" />
@@ -197,8 +203,8 @@ export default async function EditStructurePage({
                         <label
                           key={module.value}
                           className={`flex items-start gap-3 p-4 rounded-lg border transition-all duration-300 cursor-pointer ${isChecked
-                              ? 'bg-blue-500/10 border-blue-500/50'
-                              : 'bg-slate-900/30 border-slate-600 hover:border-slate-500'
+                            ? 'bg-blue-500/10 border-blue-500/50'
+                            : 'bg-slate-900/30 border-slate-600 hover:border-slate-500'
                             }`}
                         >
                           <div className="flex-shrink-0 mt-0.5">
@@ -207,16 +213,8 @@ export default async function EditStructurePage({
                               name="modules"
                               value={module.value}
                               defaultChecked={isChecked}
-                              className="hidden"
+                              className="w-5 h-5 rounded border-slate-500 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
                             />
-                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${isChecked
-                                ? 'bg-blue-500 border-blue-500'
-                                : 'border-slate-500 bg-transparent'
-                              }`}>
-                              {isChecked && (
-                                <Check className="w-3 h-3 text-white" />
-                              )}
-                            </div>
                           </div>
                           <div className="flex-1">
                             <div className="font-medium text-slate-200">{module.label}</div>

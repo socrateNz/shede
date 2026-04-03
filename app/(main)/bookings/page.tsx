@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Plus, CalendarDays, CheckCircle, XCircle, Clock, UserCheck, DollarSign, MoreVertical, CreditCard, Receipt } from 'lucide-react';
+import { Plus, CalendarDays, CheckCircle, XCircle, Clock, UserCheck, DollarSign, MoreVertical, CreditCard, Receipt, Eye, User, Phone, Calendar, Hash, CreditCard as CreditCardIcon, Building2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -20,7 +20,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { PrintReceiptButton } from '@/components/print-receipt-button';
+import { formatFCFA } from '@/lib/utils';
 
 const statusColors: Record<string, { bg: string; text: string; icon: any }> = {
   PENDING: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', icon: Clock },
@@ -129,7 +138,8 @@ export default async function BookingsPage() {
                   </TableHeader>
                   <TableBody>
                     {bookings.map((booking: any) => {
-                      const StatusIcon = statusColors[booking.status]?.icon || Clock;
+                      const StatusIcon = statusColors[booking.status]?.icon || Clock
+                      const numberOfNights = Math.ceil((new Date(booking.check_out).getTime() - new Date(booking.check_in).getTime()) / (1000 * 60 * 60 * 24))
                       return (
                         <TableRow
                           key={booking.id}
@@ -190,157 +200,276 @@ export default async function BookingsPage() {
                             </span>
                           </TableCell>
                           <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
-                                >
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align="end"
-                                className="w-56 bg-slate-800 border-slate-700 text-slate-200"
-                              >
-                                {/* Actions selon le statut */}
+                            <div className="flex items-center justify-end gap-2">
+                              {/* Bouton Voir les détails avec Dialog */}
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10"
+                                    title="Voir les détails"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-lg bg-slate-800/95 backdrop-blur-sm border-slate-700/50 text-slate-50">
+                                  <DialogHeader>
+                                    <DialogTitle className="flex items-center gap-2 text-xl">
+                                      <Receipt className="w-5 h-5 text-blue-400" />
+                                      Détails de la réservation
+                                    </DialogTitle>
+                                    <DialogDescription className="text-slate-400">
+                                      N° {booking.id.slice(0, 8)}
+                                    </DialogDescription>
+                                  </DialogHeader>
 
-                                {booking.status === 'PENDING' && (
-                                  <>
-                                    <form action={async () => {
-                                      'use server';
-                                      await updateBookingStatus(booking.id, 'CONFIRMED', booking.room_id);
-                                    }}>
-                                      <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
-                                        <button type="submit" className="w-full flex items-center gap-2 text-blue-400">
-                                          <CheckCircle className="w-4 h-4" />
-                                          <span>Accepter la réservation</span>
-                                        </button>
-                                      </DropdownMenuItem>
-                                    </form>
-                                    <form action={async () => {
-                                      'use server';
-                                      await updateBookingStatus(booking.id, 'CANCELLED', booking.room_id);
-                                    }}>
-                                      <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
-                                        <button type="submit" className="w-full flex items-center gap-2 text-red-400">
-                                          <XCircle className="w-4 h-4" />
-                                          <span>Refuser la réservation</span>
-                                        </button>
-                                      </DropdownMenuItem>
-                                    </form>
-                                  </>
-                                )}
-
-                                {booking.status === 'CONFIRMED' && (
-                                  <>
-                                    <form action={async () => {
-                                      'use server';
-                                      await updateBookingStatus(booking.id, 'IN_PROGRESS', booking.room_id);
-                                    }}>
-                                      <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
-                                        <button type="submit" className="w-full flex items-center gap-2 text-purple-400">
-                                          <UserCheck className="w-4 h-4" />
-                                          <span>Check-in (Arrivée client)</span>
-                                        </button>
-                                      </DropdownMenuItem>
-                                    </form>
-                                    {!booking.is_paid && (
-                                      <form action={async () => {
-                                        'use server';
-                                        await markBookingAsPaid(booking.id);
-                                      }}>
-                                        <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
-                                          <button type="submit" className="w-full flex items-center gap-2 text-green-400">
-                                            <CreditCard className="w-4 h-4" />
-                                            <span>Encaisser l'acompte</span>
-                                          </button>
-                                        </DropdownMenuItem>
-                                      </form>
-                                    )}
-                                    <DropdownMenuSeparator className="bg-slate-700" />
-                                    <form action={async () => {
-                                      'use server';
-                                      await updateBookingStatus(booking.id, 'CANCELLED', booking.room_id);
-                                    }}>
-                                      <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
-                                        <button type="submit" className="w-full flex items-center gap-2 text-red-400">
-                                          <XCircle className="w-4 h-4" />
-                                          <span>Annuler la réservation</span>
-                                        </button>
-                                      </DropdownMenuItem>
-                                    </form>
-                                  </>
-                                )}
-
-                                {booking.status === 'IN_PROGRESS' && (
-                                  <>
-                                    {!booking.is_paid && (
-                                      <form action={async () => {
-                                        'use server';
-                                        await markBookingAsPaid(booking.id);
-                                      }}>
-                                        <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
-                                          <button type="submit" className="w-full flex items-center gap-2 text-green-400">
-                                            <CreditCard className="w-4 h-4" />
-                                            <span>Encaisser paiement</span>
-                                          </button>
-                                        </DropdownMenuItem>
-                                      </form>
-                                    )}
-                                    <form action={async () => {
-                                      'use server';
-                                      await updateBookingStatus(booking.id, 'COMPLETED', booking.room_id);
-                                    }}>
-                                      <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
-                                        <button type="submit" className="w-full flex items-center gap-2 text-blue-400">
-                                          <Receipt className="w-4 h-4" />
-                                          <span>Finaliser (Check-out)</span>
-                                        </button>
-                                      </DropdownMenuItem>
-                                    </form>
-                                    <DropdownMenuSeparator className="bg-slate-700" />
-                                    <form action={async () => {
-                                      'use server';
-                                      await updateBookingStatus(booking.id, 'CANCELLED', booking.room_id);
-                                    }}>
-                                      <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
-                                        <button type="submit" className="w-full flex items-center gap-2 text-red-400">
-                                          <XCircle className="w-4 h-4" />
-                                          <span>Annuler la réservation</span>
-                                        </button>
-                                      </DropdownMenuItem>
-                                    </form>
-                                  </>
-                                )}
-
-                                {booking.status === 'COMPLETED' && (
-                                  <PrintReceiptButton booking={booking} />
-                                )}
-
-                                {booking.status === 'CANCELLED' && (
-                                  <div className="px-2 py-1.5 text-sm text-slate-500 text-center">
-                                    ✗ Réservation annulée
-                                  </div>
-                                )}
-
-                                {/* Lien pour voir les détails */}
-                                {(booking.status === 'CONFIRMED' || booking.status === 'PENDING' || booking.status === 'IN_PROGRESS') && (
-                                  <>
-                                    <DropdownMenuSeparator className="bg-slate-700" />
-                                    <Link href={`/bookings/${booking.id}/edit`}>
-                                      <DropdownMenuItem className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
-                                        <div className="flex items-center gap-2 text-slate-400">
-                                          <MoreVertical className="w-4 h-4" />
-                                          <span>Voir les détails</span>
+                                  <div className="space-y-4 mt-4">
+                                    {/* Informations client */}
+                                    <div className="rounded-lg bg-slate-900/50 p-4 border border-slate-700">
+                                      <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                                        <User className="w-4 h-4 text-blue-400" />
+                                        Informations client
+                                      </h4>
+                                      <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                          <span className="text-slate-400">Nom complet :</span>
+                                          <span className="text-slate-200 font-medium">
+                                            {booking.users ? `${booking.users.first_name} ${booking.users.last_name}` : 'Walk-in'}
+                                          </span>
                                         </div>
-                                      </DropdownMenuItem>
-                                    </Link>
-                                  </>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                                        {booking.phone && (
+                                          <div className="flex justify-between">
+                                            <span className="text-slate-400">Téléphone :</span>
+                                            <span className="text-slate-200">{booking.phone}</span>
+                                          </div>
+                                        )}
+                                        {booking.email && (
+                                          <div className="flex justify-between">
+                                            <span className="text-slate-400">Email :</span>
+                                            <span className="text-slate-200">{booking.email}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Informations chambre */}
+                                    <div className="rounded-lg bg-slate-900/50 p-4 border border-slate-700">
+                                      <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                                        <Building2 className="w-4 h-4 text-purple-400" />
+                                        Informations chambre
+                                      </h4>
+                                      <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                          <span className="text-slate-400">Chambre :</span>
+                                          <span className="text-slate-200 font-medium">{booking.rooms?.number}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="text-slate-400">Type :</span>
+                                          <span className="text-slate-200">{booking.rooms?.type}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="text-slate-400">Prix / nuit :</span>
+                                          <span className="text-slate-200">{formatFCFA(booking.total_amount / numberOfNights)}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Informations séjour */}
+                                    <div className="rounded-lg bg-slate-900/50 p-4 border border-slate-700">
+                                      <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                                        <Calendar className="w-4 h-4 text-emerald-400" />
+                                        Informations séjour
+                                      </h4>
+                                      <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                          <span className="text-slate-400">Arrivée :</span>
+                                          <span className="text-slate-200">
+                                            {new Date(booking.check_in).toLocaleDateString('fr-FR')} à {new Date(booking.check_in).toLocaleTimeString('fr-FR')}
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="text-slate-400">Départ :</span>
+                                          <span className="text-slate-200">
+                                            {new Date(booking.check_out).toLocaleDateString('fr-FR')} à {new Date(booking.check_out).toLocaleTimeString('fr-FR')}
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="text-slate-400">Nombre de nuits :</span>
+                                          <span className="text-slate-200 font-medium">
+                                            {Math.ceil((new Date(booking.check_out).getTime() - new Date(booking.check_in).getTime()) / (1000 * 60 * 60 * 24))} nuit(s)
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Informations paiement */}
+                                    <div className="rounded-lg bg-slate-900/50 p-4 border border-slate-700">
+                                      <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                                        <CreditCardIcon className="w-4 h-4 text-green-400" />
+                                        Informations paiement
+                                      </h4>
+                                      <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                          <span className="text-slate-400">Montant total :</span>
+                                          <span className="text-slate-200 font-bold text-lg">{formatFCFA(booking.total_amount)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="text-slate-400">Statut paiement :</span>
+                                          <span className={booking.is_paid ? 'text-green-400' : 'text-yellow-400'}>
+                                            {booking.is_paid ? 'Payé' : 'En attente'}
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="text-slate-400">Statut réservation :</span>
+                                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs ${statusColors[booking.status]?.bg} ${statusColors[booking.status]?.text}`}>
+                                            <StatusIcon className="w-3 h-3" />
+                                            {statusLabels[booking.status] || booking.status}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+
+                              {/* Menu des actions */}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="w-56 bg-slate-800 border-slate-700 text-slate-200"
+                                >
+                                  {/* Actions selon le statut */}
+                                  {booking.status === 'PENDING' && (
+                                    <>
+                                      <form action={async () => {
+                                        'use server';
+                                        await updateBookingStatus(booking.id, 'CONFIRMED', booking.room_id);
+                                      }}>
+                                        <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
+                                          <button type="submit" className="w-full flex items-center gap-2 text-blue-400">
+                                            <CheckCircle className="w-4 h-4" />
+                                            <span>Accepter la réservation</span>
+                                          </button>
+                                        </DropdownMenuItem>
+                                      </form>
+                                      <form action={async () => {
+                                        'use server';
+                                        await updateBookingStatus(booking.id, 'CANCELLED', booking.room_id);
+                                      }}>
+                                        <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
+                                          <button type="submit" className="w-full flex items-center gap-2 text-red-400">
+                                            <XCircle className="w-4 h-4" />
+                                            <span>Refuser la réservation</span>
+                                          </button>
+                                        </DropdownMenuItem>
+                                      </form>
+                                    </>
+                                  )}
+
+                                  {booking.status === 'CONFIRMED' && (
+                                    <>
+                                      <form action={async () => {
+                                        'use server';
+                                        await updateBookingStatus(booking.id, 'IN_PROGRESS', booking.room_id);
+                                      }}>
+                                        <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
+                                          <button type="submit" className="w-full flex items-center gap-2 text-purple-400">
+                                            <UserCheck className="w-4 h-4" />
+                                            <span>Check-in (Arrivée client)</span>
+                                          </button>
+                                        </DropdownMenuItem>
+                                      </form>
+                                      {!booking.is_paid && (
+                                        <form action={async () => {
+                                          'use server';
+                                          await markBookingAsPaid(booking.id);
+                                        }}>
+                                          <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
+                                            <button type="submit" className="w-full flex items-center gap-2 text-green-400">
+                                              <CreditCard className="w-4 h-4" />
+                                              <span>Encaisser l'acompte</span>
+                                            </button>
+                                          </DropdownMenuItem>
+                                        </form>
+                                      )}
+                                      <DropdownMenuSeparator className="bg-slate-700" />
+                                      <form action={async () => {
+                                        'use server';
+                                        await updateBookingStatus(booking.id, 'CANCELLED', booking.room_id);
+                                      }}>
+                                        <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
+                                          <button type="submit" className="w-full flex items-center gap-2 text-red-400">
+                                            <XCircle className="w-4 h-4" />
+                                            <span>Annuler la réservation</span>
+                                          </button>
+                                        </DropdownMenuItem>
+                                      </form>
+                                    </>
+                                  )}
+
+                                  {booking.status === 'IN_PROGRESS' && (
+                                    <>
+                                      {!booking.is_paid && (
+                                        <form action={async () => {
+                                          'use server';
+                                          await markBookingAsPaid(booking.id);
+                                        }}>
+                                          <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
+                                            <button type="submit" className="w-full flex items-center gap-2 text-green-400">
+                                              <CreditCard className="w-4 h-4" />
+                                              <span>Encaisser paiement</span>
+                                            </button>
+                                          </DropdownMenuItem>
+                                        </form>
+                                      )}
+                                      <form action={async () => {
+                                        'use server';
+                                        await updateBookingStatus(booking.id, 'COMPLETED', booking.room_id);
+                                      }}>
+                                        <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
+                                          <button type="submit" className="w-full flex items-center gap-2 text-blue-400">
+                                            <Receipt className="w-4 h-4" />
+                                            <span>Finaliser (Check-out)</span>
+                                          </button>
+                                        </DropdownMenuItem>
+                                      </form>
+                                      <DropdownMenuSeparator className="bg-slate-700" />
+                                      <form action={async () => {
+                                        'use server';
+                                        await updateBookingStatus(booking.id, 'CANCELLED', booking.room_id);
+                                      }}>
+                                        <DropdownMenuItem asChild className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700">
+                                          <button type="submit" className="w-full flex items-center gap-2 text-red-400">
+                                            <XCircle className="w-4 h-4" />
+                                            <span>Annuler la réservation</span>
+                                          </button>
+                                        </DropdownMenuItem>
+                                      </form>
+                                    </>
+                                  )}
+
+                                  {booking.status === 'COMPLETED' && (
+                                    <PrintReceiptButton booking={booking} />
+                                  )}
+
+                                  {booking.status === 'CANCELLED' && (
+                                    <div className="px-2 py-1.5 text-sm text-slate-500 text-center">
+                                      ✗ Réservation annulée
+                                    </div>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );

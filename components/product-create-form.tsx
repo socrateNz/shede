@@ -12,6 +12,8 @@ import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
+import { useAppStore } from '@/lib/store';
+
 type ProductOption = {
   id: string;
   name: string;
@@ -44,11 +46,14 @@ type CreateProductParams = {
   category?: string;
   isAvailable: boolean;
   accompaniments: AccompanimentItem[];
+  threshold?: number;
 };
 
 export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptions: ProductOption[] }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const hasModule = useAppStore(state => state.hasModule);
+  const hasStockModule = hasModule('STOCK');
 
   const [existingSelected, setExistingSelected] = useState<Record<string, number>>({});
   const [newAccompName, setNewAccompName] = useState('');
@@ -150,6 +155,7 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
       category: (formData.get('category') as string) || undefined,
       isAvailable: formData.get('isAvailable') === 'on',
       accompaniments: accompanimentsPayload,
+      threshold: hasStockModule ? Number(formData.get('threshold')) : undefined,
     };
 
     createMutation.mutate(params);
@@ -295,6 +301,30 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                     </div>
                   </div>
                 </div>
+
+                {/* Section Stock - Uniquement si module activé */}
+                {hasStockModule && (
+                  <div className="space-y-6 pt-4">
+                    <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-500" />
+                      <h3 className="font-semibold">Gestion du Stock</h3>
+                    </div>
+                    <div className="max-w-xs space-y-2 group">
+                      <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                        Seuil d'alerte *
+                      </label>
+                      <Input
+                        type="number"
+                        name="threshold"
+                        defaultValue={5}
+                        min="0"
+                        className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-amber-500 focus:ring-amber-500/20 transition-all duration-300"
+                        required
+                      />
+                      <p className="text-[10px] text-slate-500">Une alerte sera affichée si le stock tombe en dessous de cette valeur.</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Section Accompagnements */}

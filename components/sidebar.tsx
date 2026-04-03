@@ -15,6 +15,7 @@ import {
   Bell,
   Bed,
   CalendarDays,
+  Boxes,
 } from 'lucide-react';
 import { logout } from '@/app/actions/auth';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
   const storeHasModule = useAppStore(state => state.hasModule);
 
   const hasHotelModule = structure?.modules?.includes('HOTEL') || storeHasModule('HOTEL');
+  const hasStockModule = structure?.modules?.includes('STOCK') || storeHasModule('STOCK');
 
   const navigationItems = [
     {
@@ -52,6 +54,12 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       href: '/products',
       icon: Package,
       visible: ['ADMIN'].includes(session.role),
+    },
+    {
+      name: 'Stock',
+      href: '/stock',
+      icon: Boxes,
+      visible: hasStockModule && ['ADMIN'].includes(session.role),
     },
     {
       name: 'Utilisateurs',

@@ -181,3 +181,34 @@ export interface Payment {
   created_at: string;
   updated_at: string;
 }
+
+export interface Stock {
+  id: string;
+  structure_id: string;
+  product_id: string;
+  quantity: number;
+  threshold?: number;
+  updated_at: string;
+}
+
+export interface StockMovement {
+  id: string;
+  structure_id: string;
+  product_id: string;
+  type: 'IN' | 'OUT' | 'ADJUSTMENT';
+  quantity: number;
+  reason?: string;
+  reference_id?: string;
+  user_id?: string;
+  created_at: string;
+}
+
+export interface ProductRecipe {
+  id: string;
+  structure_id: string;
+  product_id: string;
+  ingredient_id: string;
+  quantity: number;
+  created_at: string;
+  updated_at: string;
+}

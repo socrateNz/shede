@@ -214,7 +214,7 @@ export async function createProductWithFormData(
     const accompaniments = parseAccompaniments(accompanimentsRaw);
     await syncProductAccompaniments({
       admin,
-      structureId: session.structureId,
+      structureId: session.structureId as string,
       productId: product.id,
       accompaniments,
     });
@@ -240,6 +240,7 @@ export async function createProduct(params: {
   category?: string;
   isAvailable: boolean;
   accompaniments: ProductAccompanimentFormItem[];
+  threshold?: number;
 }) {
   if (!params.name || Number.isNaN(params.price) || params.price <= 0) {
     return { success: false, error: 'Please provide valid product data' };
@@ -275,10 +276,19 @@ export async function createProduct(params: {
 
     await syncProductAccompaniments({
       admin,
-      structureId: session.structureId,
+      structureId: session.structureId as string,
       productId: product.id,
       accompaniments: params.accompaniments,
     });
+
+    if (params.threshold !== undefined) {
+      await admin.from('stocks').upsert({
+        structure_id: session.structureId,
+        product_id: product.id,
+        threshold: params.threshold,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'structure_id, product_id' });
+    }
 
     revalidatePath('/products');
 
@@ -289,16 +299,17 @@ export async function createProduct(params: {
   }
 }
 
-// Version originale (gardée pour compatibilité)
-export async function updateProductOriginal(
-  productId: string,
-  name: string,
-  description: string | undefined,
-  price: number,
-  category: string | undefined,
-  isAvailable: boolean,
-  accompaniments: ProductAccompanimentFormItem[]
-) {
+// UPDATE PRODUCT
+export async function updateProduct(params: {
+  productId: string;
+  name: string;
+  description?: string;
+  price: number;
+  category?: string;
+  isAvailable: boolean;
+  accompaniments: ProductAccompanimentFormItem[];
+  threshold?: number;
+}) {
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
     return { success: false, error: 'Unauthorized' };
@@ -310,13 +321,13 @@ export async function updateProductOriginal(
     const { error } = await admin
       .from('products')
       .update({
-        name,
-        description: description || null,
-        price,
-        category: category || null,
-        is_available: isAvailable,
+        name: params.name,
+        description: params.description || null,
+        price: params.price,
+        category: params.category || null,
+        is_available: params.isAvailable,
       })
-      .eq('id', productId)
+      .eq('id', params.productId)
       .eq('structure_id', session.structureId);
 
     if (error) {
@@ -325,40 +336,28 @@ export async function updateProductOriginal(
 
     await syncProductAccompaniments({
       admin,
-      structureId: session.structureId,
-      productId,
-      accompaniments,
+      structureId: session.structureId as string,
+      productId: params.productId,
+      accompaniments: params.accompaniments,
     });
 
+    if (params.threshold !== undefined) {
+      await admin.from('stocks').upsert({
+        structure_id: session.structureId,
+        product_id: params.productId,
+        threshold: params.threshold,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'structure_id, product_id' });
+    }
+
     revalidatePath('/products');
-    revalidatePath(`/products/${productId}`);
+    revalidatePath(`/products/${params.productId}`);
 
     return { success: true };
   } catch (error) {
     console.error('Update product error:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Failed to update product' };
   }
-}
-
-// Nouvelle version qui accepte un objet (pour TanStack Query)
-export async function updateProduct(params: {
-  productId: string;
-  name: string;
-  description?: string;
-  price: number;
-  category?: string;
-  isAvailable: boolean;
-  accompaniments: ProductAccompanimentFormItem[];
-}) {
-  return updateProductOriginal(
-    params.productId,
-    params.name,
-    params.description,
-    params.price,
-    params.category,
-    params.isAvailable,
-    params.accompaniments
-  );
 }
 
 export async function deleteProduct(productId: string) {
