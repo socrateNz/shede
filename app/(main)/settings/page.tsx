@@ -1,8 +1,9 @@
 import { requireAuth } from '@/app/actions/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
+import { LogOut, Bell } from 'lucide-react';
 import { logout } from '@/app/actions/auth';
+import { PushSubscriptionToggle } from '@/components/push-subscription-toggle';
 
 export default async function SettingsPage() {
   const session = await requireAuth();
@@ -32,6 +33,22 @@ export default async function SettingsPage() {
             <label className="text-sm text-slate-400">Structure ID</label>
             <p className="text-slate-50 font-mono text-sm">{session.structureId}</p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Notifications */}
+      <Card className="bg-slate-800 border-slate-700 max-w-2xl mb-6 shadow-xl">
+        <CardHeader>
+          <CardTitle className="text-slate-50 flex items-center gap-2">
+            <Bell className="w-5 h-5 text-blue-400" />
+            Notifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-slate-400">
+            Configurez comment vous souhaitez recevoir les alertes pour les nouvelles commandes et réservations.
+          </p>
+          <PushSubscriptionToggle />
         </CardContent>
       </Card>
 

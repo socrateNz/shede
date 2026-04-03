@@ -36,9 +36,11 @@ interface SelectedItem {
 export function NewOrderForm({
   products,
   accompanimentsByProductId,
+  rooms,
 }: {
   products: OrderProduct[];
   accompanimentsByProductId: Record<string, AccompanimentOption[]>;
+  rooms: { id: string; number: string }[];
 }) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(createOrderWithItems, {
@@ -148,7 +150,19 @@ export function NewOrderForm({
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-200">Room Number (optional)</label>
+              <select
+                name="roomId"
+                className="w-full bg-slate-700 border border-slate-600 text-slate-50 placeholder:text-slate-500 rounded-md py-2 px-3 h-10"
+              >
+                <option value="">Sélectionner une chambre</option>
+                {rooms.map(room => (
+                  <option key={room.id} value={room.id}>Chambre {room.number}</option>
+                ))}
+              </select>
+            </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-200">Table Number (optional)</label>
               <Input
@@ -156,6 +170,16 @@ export function NewOrderForm({
                 name="tableNumber"
                 placeholder="e.g. 5"
                 className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-200">Phone *</label>
+              <Input
+                type="tel"
+                name="phone"
+                placeholder="Client phone"
+                className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
+                required
               />
             </div>
             <div className="space-y-2">

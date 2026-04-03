@@ -63,14 +63,26 @@ export default function NewBookingPage() {
               </select>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Client Name</label>
-              <Input
-                type="text"
-                name="clientName"
-                placeholder="Walk-in Client (Optional)"
-                className="bg-slate-700 border-slate-600 text-slate-50"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-200">Client Name</label>
+                <Input
+                  type="text"
+                  name="clientName"
+                  placeholder="Walk-in Client (Optional)"
+                  className="bg-slate-700 border-slate-600 text-slate-50"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-200">Phone *</label>
+                <Input
+                  type="tel"
+                  name="phone"
+                  placeholder="Client Phone"
+                  className="bg-slate-700 border-slate-600 text-slate-50"
+                  required
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

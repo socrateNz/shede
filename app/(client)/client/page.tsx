@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Bed, CalendarDays, UtensilsCrossed, MapPin, Store, Building2, ArrowRight } from 'lucide-react';
+import { ClientInvoiceWrapper } from '@/components/client-invoice-wrapper';
 import Link from 'next/link';
 import { getAdminSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
@@ -23,7 +24,7 @@ export default async function ClientDashboardPage() {
   // Fetch their orders
   const { data: orders } = await supabase
     .from('orders')
-    .select('*, structures(name)')
+    .select('*, structures(name), rooms(number), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))')
     .or(`client_id.eq.${session.userId},user_id.eq.${session.userId}`)
     .order('created_at', { ascending: false });
 
@@ -118,12 +119,16 @@ export default async function ClientDashboardPage() {
                       </p>
                     </div>
                     <div>
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${o.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                        o.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                          o.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                          o.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
                           'bg-blue-100 text-blue-700'
                         }`}>
-                        {o.status}
-                      </span>
+                          {o.status}
+                        </span>
+                        <ClientInvoiceWrapper order={o} />
+                      </div>
                     </div>
                   </div>
                 ))}

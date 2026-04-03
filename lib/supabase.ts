@@ -75,6 +75,7 @@ export interface Booking {
   client_id?: string;
   check_in?: string;
   check_out?: string;
+  phone?: string;
   status: 'PENDING' | 'CONFIRMED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED';
   created_at: string;
   updated_at: string;
@@ -124,6 +125,7 @@ export interface Order {
   user_id?: string;
   client_id?: string;
   room_id?: string;
+  phone?: string;
   source?: 'CAISSE' | 'CLIENT';
   table_number?: number;
   status: 'PENDING' | 'IN_PROGRESS' | 'READY' | 'SERVED' | 'COMPLETED' | 'CANCELLED';

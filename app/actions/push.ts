@@ -1,8 +1,12 @@
 'use server';
 
 import { getSession } from '@/lib/auth';
-import { sendWebPush } from '@/lib/push';
+import { sendWebPush, getVapidPublicKey } from '@/lib/push';
 import { getAdminSupabase } from '@/lib/supabase';
+
+export async function getPublicKey() {
+  return getVapidPublicKey();
+}
 
 interface PushSubscriptionPayload {
   endpoint?: string;
@@ -122,7 +126,7 @@ export async function sendTestPushNotification() {
     }
 
     await createNotificationsForUsers({
-      structureId: session.structureId,
+      structureId: session.structureId!,
       userIds: [session.userId],
       title: 'Test notification',
       body: 'Les notifications push fonctionnent correctement.',
@@ -158,11 +162,12 @@ export async function sendTestPushNotification() {
   }
 }
 
-export async function notifyStructureOrderCreated(input: {
+export async function notifyStructureStaff(input: {
   structureId: string;
   title: string;
   body: string;
-  url: string;
+  url?: string;
+  roles?: string[];
 }) {
   try {
     const admin = getAdminSupabase();
@@ -170,7 +175,7 @@ export async function notifyStructureOrderCreated(input: {
       .from('users')
       .select('id')
       .eq('structure_id', input.structureId)
-      .in('role', ['ADMIN', 'CAISSE', 'SUPER_ADMIN'])
+      .in('role', input.roles || ['ADMIN', 'CAISSE', 'SUPER_ADMIN', 'RECEPTION'])
       .eq('is_active', true);
 
     if (!recipients?.length) return;
@@ -223,6 +228,63 @@ export async function notifyStructureOrderCreated(input: {
   }
 }
 
+export async function notifyUser(input: {
+  userId: string;
+  structureId: string;
+  title: string;
+  body: string;
+  url?: string;
+}) {
+  try {
+    const admin = getAdminSupabase();
+    
+    // Create in-app notification
+    await createNotificationsForUsers({
+      structureId: input.structureId,
+      userIds: [input.userId],
+      title: input.title,
+      body: input.body,
+      url: input.url,
+    });
+
+    // Send push if subscription exists
+    const { data: subscriptions } = await admin
+      .from('push_subscriptions')
+      .select('endpoint, p256dh, auth')
+      .eq('user_id', input.userId);
+
+    if (subscriptions?.length) {
+      await Promise.all(
+        subscriptions.map(async (sub) => {
+          try {
+            await sendWebPush(
+              {
+                endpoint: sub.endpoint,
+                keys: {
+                  p256dh: sub.p256dh,
+                  auth: sub.auth,
+                },
+              },
+              {
+                title: input.title,
+                body: input.body,
+                url: input.url,
+              }
+            );
+          } catch (error: any) {
+            const code = Number(error?.statusCode || 0);
+            if (code === 404 || code === 410) {
+              await admin.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
+            }
+          }
+        })
+      );
+    }
+  } catch (error) {
+    console.error('Notify user error:', error);
+  }
+}
+
 export async function getMyNotifications(limit: number = 50) {
   const session = await getSession();
   if (!session) return [];
@@ -241,4 +303,77 @@ export async function getMyNotifications(limit: number = 50) {
   } catch (error) {
     return [];
   }
+}
+
+export async function getUnreadNotificationsCount() {
+  const session = await getSession();
+  if (!session) return 0;
+
+  try {
+    const admin = getAdminSupabase();
+    const { count } = await admin
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', session.userId)
+      .eq('structure_id', session.structureId)
+      .eq('is_read', false);
+
+    return count || 0;
+  } catch (error) {
+    return 0;
+  }
+}
+
+export async function markNotificationAsRead(notificationId: string) {
+  const session = await getSession();
+  if (!session) return { success: false };
+
+  try {
+    const admin = getAdminSupabase();
+    const { error } = await admin
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', notificationId)
+      .eq('user_id', session.userId);
+
+    if (error) return { success: false, error: 'Failed to mark as read' };
+    return { success: true };
+  } catch (error) {
+    return { success: false };
+  }
+}
+
+export async function markAllNotificationsAsRead() {
+  const session = await getSession();
+  if (!session) return { success: false };
+
+  try {
+    const admin = getAdminSupabase();
+    const { error } = await admin
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', session.userId)
+      .eq('structure_id', session.structureId!)
+      .eq('is_read', false);
+
+    if (error) return { success: false, error: 'Failed to mark all as read' };
+    return { success: true };
+  } catch (error) {
+    return { success: false };
+  }
+}
+
+export async function sendTestNotification() {
+  const session = await getSession();
+  if (!session) return { success: false };
+
+  await notifyUser({
+    userId: session.userId,
+    structureId: session.structureId!,
+    title: 'Notification de Test',
+    body: 'Ceci est une notification de test pour vérifier vos réglages.',
+    url: '/settings',
+  });
+
+  return { success: true };
 }

@@ -3,6 +3,7 @@
 import { getSession, hashPassword } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
+import { notifyStructureStaff } from '@/app/actions/push';
 
 export async function getAllStructures() {
   const session = await getSession();
@@ -100,6 +101,13 @@ export async function createStructureWithAdmin(
       is_active: true,
     });
 
+    await notifyStructureStaff({
+      structureId: structure.id,
+      title: 'Bienvenue chez Shede !',
+      body: `Votre structure ${structureName} a été enregistrée avec succès.`,
+      url: '/dashboard',
+    });
+
     return { success: true, error: '', structureId: structure.id };
   } catch (error) {
     return { success: false, error: 'Failed to create structure' };
@@ -133,6 +141,13 @@ export async function updateStructureLicense(
     if (error) {
       return { success: false, error: 'Failed to update license' };
     }
+
+    await notifyStructureStaff({
+      structureId: structureId,
+      title: 'Mise à jour de licence',
+      body: `Le statut de votre licence a été mis à jour par le Super Administrateur (Actif: ${isActive}).`,
+      url: '/dashboard',
+    });
 
     revalidatePath('/structures');
     return { success: true, error: '' };
@@ -178,6 +193,13 @@ export async function updateStructure(
       console.error('Structure Update Error:', error);
       return { success: false, error: error.message || 'Failed to update structure' };
     }
+
+    await notifyStructureStaff({
+      structureId: structureId,
+      title: 'Informations de structure modifiées',
+      body: `Les détails de l'établissement ${name} ont été mis à jour par le Super Administrateur.`,
+      url: '/settings',
+    });
 
     revalidatePath('/structures');
     return { success: true, error: '' };

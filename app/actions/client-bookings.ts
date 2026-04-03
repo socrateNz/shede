@@ -2,12 +2,15 @@
 
 import { getAdminSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
+import { notifyStructureStaff } from '@/app/actions/push';
 
 export async function createClientBooking(
   structureId: string,
   roomId: string,
   checkIn: string,
-  checkOut: string
+  checkOut: string,
+  guestName: string,
+  phone: string
 ) {
   const session = await getSession();
   
@@ -21,7 +24,7 @@ export async function createClientBooking(
     // Verify room belongs to structure and is available
     const { data: room } = await admin
       .from('rooms')
-      .select('structure_id, status')
+      .select('structure_id, status, price')
       .eq('id', roomId)
       .single();
 
@@ -55,12 +58,18 @@ export async function createClientBooking(
        return { success: false, error: message };
     }
 
+    const nights = Math.max(1, Math.ceil((new Date(parsedCheckOut).getTime() - new Date(parsedCheckIn).getTime()) / (1000 * 60 * 60 * 24)));
+    const totalAmount = nights * (room.price || 0);
+
     // Insert booking (status starts as PENDING for client bookings)
     const { error } = await admin.from('bookings').insert({
       room_id: roomId,
       client_id: session?.userId || null,
-      check_in: new Date(checkIn).toISOString(),
-      check_out: new Date(checkOut).toISOString(),
+      guest_name: guestName || null,
+      phone: phone || null,
+      check_in: parsedCheckIn,
+      check_out: parsedCheckOut,
+      total_amount: totalAmount,
       status: 'PENDING'
     });
 
@@ -71,6 +80,14 @@ export async function createClientBooking(
 
     // For simplicity, mark the room as OCCUPIED automatically if they book today, but usually for hotels it stays available until check-in or is marked 'BOOKED'.
     // Let's just create the PENDING booking and let Reception validate it.
+
+    // Notify structure staff
+    await notifyStructureStaff({
+      structureId,
+      title: 'Nouvelle réservation (Web)',
+      body: `Demande de réservation reçue au nom de ${guestName} du ${new Date(checkIn).toLocaleDateString()} au ${new Date(checkOut).toLocaleDateString()}`,
+      url: `/bookings`,
+    });
     
     return { success: true };
   } catch (error) {

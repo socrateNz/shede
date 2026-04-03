@@ -19,16 +19,20 @@ import {
 import { logout } from '@/app/actions/auth';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
+import { Structure } from '@/lib/supabase';
 
 interface SidebarProps {
   session: SessionPayload;
+  structure: Structure | null;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
 }
 
-export function Sidebar({ session, mobileOpen = false, onMobileClose }: SidebarProps) {
+export function Sidebar({ session, structure, mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
-  const hasModule = useAppStore(state => state.hasModule);
+  const storeHasModule = useAppStore(state => state.hasModule);
+
+  const hasHotelModule = structure?.modules?.includes('HOTEL') || storeHasModule('HOTEL');
 
   const navigationItems = [
     {
@@ -41,13 +45,13 @@ export function Sidebar({ session, mobileOpen = false, onMobileClose }: SidebarP
       name: 'Commandes',
       href: '/orders',
       icon: ShoppingCart,
-      visible: ['CAISSE', 'SERVEUR', 'ADMIN', 'SUPER_ADMIN'].includes(session.role),
+      visible: ['CAISSE', 'SERVEUR', 'ADMIN'].includes(session.role),
     },
     {
       name: 'Produits',
       href: '/products',
       icon: Package,
-      visible: ['ADMIN', 'SUPER_ADMIN'].includes(session.role),
+      visible: ['ADMIN'].includes(session.role),
     },
     {
       name: 'Utilisateurs',
@@ -59,19 +63,19 @@ export function Sidebar({ session, mobileOpen = false, onMobileClose }: SidebarP
       name: 'Accompagnements',
       href: '/accompaniments',
       icon: Package,
-      visible: ['ADMIN', 'SUPER_ADMIN'].includes(session.role),
+      visible: ['ADMIN'].includes(session.role),
     },
     {
       name: 'Chambres',
       href: '/rooms',
       icon: Bed,
-      visible: hasModule('HOTEL') && ['ADMIN', 'SUPER_ADMIN', 'RECEPTION'].includes(session.role),
+      visible: hasHotelModule && ['ADMIN', 'RECEPTION'].includes(session.role),
     },
     {
       name: 'Réservations',
       href: '/bookings',
       icon: CalendarDays,
-      visible: hasModule('HOTEL') && ['ADMIN', 'SUPER_ADMIN', 'RECEPTION'].includes(session.role),
+      visible: hasHotelModule && ['ADMIN', 'RECEPTION'].includes(session.role),
     },
     {
       name: 'Structures',

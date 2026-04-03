@@ -35,6 +35,8 @@ export async function createRoom(
 
   const number = String(formData.get('roomNumber') || '').trim();
   const type = String(formData.get('roomType') || '').trim();
+  const priceRaw = String(formData.get('price') || '0').trim();
+  const price = isNaN(parseFloat(priceRaw)) ? 0 : parseFloat(priceRaw);
 
   if (!number) {
     return { success: false, error: 'Room number is required' };
@@ -46,6 +48,7 @@ export async function createRoom(
       structure_id: session.structureId,
       number,
       type,
+      price,
       status: 'AVAILABLE'
     });
 
@@ -122,6 +125,8 @@ export async function updateRoom(
 
   const number = String(formData.get('roomNumber') || '').trim();
   const type = String(formData.get('roomType') || '').trim();
+  const priceRaw = String(formData.get('price') || '0').trim();
+  const price = isNaN(parseFloat(priceRaw)) ? 0 : parseFloat(priceRaw);
 
   if (!number) {
     return { success: false, error: 'Room number is required' };
@@ -131,7 +136,7 @@ export async function updateRoom(
     const admin = getAdminSupabase();
     const { error } = await admin
       .from('rooms')
-      .update({ number, type })
+      .update({ number, type, price })
       .eq('id', roomId)
       .eq('structure_id', session.structureId);
 

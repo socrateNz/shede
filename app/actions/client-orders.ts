@@ -1,14 +1,19 @@
 'use server';
 
 import { getAdminSupabase } from '@/lib/supabase';
+import { getSession } from '@/lib/auth';
+import { notifyStructureStaff } from '@/app/actions/push';
 
 export async function createClientOrder(
   structureId: string, 
   items: { id: string, productId: string, name: string, quantity: number, price: number, selectedAccompaniments?: any[] }[],
-  options?: { roomId?: string, tableNumber?: string | number, notes?: string, clientId?: string }
+  options?: { roomId?: string, tableNumber?: string | number, notes?: string, clientId?: string, phone?: string }
 ) {
   if (!structureId || items.length === 0) {
     return { success: false, error: 'Structure ID and items are required' };
+  }
+  if (!options?.phone) {
+    return { success: false, error: 'Phone number is required' };
   }
 
   try {
@@ -16,6 +21,8 @@ export async function createClientOrder(
 
     // 1. Create the order with 'CLIENT' source
     const tableNum = options?.tableNumber ? parseInt(options.tableNumber.toString(), 10) : null;
+    const session = await getSession();
+    const clientId = session?.userId || options?.clientId || null;
     
     const { data: order, error: orderError } = await admin
       .from('orders')
@@ -24,7 +31,9 @@ export async function createClientOrder(
         source: 'CLIENT',
         room_id: options?.roomId || null,
         table_number: isNaN(tableNum as number) ? null : tableNum,
-        client_id: options?.clientId || null,
+        client_id: clientId,
+        user_id: clientId, // Also populate user_id for safety
+        phone: options?.phone,
         notes: options?.notes || null,
         status: 'PENDING',
         subtotal: 0,
@@ -107,6 +116,14 @@ export async function createClientOrder(
     }
     
     await admin.from('orders').update({ subtotal: grandTotal, total: grandTotal }).eq('id', order.id);
+
+    // Notify structure staff
+    await notifyStructureStaff({
+      structureId: structureId,
+      title: 'Nouvelle commande en ligne',
+      body: `Commande reçue de ${options?.phone || 'Client'} d'un montant de ${grandTotal} FCFA`,
+      url: `/orders/${order.id}`,
+    });
 
     return { success: true, orderId: order.id };
   } catch (error) {

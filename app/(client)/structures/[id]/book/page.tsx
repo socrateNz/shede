@@ -28,6 +28,8 @@ export default function ClientBookRoomPage() {
   const [selectedRoom, setSelectedRoom] = useState<string>('');
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
+  const [guestName, setGuestName] = useState('');
+  const [phone, setPhone] = useState('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorStr, setErrorStr] = useState('');
@@ -49,12 +51,12 @@ export default function ClientBookRoomPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRoom || !checkIn || !checkOut) return;
+    if (!selectedRoom || !checkIn || !checkOut || !guestName || !phone) return;
     
     setIsSubmitting(true);
     setErrorStr('');
 
-    const res = await createClientBooking(structureId, selectedRoom, checkIn, checkOut);
+    const res = await createClientBooking(structureId, selectedRoom, checkIn, checkOut, guestName, phone);
     setIsSubmitting(false);
 
     if (res.success) {
@@ -119,6 +121,17 @@ export default function ClientBookRoomPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
+                <label className="text-sm font-semibold text-slate-700">Nom & Prénom</label>
+                <Input type="text" placeholder="Votre nom complet" value={guestName} onChange={e => setGuestName(e.target.value)} required />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-semibold text-slate-700">Téléphone</label>
+                <Input type="tel" placeholder="Votre numéro" value={phone} onChange={e => setPhone(e.target.value)} required />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
                 <label className="text-sm font-semibold text-slate-700">Date d'arrivée</label>
                 <Input type="date" value={checkIn} onChange={e => setCheckIn(e.target.value)} required min={new Date().toISOString().split('T')[0]} />
               </div>
@@ -132,7 +145,7 @@ export default function ClientBookRoomPage() {
 
             <Button 
               type="submit" 
-              disabled={isSubmitting || !selectedRoom || rooms.length === 0}
+              disabled={isSubmitting || !selectedRoom || rooms.length === 0 || !guestName || !phone}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 text-lg rounded-xl"
             >
               {isSubmitting ? 'Traitement...' : 'Confirmer la Réservation'}

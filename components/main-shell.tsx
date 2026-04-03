@@ -48,6 +48,7 @@ export function MainShell({
     <div className="flex h-screen bg-slate-950 min-h-0">
       <Sidebar
         session={session}
+        structure={structure}
         mobileOpen={mobileNavOpen}
         onMobileClose={() => setMobileNavOpen(false)}
       />

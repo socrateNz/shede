@@ -4,6 +4,9 @@ import { SessionPayload } from '@/lib/auth';
 import { Bell, Menu, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useEffect, useState } from 'react';
+import { getUnreadNotificationsCount } from '@/app/actions/push';
+import Link from 'next/link';
 
 interface TopNavProps {
   session: SessionPayload;
@@ -11,6 +14,19 @@ interface TopNavProps {
 }
 
 export function TopNav({ session, onMenuClick }: TopNavProps) {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchCount = async () => {
+      const count = await getUnreadNotificationsCount();
+      setUnreadCount(count);
+    };
+    fetchCount();
+    
+    // Simple interval for polling notifications (every 30s)
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
   return (
     <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-700 bg-slate-800 px-4 py-3 sm:px-6 sm:py-4">
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
@@ -34,14 +50,21 @@ export function TopNav({ session, onMenuClick }: TopNavProps) {
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-slate-400 hover:text-slate-200"
-          aria-label="Notifications"
-        >
-          <Bell className="h-5 w-5" />
-        </Button>
+        <Link href="/notifications">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-slate-400 hover:text-slate-200 relative"
+            aria-label="Notifications"
+          >
+            <Bell className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white ring-2 ring-slate-800">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </Button>
+        </Link>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 sm:h-10 sm:w-10">
           <span className="text-sm font-medium text-white">
             {session.email.charAt(0).toUpperCase()}

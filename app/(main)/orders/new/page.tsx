@@ -1,11 +1,11 @@
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { requireAuth } from '@/app/actions/auth';
+import { requireRole } from '@/app/actions/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { NewOrderForm } from '@/components/new-order-form';
 
 export default async function NewOrderPage() {
-  const session = await requireAuth();
+  const session = await requireRole('ADMIN', 'CAISSE', 'SERVEUR');
   const admin = getAdminSupabase();
 
   const { data: productsData } = await admin
@@ -78,6 +78,12 @@ export default async function NewOrderPage() {
     }
   }
 
+  const { data: rooms } = await admin
+    .from('rooms')
+    .select('id, number')
+    .eq('structure_id', session.structureId)
+    .order('number');
+
   return (
     <div className="p-8">
       <Link href="/orders" className="flex items-center gap-2 text-blue-400 hover:text-blue-300 mb-8">
@@ -88,6 +94,7 @@ export default async function NewOrderPage() {
       <NewOrderForm
         products={products}
         accompanimentsByProductId={accompanimentsByProductId}
+        rooms={rooms || []}
       />
     </div>
   );

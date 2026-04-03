@@ -3,6 +3,8 @@
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { hashPassword } from '@/lib/auth';
+import { notifyUser } from '@/app/actions/push';
+import { revalidatePath } from 'next/cache';
 
 export async function createUser(
   _prevState: { success: boolean; error: string },
@@ -51,6 +53,17 @@ export async function createUser(
       return { success: false, error: 'Failed to create user' };
     }
 
+    // Notify new user
+    await notifyUser({
+      userId: user.id,
+      structureId: session.structureId!,
+      title: 'Bienvenue dans l\'équipe !',
+      body: `Votre compte en tant que ${role} a été créé avec succès.`,
+      url: '/dashboard',
+    });
+
+    revalidatePath('/users');
+    revalidatePath('/dashboard');
     return { success: true, userId: user.id };
   } catch (error) {
     console.error('Create user error:', error);
@@ -88,6 +101,16 @@ export async function updateUser(
       return { success: false, error: 'Failed to update user' };
     }
 
+    // Notify user of change
+    await notifyUser({
+      userId: userId,
+      structureId: session.structureId!,
+      title: 'Mise à jour de profil',
+      body: `Votre profil ou votre rôle (${role}) a été mis à jour par l'administrateur.`,
+      url: '/profile',
+    });
+
+    revalidatePath('/users');
     return { success: true };
   } catch (error) {
     console.error('Update user error:', error);

@@ -14,6 +14,7 @@ export default function CartPage() {
   const [deliveryMode, setDeliveryMode] = useState<'TABLE'|'ROOM'|'TAKEAWAY'>('TABLE');
   const [roomId, setRoomId] = useState('');
   const [tableNumber, setTableNumber] = useState('');
+  const [phone, setPhone] = useState('');
   const [rooms, setRooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -38,11 +39,16 @@ export default function CartPage() {
 
   const handleCheckout = async () => {
     if (!structureId) return;
+    if (!phone) {
+      toast.error('Le numéro de téléphone est obligatoire.');
+      return;
+    }
 
     setLoading(true);
     const result = await createClientOrder(structureId, items, { 
        roomId: deliveryMode === 'ROOM' ? roomId : undefined,
-       tableNumber: deliveryMode === 'TABLE' ? tableNumber : undefined 
+       tableNumber: deliveryMode === 'TABLE' ? tableNumber : undefined,
+       phone
     });
     
     if (result.success) {
@@ -161,6 +167,19 @@ export default function CartPage() {
                   {rooms.length === 0 && <p className="text-xs text-red-500">Aucune chambre disponible pour cet établissement.</p>}
                 </div>
              )}
+             
+             <div className="space-y-2 mt-4 pt-4 border-t border-slate-200">
+               <label className="text-sm font-medium text-slate-700 block">Numéro de téléphone *</label>
+               <input 
+                 type="tel" 
+                 value={phone}
+                 onChange={(e) => setPhone(e.target.value)}
+                 placeholder="Ex: 06 12 34 56 78" 
+                 className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                 required
+               />
+               <p className="text-xs text-slate-500">Requis pour vous contacter en cas de besoin concernant votre commande.</p>
+             </div>
           </div>
         </div>
 

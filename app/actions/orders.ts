@@ -2,7 +2,7 @@
 
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
-import { notifyStructureOrderCreated } from '@/app/actions/push';
+import { notifyStructureStaff, notifyUser } from '@/app/actions/push';
 
 type ProductAccompanimentMapping = {
   product_id: string;
@@ -47,8 +47,8 @@ export async function createOrder(
       return { success: false, error: 'Failed to create order' };
     }
 
-    await notifyStructureOrderCreated({
-      structureId: session.structureId,
+    await notifyStructureStaff({
+      structureId: session.structureId as string,
       title: 'Nouvelle commande',
       body: `Commande ${order.id.slice(0, 8)} creee`,
       url: `/orders/${order.id}`,
@@ -71,6 +71,8 @@ export async function createOrderWithItems(
   }
 
   const tableNumberRaw = String(formData.get('tableNumber') || '').trim();
+  const roomId = String(formData.get('roomId') || '').trim();
+  const phone = String(formData.get('phone') || '').trim();
   const notesRaw = String(formData.get('notes') || '').trim();
   const itemsRaw = String(formData.get('items') || '');
 
@@ -110,6 +112,10 @@ export async function createOrderWithItems(
 
   if (normalizedItems.length === 0) {
     return { success: false, error: 'Please add at least one product' };
+  }
+  
+  if (!phone) {
+    return { success: false, error: 'Phone number is required' };
   }
 
   // Consolidate quantities per product_id + merge accompaniment choices.
@@ -181,6 +187,8 @@ export async function createOrderWithItems(
         structure_id: session.structureId,
         user_id: session.userId,
         table_number: tableNumber,
+        room_id: roomId || null,
+        phone: phone || null,
         status: 'PENDING',
         notes,
         subtotal: 0,
@@ -371,8 +379,8 @@ export async function createOrderWithItems(
     }
 
     await updateOrderTotal(createdOrderId);
-    await notifyStructureOrderCreated({
-      structureId: session.structureId,
+    await notifyStructureStaff({
+      structureId: session.structureId as string,
       title: 'Nouvelle commande',
       body: `Commande ${createdOrderId.slice(0, 8)} creee`,
       url: `/orders/${createdOrderId}`,
@@ -739,6 +747,19 @@ export async function updateOrderStatus(
 
     if (error) {
       return { success: false, error: 'Failed to update order' };
+    }
+
+    // Notify client if applicable
+    const { data: order } = await admin.from('orders').select('client_id, user_id').eq('id', orderId).single();
+    const targetUserId = order?.client_id || order?.user_id;
+    if (targetUserId) {
+      await notifyUser({
+        userId: targetUserId,
+        structureId: session.structureId!,
+        title: `Mise à jour de votre commande`,
+        body: `Votre commande ${orderId.slice(0, 8)} est maintenant : ${status}`,
+        url: `/history`,
+      });
     }
 
     return { success: true };

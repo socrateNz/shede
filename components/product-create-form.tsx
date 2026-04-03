@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useMemo, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Plus, Package, DollarSign, Tag, Sparkles, CheckCircle, AlertTriangle, Save, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -24,19 +24,18 @@ type NewAccomp = {
   price: number;
 };
 
-// Type exact qui correspond à ProductAccompanimentFormItem de la server action
-type AccompanimentItem = 
+type AccompanimentItem =
   | {
-      kind: 'existing';
-      accompanimentId: string;
-      quantity: number;
-    }
+    kind: 'existing';
+    accompanimentId: string;
+    quantity: number;
+  }
   | {
-      kind: 'new';
-      name: string;
-      price: number;
-      quantity: number;
-    };
+    kind: 'new';
+    name: string;
+    price: number;
+    quantity: number;
+  };
 
 type CreateProductParams = {
   name: string;
@@ -56,27 +55,26 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
   const [newAccompPrice, setNewAccompPrice] = useState<number>(0);
   const [newAccompItems, setNewAccompItems] = useState<NewAccomp[]>([]);
 
-  // Mutation pour la création
   const createMutation = useMutation({
     mutationFn: async (params: CreateProductParams) => {
       const result = await createProduct(params);
-      
+
       if (!result.success) {
-        throw new Error(result.error || 'Failed to create product');
+        throw new Error(result.error || 'Échec de la création du produit');
       }
-      
+
       return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Product created successfully!');
+      toast.success('Produit créé avec succès !');
       setTimeout(() => {
         router.push('/products');
       }, 1500);
     },
     onError: (error: Error) => {
       toast.error(error.message);
-      console.error('Create error:', error);
+      console.error('Erreur de création:', error);
     },
   });
 
@@ -107,11 +105,25 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
     });
   };
 
+  const updateQuantity = (id: string, quantity: number) => {
+    if (quantity < 1) return;
+    setExistingSelected(prev => ({
+      ...prev,
+      [id]: quantity
+    }));
+  };
+
   const addNewAccomp = () => {
     const name = newAccompName.trim();
     const price = Number(newAccompPrice);
-    if (!name) return;
-    if (!Number.isFinite(price) || price <= 0) return;
+    if (!name) {
+      toast.error('Veuillez entrer un nom');
+      return;
+    }
+    if (!Number.isFinite(price) || price <= 0) {
+      toast.error('Veuillez entrer un prix valide');
+      return;
+    }
 
     setNewAccompItems((prev) => [
       ...prev,
@@ -119,16 +131,18 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
     ]);
     setNewAccompName('');
     setNewAccompPrice(0);
+    toast.success('Accompagnement ajouté');
   };
 
   const removeNewAccomp = (clientId: string) => {
     setNewAccompItems((prev) => prev.filter((x) => x.clientId !== clientId));
+    toast.success('Accompagnement retiré');
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
+
     const params: CreateProductParams = {
       name: formData.get('name') as string,
       description: (formData.get('description') as string) || undefined,
@@ -137,207 +151,341 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
       isAvailable: formData.get('isAvailable') === 'on',
       accompaniments: accompanimentsPayload,
     };
-    
+
     createMutation.mutate(params);
   };
 
+  const isPending = createMutation.isPending;
+
   return (
-    <div className="p-8">
-      <Link href="/products" className="flex items-center gap-2 text-blue-400 hover:text-blue-300 mb-8">
-        <ArrowLeft className="w-4 h-4" />
-        Back to Products
-      </Link>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
+      {/* Background Decoratif */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
+      </div>
 
-      <Card className="bg-slate-800 border-slate-700 max-w-2xl">
-        <CardHeader>
-          <CardTitle className="text-slate-50">Add New Product</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Product Name *</label>
-              <Input
-                type="text"
-                name="name"
-                placeholder="e.g. Margherita Pizza"
-                className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
-                required
-                disabled={createMutation.isPending}
-              />
-            </div>
+      <div className="max-w-4xl relative">
+        {/* Back Button */}
+        <Link
+          href="/products"
+          className="inline-flex items-center gap-2 text-slate-400 hover:text-blue-400 mb-6 transition-all duration-300 group"
+        >
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+          <span>Retour aux produits</span>
+        </Link>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Description</label>
-              <textarea
-                name="description"
-                placeholder="e.g. Classic pizza with tomato, mozzarella, and basil"
-                className="w-full bg-slate-700 border border-slate-600 text-slate-50 placeholder:text-slate-500 rounded-md p-3 h-24"
-                disabled={createMutation.isPending}
-              />
-            </div>
+        {/* Header */}
+        <div className="mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
+            <Package className="w-4 h-4 text-blue-400" />
+            <span className="text-sm text-blue-400 font-medium">Création d'un produit</span>
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
+            Nouveau produit
+          </h1>
+          <p className="text-slate-400">Ajoutez un nouvel article à votre menu</p>
+        </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-200">Price *</label>
-                <Input
-                  type="number"
-                  name="price"
-                  placeholder="0.00"
-                  step="0.01"
-                  className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
-                  required
-                  disabled={createMutation.isPending}
-                />
+        <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-xl overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5" />
+
+          <CardHeader className="border-b border-slate-700/50">
+            <CardTitle className="text-slate-50 flex items-center gap-2">
+              <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                <Plus className="w-4 h-4 text-white" />
+              </div>
+              Formulaire de création
+            </CardTitle>
+          </CardHeader>
+
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Section Informations générales */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
+                  <Package className="w-4 h-4 text-blue-400" />
+                  <h3 className="font-semibold">Informations générales</h3>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2 group">
+                    <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                      <Tag className="w-4 h-4 text-blue-400" />
+                      Nom du produit *
+                    </label>
+                    <Input
+                      type="text"
+                      name="name"
+                      placeholder="Ex: Burger Deluxe"
+                      className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300 group-hover:border-slate-500"
+                      required
+                      disabled={isPending}
+                    />
+                  </div>
+
+                  <div className="space-y-2 group">
+                    <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-purple-400" />
+                      Prix *
+                    </label>
+                    <Input
+                      type="number"
+                      name="price"
+                      placeholder="Ex: 2500"
+                      step="10"
+                      min="0"
+                      className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300 group-hover:border-slate-500"
+                      required
+                      disabled={isPending}
+                    />
+                    <p className="text-xs text-slate-500 mt-1">Prix en FCFA</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2 group">
+                  <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                    Description
+                  </label>
+                  <textarea
+                    name="description"
+                    placeholder="Description du produit..."
+                    className="w-full bg-slate-900/50 border border-slate-600 text-slate-50 placeholder:text-slate-500 rounded-lg p-3 h-24 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300"
+                    disabled={isPending}
+                  />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2 group">
+                    <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                      <Tag className="w-4 h-4 text-amber-400" />
+                      Catégorie
+                    </label>
+                    <Input
+                      type="text"
+                      name="category"
+                      placeholder="Ex: Plat principal, Boisson, Dessert"
+                      className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-amber-500 focus:ring-amber-500/20 transition-all duration-300 group-hover:border-slate-500"
+                      disabled={isPending}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                      Disponibilité
+                    </label>
+                    <div className="flex items-center gap-4 pt-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="isAvailable"
+                          value="on"
+                          defaultChecked={true}
+                          className="w-4 h-4 text-green-500 focus:ring-green-500"
+                          disabled={isPending}
+                        />
+                        <span className="text-sm text-slate-300">Disponible</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="isAvailable"
+                          value="off"
+                          className="w-4 h-4 text-red-500 focus:ring-red-500"
+                          disabled={isPending}
+                        />
+                        <span className="text-sm text-slate-300">Indisponible</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-200">Category</label>
-                <Input
-                  type="text"
-                  name="category"
-                  placeholder="e.g. Pizza, Drinks, Desserts"
-                  className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
-                  disabled={createMutation.isPending}
-                />
-              </div>
-            </div>
+              {/* Section Accompagnements */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
+                  <Plus className="w-4 h-4 text-purple-400" />
+                  <h3 className="font-semibold">Accompagnements & extras</h3>
+                </div>
 
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                name="isAvailable"
-                defaultChecked={true}
-                className="w-4 h-4"
-                disabled={createMutation.isPending}
-              />
-              <label className="text-sm font-medium text-slate-200">Product is available</label>
-            </div>
+                {accompanimentOptions.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 bg-slate-900/30 rounded-lg border border-slate-700">
+                    <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p>Aucun accompagnement disponible</p>
+                    <p className="text-sm mt-1">Créez d'abord des accompagnements</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3">
+                    {accompanimentOptions.map((option) => {
+                      const isSelected = Boolean(existingSelected[option.id]);
+                      const quantity = existingSelected[option.id] || 1;
 
-            <div className="border border-slate-700 rounded-lg p-4 space-y-3">
-              <p className="text-slate-100 font-medium">Accompagnements</p>
-              {accompanimentOptions.length === 0 ? (
-                <p className="text-slate-400 text-sm">Aucun produit disponible pour choisir un accompagnement.</p>
-              ) : (
-                <div className="space-y-3">
-                  {accompanimentOptions.map((p) => {
-                    const selected = Boolean(existingSelected[p.id]);
-
-                    return (
-                      <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg bg-slate-700 p-3">
-                        <label className="flex items-start gap-3 cursor-pointer select-none">
-                          <input
-                            type="checkbox"
-                            checked={selected}
-                            onChange={() => toggleExistingAcc(p.id)}
-                            className="mt-1"
-                            disabled={createMutation.isPending}
-                          />
-                          <div>
-                            <p className="text-slate-50 font-medium">{p.name}</p>
-                            <p className="text-slate-400 text-xs">${p.price.toFixed(2)}</p>
+                      return (
+                        <div
+                          key={option.id}
+                          className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-300 ${isSelected
+                            ? 'bg-purple-500/10 border-purple-500/50'
+                            : 'bg-slate-900/30 border-slate-600 hover:border-slate-500'
+                            }`}
+                        >
+                          <div className="flex items-center gap-3 flex-1">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleExistingAcc(option.id)}
+                              className="w-4 h-4 rounded border-slate-600 text-purple-500 focus:ring-purple-500"
+                              disabled={isPending}
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-slate-200">{option.name}</div>
+                              <div className="text-sm text-slate-400">{option.price.toLocaleString()} FCFA</div>
+                            </div>
                           </div>
-                        </label>
-                      </div>
-                    );
-                  })}
+                          {isSelected && (
+                            <div className="flex items-center gap-2">
+                              <label className="text-sm text-slate-400">Qté:</label>
+                              <input
+                                type="number"
+                                min="1"
+                                max="10"
+                                value={quantity}
+                                onChange={(e) => updateQuantity(option.id, parseInt(e.target.value) || 1)}
+                                className="w-16 px-2 py-1 rounded bg-slate-700 border-slate-600 text-slate-50 text-center"
+                                disabled={isPending}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Ajout nouvel accompagnement */}
+                <div className="pt-4 border-t border-slate-700 space-y-4">
+                  <p className="text-slate-100 font-medium flex items-center gap-2">
+                    <Plus className="w-4 h-4 text-green-400" />
+                    Ajouter un nouvel accompagnement
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      type="text"
+                      value={newAccompName}
+                      onChange={(e) => setNewAccompName(e.target.value)}
+                      placeholder="Nom"
+                      className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500"
+                      disabled={isPending}
+                    />
+                    <Input
+                      type="number"
+                      value={Number.isFinite(newAccompPrice) ? newAccompPrice : 0}
+                      onChange={(e) => setNewAccompPrice(Number(e.target.value))}
+                      placeholder="Prix"
+                      step="10"
+                      min="0"
+                      className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500"
+                      disabled={isPending}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={addNewAccomp}
+                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                    disabled={isPending}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Ajouter l'accompagnement
+                  </Button>
+
+                  {newAccompItems.length > 0 && (
+                    <div className="space-y-2 mt-4">
+                      <p className="text-sm text-slate-400">Nouveaux accompagnements :</p>
+                      {newAccompItems.map((n) => (
+                        <div key={n.clientId} className="flex items-center justify-between p-3 rounded-lg bg-slate-700/50">
+                          <div>
+                            <p className="text-slate-50 font-medium">{n.name}</p>
+                            <p className="text-slate-400 text-sm">{n.price.toLocaleString()} FCFA</p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => removeNewAccomp(n.clientId)}
+                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                            disabled={isPending}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Messages d'état */}
+              {createMutation.isError && (
+                <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-sm text-red-400 animate-in slide-in-from-top-2">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    {createMutation.error instanceof Error ? createMutation.error.message : 'Une erreur est survenue'}
+                  </div>
                 </div>
               )}
 
-              <div className="pt-4 border-t border-slate-700 space-y-3">
-                <p className="text-slate-100 font-medium">Ajouter un nouvel accompagnement</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    type="text"
-                    value={newAccompName}
-                    onChange={(e) => setNewAccompName(e.target.value)}
-                    placeholder="Nom"
-                    className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
-                    disabled={createMutation.isPending}
-                  />
-                  <Input
-                    type="number"
-                    value={Number.isFinite(newAccompPrice) ? newAccompPrice : 0}
-                    onChange={(e) => setNewAccompPrice(Number(e.target.value))}
-                    placeholder="Prix"
-                    step="0.01"
-                    min={0}
-                    className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
-                    disabled={createMutation.isPending}
-                  />
-                </div>
-                <Button 
-                  type="button" 
-                  onClick={addNewAccomp} 
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                  disabled={createMutation.isPending}
-                >
-                  Ajouter
-                </Button>
-
-                {newAccompItems.length > 0 && (
-                  <div className="space-y-2">
-                    {newAccompItems.map((n) => (
-                      <div key={n.clientId} className="flex items-center justify-between rounded-lg bg-slate-700 p-3">
-                        <div>
-                          <p className="text-slate-50 font-medium">{n.name}</p>
-                          <p className="text-slate-400 text-xs">${n.price.toFixed(2)}</p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => removeNewAccomp(n.clientId)}
-                          className="border-slate-600 text-slate-200 hover:bg-slate-700"
-                          disabled={createMutation.isPending}
-                        >
-                          Retirer
-                        </Button>
-                      </div>
-                    ))}
+              {createMutation.isSuccess && (
+                <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-4 text-sm text-green-400 animate-in slide-in-from-top-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Produit créé avec succès ! Redirection...
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
+              )}
 
-            {createMutation.isError && (
-              <div className="rounded-md bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
-                {createMutation.error instanceof Error ? createMutation.error.message : 'An error occurred'}
-              </div>
-            )}
-
-            {createMutation.isSuccess && (
-              <div className="rounded-md bg-green-500/10 border border-green-500/20 p-3 text-sm text-green-400">
-                Product created successfully! Redirecting...
-              </div>
-            )}
-
-            <div className="flex gap-4 pt-4">
-              <Button
-                type="submit"
-                disabled={createMutation.isPending}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {createMutation.isPending ? (
-                  <>
-                    <span className="mr-2">Creating...</span>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  </>
-                ) : (
-                  'Create Product'
-                )}
-              </Button>
-              <Link href="/products">
-                <Button 
-                  variant="outline" 
-                  className="border-slate-600 text-slate-200 hover:bg-slate-700"
-                  disabled={createMutation.isPending}
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-slate-700">
+                <Button
+                  type="submit"
+                  disabled={isPending}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-2.5 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  Cancel
+                  {isPending ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Création en cours...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Save className="w-4 h-4" />
+                      Créer le produit
+                    </div>
+                  )}
                 </Button>
-              </Link>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+
+                <Link href="/products" className="flex-1 sm:flex-none">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-300"
+                    disabled={isPending}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Annuler
+                  </Button>
+                </Link>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Footer */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-slate-500">
+            Le produit sera immédiatement disponible dans le menu après création
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

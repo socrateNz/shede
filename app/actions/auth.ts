@@ -5,7 +5,8 @@ import { getAdminSupabase } from '@/lib/supabase';
 import type { User } from '@/lib/supabase';
 import { redirect } from 'next/navigation';
 
-async function isStructureLicenseActive(structureId: string) {
+async function isStructureLicenseActive(structureId: string | null | undefined) {
+  if (!structureId) return true; // B2C clients have no structure
   const admin = getAdminSupabase();
   const { data: license } = await admin
     .from('licenses')
@@ -72,7 +73,11 @@ export async function login(
       structureId: users.structure_id,
     });
 
-    return { success: true, error: '', redirect: users.role === 'SUPER_ADMIN' ? '/structures' : '/dashboard' };
+    return { 
+      success: true, 
+      error: '', 
+      redirect: users.role === 'SUPER_ADMIN' ? '/structures' : users.role === 'CLIENT' ? '/client' : '/dashboard' 
+    };
   } catch (error) {
     console.error('Login error:', error);
     return { success: false, error: 'Login failed' };
@@ -192,9 +197,11 @@ export async function requireAuth() {
     redirect('/login');
   }
 
-  const licenseActive = await isStructureLicenseActive(session.structureId);
-  if (!licenseActive) {
-    redirect('/login?error=license_expired');
+  if (session.structureId) {
+    const licenseActive = await isStructureLicenseActive(session.structureId);
+    if (!licenseActive) {
+      redirect('/login?error=license_expired');
+    }
   }
 
   return session;

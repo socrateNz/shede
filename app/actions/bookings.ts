@@ -3,6 +3,7 @@
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
+import { notifyUser } from '@/app/actions/push';
 
 export async function getBookings(structureId: string) {
   const session = await getSession();
@@ -16,7 +17,7 @@ export async function getBookings(structureId: string) {
       .from('bookings')
       .select(`
         *,
-        rooms!inner(id, number, type, structure_id),
+        rooms!inner(id, number, type, structure_id, price),
         users!bookings_client_id_fkey(id, first_name, last_name, email)
       `)
       .eq('rooms.structure_id', structureId)
@@ -59,11 +60,12 @@ export async function createBooking(
   const roomId = String(formData.get('roomId') || '');
   const clientId = String(formData.get('clientId') || '') || null; // Can be null if walking-in without account? Usually we need a client
   const clientName = String(formData.get('clientName') || ''); // Optional fallback if no client linked 
+  const phone = String(formData.get('phone') || '').trim();
   const checkIn = String(formData.get('checkIn') || '');
   const checkOut = String(formData.get('checkOut') || '');
 
-  if (!roomId || !checkIn || !checkOut) {
-    return { success: false, error: 'Room and dates are required' };
+  if (!roomId || !checkIn || !checkOut || !phone) {
+    return { success: false, error: 'Room, dates, and phone number are required' };
   }
 
   try {
@@ -72,7 +74,7 @@ export async function createBooking(
     // Verify room belongs to structure
     const { data: room } = await admin
       .from('rooms')
-      .select('structure_id')
+      .select('structure_id, price')
       .eq('id', roomId)
       .single();
 
@@ -107,12 +109,18 @@ export async function createBooking(
        return { success: false, error: message };
     }
 
+    const nights = Math.max(1, Math.ceil((new Date(parsedCheckOut).getTime() - new Date(parsedCheckIn).getTime()) / (1000 * 60 * 60 * 24)));
+    const totalAmount = nights * (room.price || 0);
+
     const { error } = await admin.from('bookings').insert({
       room_id: roomId,
       client_id: clientId,
-      check_in: new Date(checkIn).toISOString(),
-      check_out: new Date(checkOut).toISOString(),
-      status: 'CONFIRMED'
+      check_in: parsedCheckIn,
+      check_out: parsedCheckOut,
+      status: 'CONFIRMED',
+      phone: phone || null,
+      guest_name: clientName || null,
+      total_amount: totalAmount
     });
 
     if (error) {
@@ -153,9 +161,21 @@ export async function updateBookingStatus(bookingId: string, status: string, roo
 
     // Auto-update room status based on booking status
     if (status === 'COMPLETED' || status === 'CANCELLED') {
-       await admin.from('rooms').update({ status: 'AVAILABLE' }).eq('id', roomId);
+      await admin.from('rooms').update({ status: 'AVAILABLE' }).eq('id', roomId);
     } else if (status === 'IN_PROGRESS' || status === 'CONFIRMED') {
-       await admin.from('rooms').update({ status: 'OCCUPIED' }).eq('id', roomId);
+      await admin.from('rooms').update({ status: 'OCCUPIED' }).eq('id', roomId);
+    }
+
+    // Notify client
+    const { data: booking } = await admin.from('bookings').select('client_id').eq('id', bookingId).single();
+    if (booking?.client_id) {
+      await notifyUser({
+        userId: booking.client_id,
+        structureId: session.structureId!,
+        title: `Mise à jour de votre réservation`,
+        body: `Votre réservation ${bookingId.slice(0, 8)} est désormais : ${status}`,
+        url: `/history`,
+      });
     }
 
     revalidatePath('/bookings');

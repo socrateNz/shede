@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 
 export async function getAccompaniments() {
   const session = await getSession();
-  if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
+  if (!session || !['ADMIN'].includes(session.role)) {
     return [];
   }
 
@@ -30,7 +30,7 @@ export async function createAccompaniment(
   formData: FormData
 ) {
   const session = await getSession();
-  if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
+  if (!session || !['ADMIN'].includes(session.role)) {
     return { success: false, error: 'Unauthorized' };
   }
 
@@ -62,7 +62,7 @@ export async function createAccompaniment(
 
 export async function updateAccompaniment(id: string, name: string, price: number, isAvailable: boolean) {
   const session = await getSession();
-  if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
+  if (!session || !['ADMIN'].includes(session.role)) {
     return { success: false, error: 'Unauthorized' };
   }
 
@@ -89,7 +89,7 @@ export async function updateAccompaniment(id: string, name: string, price: numbe
 
 export async function deleteAccompaniment(id: string) {
   const session = await getSession();
-  if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
+  if (!session || !['ADMIN'].includes(session.role)) {
     return { success: false, error: 'Unauthorized' };
   }
 

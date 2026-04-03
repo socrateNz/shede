@@ -1,60 +1,125 @@
-import { requireAuth } from '@/app/actions/auth';
-import { getMyNotifications, getMyPushSubscriptionsCount } from '@/app/actions/push';
-import { PushSettings } from '@/components/push-settings';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getVapidPublicKey } from '@/lib/push';
+'use client';
 
-export default async function NotificationsPage() {
-  await requireAuth();
-  const vapidPublicKey = getVapidPublicKey();
-  const subscriptionCount = await getMyPushSubscriptionsCount();
-  const notifications = await getMyNotifications(100);
+import { useEffect, useState } from 'react';
+import { getMyNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '@/app/actions/push';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Bell, Check, Clock, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
+
+export default function NotificationsPage() {
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchNotifications = async () => {
+    setLoading(true);
+    const data = await getMyNotifications(100);
+    setNotifications(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const handleMarkAsRead = async (id: string) => {
+    const res = await markNotificationAsRead(id);
+    if (res.success) {
+      setNotifications(notifications.map(n => 
+        n.id === id ? { ...n, is_read: true } : n
+      ));
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    const res = await markAllNotificationsAsRead();
+    if (res.success) {
+      setNotifications(notifications.map(n => ({ ...n, is_read: true })));
+    }
+  };
 
   return (
-    <div className="p-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-50 mb-2">Notifications</h1>
-        <p className="text-slate-400">Gere les notifications push de votre compte.</p>
+    <div className="p-4 sm:p-8 max-w-4xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-50 mb-2">Centre de Notifications</h1>
+          <p className="text-slate-400 font-medium">Restez informé des activités de votre établissement</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {notifications.some(n => !n.is_read) && (
+            <Button 
+              onClick={handleMarkAllAsRead}
+              variant="outline" 
+              className="text-xs border-slate-700 text-slate-300 hover:bg-slate-700"
+            >
+              Tout marquer comme lu
+            </Button>
+          )}
+          <Bell className="w-8 h-8 text-blue-500 opacity-50 hidden sm:block" />
+        </div>
       </div>
 
-      <Card className="bg-slate-800 border-slate-700 max-w-2xl">
-        <CardHeader>
-          <CardTitle className="text-slate-50">Notifications Push</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <PushSettings
-            vapidPublicKey={vapidPublicKey}
-            initialSubscriptionCount={subscriptionCount}
-          />
-        </CardContent>
-      </Card>
-
       <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-slate-50">Liste des notifications ({notifications.length})</CardTitle>
+        <CardHeader className="border-b border-slate-700">
+          <CardTitle className="text-slate-50 flex items-center gap-2">
+            Historique récent
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          {notifications.length === 0 ? (
-            <p className="text-slate-400">Aucune notification pour le moment.</p>
-          ) : (
-            <div className="space-y-3">
-              {notifications.map((notification: any) => (
-                <div key={notification.id} className="rounded-lg border border-slate-700 bg-slate-900 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-slate-50 font-medium">{notification.title}</p>
-                    <p className="text-xs text-slate-500">
-                      {new Date(notification.created_at).toISOString().slice(0, 16).replace('T', ' ')}
-                    </p>
-                  </div>
-                  <p className="text-slate-300 text-sm mt-1">{notification.body}</p>
-                  {notification.url && (
-                    <a href={notification.url} className="text-blue-400 text-sm hover:text-blue-300 mt-2 inline-block">
-                      Ouvrir
-                    </a>
-                  )}
-                </div>
-              ))}
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-12 text-center text-slate-400">Chargement...</div>
+          ) : notifications.length === 0 ? (
+            <div className="p-12 text-center text-slate-400">
+              <Bell className="w-12 h-12 mx-auto mb-4 opacity-20" />
+              <p>Aucune notification pour le moment.</p>
             </div>
+          ) : (
+            <ul className="divide-y divide-slate-700/50">
+              {notifications.map((notif) => (
+                <li 
+                  key={notif.id} 
+                  className={`p-4 hover:bg-slate-700/30 transition-colors flex items-start gap-4 ${!notif.is_read ? 'bg-blue-500/5 shadow-[inset_4px_0_0_0_#3b82f6]' : ''}`}
+                >
+                  <div className={`mt-1 p-2 rounded-full ${!notif.is_read ? 'bg-blue-500/10 text-blue-400' : 'bg-slate-700 text-slate-500'}`}>
+                    <Bell className="w-4 h-4" />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <h3 className={`font-semibold text-sm sm:text-base ${!notif.is_read ? 'text-slate-50' : 'text-slate-400'}`}>
+                        {notif.title}
+                      </h3>
+                      <span className="text-[10px] text-slate-500 flex items-center gap-1 shrink-0">
+                        <Clock className="w-3 h-3" />
+                        {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-400 mb-3 line-clamp-2">
+                      {notif.body}
+                    </p>
+                    <div className="flex items-center gap-3">
+                      {notif.url && (
+                        <Link href={notif.url}>
+                          <Button size="sm" variant="outline" className="h-8 text-xs border-blue-500/20 text-blue-400 hover:bg-blue-500/10 gap-1.5">
+                            Voir le détail <ExternalLink className="w-3 h-3" />
+                          </Button>
+                        </Link>
+                      )}
+                      {!notif.is_read && (
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => handleMarkAsRead(notif.id)}
+                          className="h-8 text-xs text-slate-500 hover:text-slate-300 gap-1.5"
+                        >
+                          Marquer comme lu <Check className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </CardContent>
       </Card>

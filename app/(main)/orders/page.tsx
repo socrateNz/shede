@@ -1,4 +1,4 @@
-import { requireAuth } from '@/app/actions/auth';
+import { requireRole } from '@/app/actions/auth';
 import { getOrders } from '@/app/actions/orders';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,9 +7,9 @@ import Link from 'next/link';
 import { OrdersLiveList } from '@/components/orders-live-list';
 
 export default async function OrdersPage() {
-  const session = await requireAuth();
-  const orders = await getOrders(session.structureId, undefined, 100);
-  const canManageStatus = ['CAISSE', 'SUPER_ADMIN'].includes(session.role);
+  const session = await requireRole('ADMIN', 'CAISSE', 'SERVEUR');
+  const orders = await getOrders(session.structureId!, undefined, 100);
+  const canManageStatus = ['CAISSE'].includes(session.role!);
 
   return (
     <div className="p-8">
@@ -43,7 +43,7 @@ export default async function OrdersPage() {
           ) : (
             <OrdersLiveList
               initialOrders={orders}
-              structureId={session.structureId}
+              structureId={session.structureId!}
               canManageStatus={canManageStatus}
             />
           )}
