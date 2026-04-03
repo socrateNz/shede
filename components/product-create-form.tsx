@@ -165,7 +165,7 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="max-w-4xl mx-auto relative">
+      <div className="max-w-4xl relative">
         {/* Back Button */}
         <Link
           href="/products"
@@ -176,7 +176,7 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
         </Link>
 
         {/* Header */}
-        <div className="mb-8 text-center">
+        <div className="mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
             <Package className="w-4 h-4 text-blue-400" />
             <span className="text-sm text-blue-400 font-medium">Création d'un produit</span>
