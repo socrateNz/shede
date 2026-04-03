@@ -155,7 +155,6 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
     createMutation.mutate(params);
   };
 
-  // Correction : isPending doit être createMutation.isPending
   const isPending = createMutation.isPending;
 
   return (
@@ -189,7 +188,7 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
         </div>
 
         <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-xl overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5" />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 pointer-events-none" />
 
           <CardHeader className="border-b border-slate-700/50">
             <CardTitle className="text-slate-50 flex items-center gap-2">
@@ -221,7 +220,6 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                       placeholder="Ex: Burger Deluxe"
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300 group-hover:border-slate-500"
                       required
-                      disabled={isPending}
                     />
                   </div>
 
@@ -238,7 +236,6 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                       min="0"
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300 group-hover:border-slate-500"
                       required
-                      disabled={isPending}
                     />
                     <p className="text-xs text-slate-500 mt-1">Prix en FCFA</p>
                   </div>
@@ -253,7 +250,6 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                     name="description"
                     placeholder="Description du produit..."
                     className="w-full bg-slate-900/50 border border-slate-600 text-slate-50 placeholder:text-slate-500 rounded-lg p-3 h-24 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300"
-                    disabled={isPending}
                   />
                 </div>
 
@@ -268,7 +264,6 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                       name="category"
                       placeholder="Ex: Plat principal, Boisson, Dessert"
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-amber-500 focus:ring-amber-500/20 transition-all duration-300 group-hover:border-slate-500"
-                      disabled={isPending}
                     />
                   </div>
 
@@ -285,7 +280,6 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                           value="on"
                           defaultChecked={true}
                           className="w-4 h-4 text-green-500 focus:ring-green-500"
-                          disabled={isPending}
                         />
                         <span className="text-sm text-slate-300">Disponible</span>
                       </label>
@@ -295,7 +289,6 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                           name="isAvailable"
                           value="off"
                           className="w-4 h-4 text-red-500 focus:ring-red-500"
-                          disabled={isPending}
                         />
                         <span className="text-sm text-slate-300">Indisponible</span>
                       </label>
@@ -337,7 +330,6 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                               checked={isSelected}
                               onChange={() => toggleExistingAcc(option.id)}
                               className="w-4 h-4 rounded border-slate-600 text-purple-500 focus:ring-purple-500"
-                              disabled={isPending}
                             />
                             <div className="flex-1">
                               <div className="font-medium text-slate-200">{option.name}</div>
@@ -354,7 +346,6 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                                 value={quantity}
                                 onChange={(e) => updateQuantity(option.id, parseInt(e.target.value) || 1)}
                                 className="w-16 px-2 py-1 rounded bg-slate-700 border-slate-600 text-slate-50 text-center"
-                                disabled={isPending}
                               />
                             </div>
                           )}
@@ -377,7 +368,6 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                       onChange={(e) => setNewAccompName(e.target.value)}
                       placeholder="Nom"
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500"
-                      disabled={isPending}
                     />
                     <Input
                       type="number"
@@ -387,14 +377,12 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                       step="10"
                       min="0"
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500"
-                      disabled={isPending}
                     />
                   </div>
                   <Button
                     type="button"
                     onClick={addNewAccomp}
                     className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
-                    disabled={isPending}
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Ajouter l'accompagnement
@@ -414,7 +402,6 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                             variant="ghost"
                             onClick={() => removeNewAccomp(n.clientId)}
                             className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                            disabled={isPending}
                           >
                             <X className="w-4 h-4" />
                           </Button>
@@ -469,7 +456,6 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                     type="button"
                     variant="outline"
                     className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-300"
-                    disabled={isPending}
                   >
                     <X className="w-4 h-4 mr-2" />
                     Annuler
