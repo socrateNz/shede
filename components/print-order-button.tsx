@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
-import { generateOrderReceipt } from '@/lib/pdf-utils';
+// Removed top-level import to avoid SSR build errors with jsPDF
 
 interface PrintOrderButtonProps {
   order: any;
@@ -10,6 +10,7 @@ interface PrintOrderButtonProps {
 
 export function PrintOrderButton({ order }: PrintOrderButtonProps) {
   const handlePrint = async () => {
+    const { generateOrderReceipt } = await import('@/lib/pdf-utils');
     await generateOrderReceipt(order);
   };
 

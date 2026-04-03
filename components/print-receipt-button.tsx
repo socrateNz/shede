@@ -3,15 +3,16 @@
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { generateBookingReceipt } from '@/lib/pdf-utils';
+// Removed top-level import to avoid SSR build errors with jsPDF
 
 interface PrintReceiptButtonProps {
   booking: any;
 }
 
 export function PrintReceiptButton({ booking }: PrintReceiptButtonProps) {
-  const handlePrint = () => {
-    generateBookingReceipt(booking);
+  const handlePrint = async () => {
+    const { generateBookingReceipt } = await import('@/lib/pdf-utils');
+    await generateBookingReceipt(booking);
   };
 
   return (
