@@ -16,6 +16,7 @@ import {
   Bed,
   CalendarDays,
   Boxes,
+  Tag,
 } from 'lucide-react';
 import { logout } from '@/app/actions/auth';
 import { cn } from '@/lib/utils';
@@ -84,6 +85,12 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       href: '/bookings',
       icon: CalendarDays,
       visible: hasHotelModule && ['ADMIN', 'RECEPTION'].includes(session.role),
+    },
+    {
+      name: 'Promotions',
+      href: '/promotions',
+      icon: Tag,
+      visible: (structure?.modules?.includes('PROMOTION') || storeHasModule('PROMOTION')) && ['ADMIN'].includes(session.role),
     },
     {
       name: 'Structures',

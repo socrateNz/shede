@@ -3,11 +3,13 @@
 import { getAdminSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { notifyStructureStaff } from '@/app/actions/push';
+import { validatePromoCode, recordPromoUsage } from './promotions';
+import { updateOrderTotal } from './orders';
 
 export async function createClientOrder(
   structureId: string, 
   items: { id: string, productId: string, name: string, quantity: number, price: number, selectedAccompaniments?: any[] }[],
-  options?: { roomId?: string, tableNumber?: string | number, notes?: string, clientId?: string, phone?: string }
+  options?: { roomId?: string, tableNumber?: string | number, notes?: string, clientId?: string, phone?: string, promoCode?: string }
 ) {
   if (!structureId || items.length === 0) {
     return { success: false, error: 'Structure ID and items are required' };
@@ -23,6 +25,15 @@ export async function createClientOrder(
     const tableNum = options?.tableNumber ? parseInt(options.tableNumber.toString(), 10) : null;
     const session = await getSession();
     const clientId = session?.userId || options?.clientId || null;
+
+    let verifiedPromo = null;
+    if (options?.promoCode) {
+       const validation = await validatePromoCode(options.promoCode, structureId, clientId || undefined);
+       if (!validation.valid) {
+          return { success: false, error: validation.error || 'Code promo invalide' };
+       }
+       verifiedPromo = validation;
+    }
     
     const { data: order, error: orderError } = await admin
       .from('orders')
@@ -38,6 +49,7 @@ export async function createClientOrder(
         status: 'PENDING',
         subtotal: 0,
         total: 0,
+        promotion_id: verifiedPromo?.promotionId || null,
       })
       .select('id')
       .single();
@@ -47,17 +59,27 @@ export async function createClientOrder(
       return { success: false, error: 'Failed to create order' };
     }
 
-    // 2. Add order items and capture their resulting auto-generated IDs to map accompaniments
-    // We must do this carefully: we will insert items matching exactly and read their ids
-    const orderItemsPayload = items.map(item => ({
-      order_id: order.id,
-      product_id: item.productId,
-      quantity: item.quantity,
-      unit_price: item.price,
-      total_price: item.price * item.quantity, // Pure item total (without accompaniments for semantic separation if desired, but we will adjust subtotal later)
-      is_price_counted: true,
-      parent_order_item_id: null,
-    }));
+    // Fetch real original prices from the database to prevent trusting frontend (which sends pre-discounted prices for display)
+    const uniqueProductIds = [...new Set(items.map(i => i.productId))];
+    const { data: dbProducts } = await admin
+      .from('products')
+      .select('id, price')
+      .in('id', uniqueProductIds);
+      
+    const realPrices = new Map((dbProducts || []).map(p => [p.id, Number(p.price)]));
+
+    const orderItemsPayload = items.map(item => {
+      const realDbPrice = realPrices.get(item.productId) || item.price; // fallback to item.price if not found (shouldn't happen)
+      return {
+        order_id: order.id,
+        product_id: item.productId,
+        quantity: item.quantity,
+        unit_price: realDbPrice,
+        total_price: realDbPrice * item.quantity,
+        is_price_counted: true,
+        parent_order_item_id: null,
+      };
+    });
 
     const { data: insertedItems, error: itemsError } = await admin
       .from('order_items')
@@ -103,27 +125,12 @@ export async function createClientOrder(
       }
     }
 
-    // 4. Update total (including accompaniments)
-    let grandTotal = 0;
-    for (const item of items) {
-      let itemCost = item.price * item.quantity;
-      if (item.selectedAccompaniments) {
-         for (const a of item.selectedAccompaniments) {
-            itemCost += (a.price * a.quantity) * item.quantity;
-         }
-      }
-      grandTotal += itemCost;
-    }
-    
-    await admin.from('orders').update({ subtotal: grandTotal, total: grandTotal }).eq('id', order.id);
+    await updateOrderTotal(order.id);
 
-    // Notify structure staff
-    await notifyStructureStaff({
-      structureId: structureId,
-      title: 'Nouvelle commande en ligne',
-      body: `Commande reçue de ${options?.phone || 'Client'} d'un montant de ${grandTotal} FCFA`,
-      url: `/orders/${order.id}`,
-    });
+    if (verifiedPromo && clientId) {
+       await recordPromoUsage(verifiedPromo.promoCodeId as string, clientId);
+    }
+
 
     return { success: true, orderId: order.id };
   } catch (error) {

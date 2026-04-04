@@ -3,6 +3,7 @@
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { notifyStructureStaff, notifyUser } from '@/app/actions/push';
+import { validatePromoCode, recordPromoUsage } from './promotions';
 
 type ProductAccompanimentMapping = {
   product_id: string;
@@ -75,6 +76,8 @@ export async function createOrderWithItems(
   const phone = String(formData.get('phone') || '').trim();
   const notesRaw = String(formData.get('notes') || '').trim();
   const itemsRaw = String(formData.get('items') || '');
+  const promoCode = String(formData.get('promoCode') || '').trim();
+  const promotionId = String(formData.get('promotionId') || '').trim();
 
   type ClientSelectedAccompaniment = { accompanimentId: string; priceCounted: boolean };
   type ClientOrderItem = {
@@ -181,6 +184,18 @@ export async function createOrderWithItems(
       return { success: false, error: 'One or more products are invalid or unavailable' };
     }
 
+    let verifiedPromo = null;
+    if (promoCode) {
+      const validation = await validatePromoCode(promoCode, session.structureId as string, session.userId);
+      if (!validation.valid) {
+        return { success: false, error: validation.error || 'Invalid promo code' };
+      }
+      verifiedPromo = validation;
+    } else if (promotionId) {
+      // Manual selection from POS
+      verifiedPromo = { promotionId };
+    }
+
     const { data: order, error: orderError } = await admin
       .from('orders')
       .insert({
@@ -193,6 +208,7 @@ export async function createOrderWithItems(
         notes,
         subtotal: 0,
         total: 0,
+        promotion_id: verifiedPromo?.promotionId || null,
       })
       .select()
       .single();
@@ -379,6 +395,11 @@ export async function createOrderWithItems(
     }
 
     await updateOrderTotal(createdOrderId);
+
+    if (verifiedPromo) {
+      await recordPromoUsage(verifiedPromo.promoCodeId as string, session.userId);
+    }
+
     await notifyStructureStaff({
       structureId: session.structureId as string,
       title: 'Nouvelle commande',
@@ -687,7 +708,7 @@ export async function setOrderItemPriceCounted(itemId: string, priceCounted: boo
   return { success: true };
 }
 
-async function updateOrderTotal(orderId: string) {
+export async function updateOrderTotal(orderId: string) {
   const admin = getAdminSupabase();
 
   // Totaux des produits (lignes parent uniquement)
@@ -716,12 +737,71 @@ async function updateOrderTotal(orderId: string) {
     }, 0) || 0;
 
   const subtotal = productSubtotal + accSubtotal;
-  const total = subtotal;
+  let discount_amount = 0;
+
+  // Handle Promotion
+  const { data: order } = await admin
+    .from('orders')
+    .select('structure_id, promotion_id, order_items(product_id, total_price, is_price_counted, quantity)')
+    .eq('id', orderId)
+    .single();
+
+  if (!order) return;
+
+  // 1. Auto-apply active PRODUCT scope promotions
+  const now = new Date().toISOString();
+  const { data: productPromos } = await admin
+    .from('promotions')
+    .select('*')
+    .eq('structure_id', order.structure_id)
+    .eq('scope', 'PRODUCT')
+    .eq('is_active', true)
+    .lte('start_date', now)
+    .gte('end_date', now);
+
+  if (productPromos && productPromos.length > 0) {
+    for (const promo of productPromos) {
+      if (!promo.product_id) continue;
+      const matchingItems = order.order_items.filter((it: any) => it.product_id === promo.product_id && (it.is_price_counted ?? true));
+      
+      for (const item of matchingItems) {
+        if (promo.type === 'PERCENTAGE') {
+          discount_amount += (item.total_price * promo.value) / 100;
+        } else {
+          // Fixed discount applied per unit of quantity
+          const itemQuantity = item.quantity || 1;
+          discount_amount += Math.min(promo.value * itemQuantity, item.total_price);
+        }
+      }
+    }
+  }
+
+  // 2. Apply ORDER scope promotion if a specific promo code or promotion was attached
+  if (order.promotion_id) {
+    const { data: promotion } = await admin
+      .from('promotions')
+      .select('*')
+      .eq('id', order.promotion_id)
+      .single();
+
+    if (promotion && promotion.scope === 'ORDER') {
+      if (subtotal >= (promotion.min_order_amount || 0)) {
+        if (promotion.type === 'PERCENTAGE') {
+          discount_amount += (subtotal * promotion.value) / 100;
+        } else {
+          discount_amount += promotion.value;
+        }
+      }
+    }
+  }
+
+  const total = Math.max(0, subtotal - discount_amount);
 
   await admin
     .from('orders')
     .update({
       subtotal,
+      discount_amount,
       total,
     })
     .eq('id', orderId);

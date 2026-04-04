@@ -2,7 +2,7 @@
 
 import { Order } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Eye, ChevronDown, CheckCircle, XCircle, Clock, Package, Coffee, CreditCard, Ban, Smartphone, QrCode, CreditCard as CardIcon, Printer } from 'lucide-react';
+import { Eye, ChevronDown, CheckCircle, XCircle, Clock, Package, Coffee, CreditCard, Ban, Smartphone, QrCode, CreditCard as CardIcon, Printer, Tag } from 'lucide-react';
 import Link from 'next/link';
 import { PrintOrderButton } from './print-order-button';
 import {
@@ -51,6 +51,23 @@ const sourceConfig: Record<string, { icon: any; label: string; color: string }> 
   CAISSE: { icon: CardIcon, label: 'Caisse', color: 'text-blue-400 bg-blue-500/10' },
 };
 
+const getValidNextStatuses = (currentStatus: string) => {
+  switch (currentStatus) {
+    case 'PENDING':
+      return ['IN_PROGRESS', 'CANCELLED'];
+    case 'IN_PROGRESS':
+      return ['READY', 'CANCELLED'];
+    case 'READY':
+      return ['SERVED'];
+    case 'SERVED':
+      return ['COMPLETED'];
+    case 'COMPLETED':
+    case 'CANCELLED':
+    default:
+      return []; // No further transitions allowed
+  }
+};
+
 export function OrdersList({
   orders,
   canManageStatus = false,
@@ -82,6 +99,8 @@ export function OrdersList({
               const StatusIcon = statusColor.icon;
               const source = getSourceConfig(order.source || 'CAISSE');
               const SourceIcon = source.icon;
+              const validNextStatuses = getValidNextStatuses(order.status);
+              const isStatusDisabled = updatingOrderId === order.id || validNextStatuses.length === 0;
 
               return (
                 <TableRow
@@ -118,7 +137,14 @@ export function OrdersList({
                     )}
                   </TableCell>
                   <TableCell className="text-slate-50 text-right font-bold">
-                    {order.total.toLocaleString()} FCFA
+                    <div className="flex flex-col items-end">
+                      {order.total.toLocaleString()} FCFA
+                      {(order as any).discount_amount > 0 && (
+                        <span className="text-[10px] text-pink-400 font-bold bg-pink-500/10 px-1.5 py-0.5 rounded-sm mt-1 inline-flex items-center gap-1 border border-pink-500/20">
+                          <Tag className="w-3 h-3" /> PROMO
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     {canManageStatus ? (
@@ -127,8 +153,8 @@ export function OrdersList({
                           <Button
                             variant="ghost"
                             size="sm"
-                            disabled={updatingOrderId === order.id}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusColor.bg} ${statusColor.text} hover:${statusColor.bg} cursor-pointer`}
+                            disabled={isStatusDisabled}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusColor.bg} ${statusColor.text} ${!isStatusDisabled ? 'hover:' + statusColor.bg + ' cursor-pointer' : 'opacity-80 cursor-not-allowed'}`}
                           >
                             {updatingOrderId === order.id ? (
                               <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -136,7 +162,7 @@ export function OrdersList({
                               <>
                                 <StatusIcon className="w-3 h-3" />
                                 {statusColor.label}
-                                <ChevronDown className="w-3 h-3" />
+                                {validNextStatuses.length > 0 && <ChevronDown className="w-3 h-3 ml-1 opacity-70" />}
                               </>
                             )}
                           </Button>
@@ -145,22 +171,21 @@ export function OrdersList({
                           align="start"
                           className="w-48 bg-slate-800 border-slate-700 text-slate-200"
                         >
-                          {statusOptions.map((option) => {
-                            const OptionIcon = option.icon;
-                            return (
-                              <DropdownMenuItem
-                                key={option.value}
-                                onClick={() => onStatusChange?.(order.id, option.value)}
-                                className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700 gap-2"
-                              >
-                                <OptionIcon className={`w-4 h-4 ${option.color}`} />
-                                <span>{option.label}</span>
-                                {order.status === option.value && (
-                                  <CheckCircle className="w-3 h-3 ml-auto text-green-400" />
-                                )}
-                              </DropdownMenuItem>
-                            );
-                          })}
+                          {statusOptions
+                            .filter(option => validNextStatuses.includes(option.value))
+                            .map((option) => {
+                              const OptionIcon = option.icon;
+                              return (
+                                <DropdownMenuItem
+                                  key={option.value}
+                                  onClick={() => onStatusChange?.(order.id, option.value)}
+                                  className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700 gap-2"
+                                >
+                                  <OptionIcon className={`w-4 h-4 ${option.color}`} />
+                                  <span>{option.label}</span>
+                                </DropdownMenuItem>
+                              );
+                            })}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     ) : (

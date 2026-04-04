@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { Product } from '@/lib/supabase';
-import { ArrowLeft, Trash2, Plus, ShoppingCart, CreditCard, Package, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, ShoppingCart, CreditCard, Package, Clock, CheckCircle, XCircle, Loader2, Tag } from 'lucide-react';
 import Link from 'next/link';
 import { PaymentForm } from '@/components/payment-form';
 import { useRouter } from 'next/navigation';
@@ -31,6 +31,8 @@ interface OrderDetail {
   status: string;
   subtotal: number;
   total: number;
+  discount_amount: number;
+  promotion_id: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -69,6 +71,23 @@ const statusConfig: Record<string, { label: string; icon: any; color: string; bg
   SERVED: { label: 'Servie', icon: CheckCircle, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
   COMPLETED: { label: 'Payée', icon: CreditCard, color: 'text-green-400', bg: 'bg-green-500/10' },
   CANCELLED: { label: 'Annulée', icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
+};
+
+const getValidNextStatuses = (currentStatus: string) => {
+  switch (currentStatus) {
+    case 'PENDING':
+      return ['IN_PROGRESS', 'CANCELLED'];
+    case 'IN_PROGRESS':
+      return ['READY', 'CANCELLED'];
+    case 'READY':
+      return ['SERVED'];
+    case 'SERVED':
+      return ['COMPLETED'];
+    case 'COMPLETED':
+    case 'CANCELLED':
+    default:
+      return [];
+  }
 };
 
 export default function OrderDetailPage() {
@@ -206,8 +225,10 @@ export default function OrderDetailPage() {
     );
   }
 
-  const statusOptions = ['PENDING', 'IN_PROGRESS', 'READY', 'SERVED', 'COMPLETED', 'CANCELLED'];
   const currentStatus = statusConfig[order.status] || statusConfig.PENDING;
+  const validNextStatuses = getValidNextStatuses(order.status);
+  // Reconstruct options to only include valid transitions plus the current status
+  const statusOptions = [order.status, ...validNextStatuses].filter((v, i, a) => a.indexOf(v) === i);
   const StatusIcon = currentStatus.icon;
 
   return (
@@ -315,7 +336,14 @@ export default function OrderDetailPage() {
               </div>
               <div className="border-t border-slate-700 pt-3 flex justify-between items-center">
                 <p className="text-sm text-slate-400">Total</p>
-                <p className="text-slate-50 font-bold text-xl">{order.total.toLocaleString()} FCFA</p>
+                <div className="flex flex-col items-end">
+                  <p className="text-slate-50 font-bold text-xl">{order.total.toLocaleString()} FCFA</p>
+                  {(order as any).discount_amount > 0 && (
+                    <span className="text-[10px] text-pink-400 font-bold bg-pink-500/10 px-2 py-0.5 rounded shadow-sm border border-pink-500/20 mt-1 inline-flex items-center gap-1">
+                      <Tag className="w-3 h-3" /> PROMO APPLIQUÉE
+                    </span>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

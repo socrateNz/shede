@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { requireRole } from '@/app/actions/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { NewOrderForm } from '@/components/new-order-form';
+import { getPromotions } from '@/app/actions/promotions';
 
 export default async function NewOrderPage() {
   const session = await requireRole('ADMIN', 'CAISSE', 'SERVEUR');
@@ -84,6 +85,9 @@ export default async function NewOrderPage() {
     .eq('structure_id', session.structureId)
     .order('number');
 
+  const promotions = await getPromotions();
+  const activePromotions = promotions.filter(p => p.is_active);
+
   return (
     <div className="p-8">
       <Link href="/orders" className="flex items-center gap-2 text-blue-400 hover:text-blue-300 mb-8">
@@ -95,6 +99,7 @@ export default async function NewOrderPage() {
         products={products}
         accompanimentsByProductId={accompanimentsByProductId}
         rooms={rooms || []}
+        promotions={activePromotions}
       />
     </div>
   );

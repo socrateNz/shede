@@ -2,6 +2,8 @@ import { supabase } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
 import ProductList from './ProductList';
 import Link from 'next/link';
+import { getActivePromotionsForClient } from '@/app/actions/promotions';
+import { PromoBanner } from '@/components/promo-banner';
 
 export default async function StructurePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -23,6 +25,8 @@ export default async function StructurePage({ params }: { params: Promise<{ id: 
     .eq('is_available', true)
     .eq('is_deleted', false);
 
+  const promotions = await getActivePromotionsForClient(id);
+
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
       <div className="bg-blue-600 rounded-2xl p-6 md:p-10 text-white shadow-md mb-8">
@@ -43,11 +47,13 @@ export default async function StructurePage({ params }: { params: Promise<{ id: 
         )}
       </div>
 
+      <PromoBanner promotions={promotions} />
+
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-900">La Carte</h2>
       </div>
 
-      <ProductList products={products || []} structureId={id} />
+      <ProductList products={products || []} structureId={id} promotions={promotions} />
     </div>
   );
 }

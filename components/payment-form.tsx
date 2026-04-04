@@ -4,7 +4,7 @@ import { createPayment } from '@/app/actions/payments';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
-import { CreditCard, Wallet, Landmark, Banknote, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { CreditCard, Wallet, Landmark, Banknote, Loader2, CheckCircle, AlertCircle, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PaymentFormProps {
@@ -18,6 +18,7 @@ const paymentMethods = [
   { value: 'CARD', label: 'Carte bancaire', icon: CreditCard, color: 'text-blue-400', bg: 'bg-blue-500/10' },
   { value: 'CHEQUE', label: 'Chèque', icon: Wallet, color: 'text-purple-400', bg: 'bg-purple-500/10' },
   { value: 'TRANSFER', label: 'Virement bancaire', icon: Landmark, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+  { value: 'MOBILE', label: 'Mobile Money', icon: Smartphone, color: 'text-orange-400', bg: 'bg-orange-500/10' },
 ];
 
 export function PaymentForm({ orderId, amount, onSuccess }: PaymentFormProps) {
@@ -70,7 +71,7 @@ export function PaymentForm({ orderId, amount, onSuccess }: PaymentFormProps) {
                 type="button"
                 onClick={() => setPaymentMethod(method.value)}
                 className={`flex items-center gap-2 p-3 rounded-lg border transition-all duration-200 cursor-pointer ${isSelected
-                    ? `${method.bg} border-${method.value === 'CASH' ? 'green' : method.value === 'CARD' ? 'blue' : method.value === 'CHEQUE' ? 'purple' : 'amber'}-500/50`
+                    ? `${method.bg} border-${method.value === 'CASH' ? 'green' : method.value === 'CARD' ? 'blue' : method.value === 'CHEQUE' ? 'purple' : method.value === 'MOBILE' ? 'orange' : 'amber'}-500/50`
                     : 'bg-slate-900/50 border-slate-600 hover:border-slate-500'
                   }`}
               >
@@ -123,6 +124,7 @@ export function PaymentForm({ orderId, amount, onSuccess }: PaymentFormProps) {
             {paymentMethod === 'CARD' && 'Numéro de transaction ou autorisation'}
             {paymentMethod === 'CHEQUE' && 'Numéro de chèque'}
             {paymentMethod === 'TRANSFER' && 'Référence du virement'}
+            {paymentMethod === 'MOBILE' && 'Numéro de téléphone ou référence transaction Mobile Money'}
           </p>
         </div>
       )}

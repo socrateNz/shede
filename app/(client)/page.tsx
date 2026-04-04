@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { Building2, Search, Utensils, Bed } from 'lucide-react';
+import { getAllGlobalActivePromotions } from '@/app/actions/promotions';
+import { PromoBanner } from '@/components/promo-banner';
 
 export default async function ClientHomePage() {
   // Fetch available structures joining their licenses
@@ -26,6 +28,9 @@ export default async function ClientHomePage() {
     console.error('Error fetching structures:', error);
   }
 
+  // Fetch verified global promotions for structures that have the CLIENT_APP module
+  const globalPromotions = await getAllGlobalActivePromotions();
+
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6">
       <div className="text-center py-8">
@@ -43,6 +48,12 @@ export default async function ClientHomePage() {
           className="w-full pl-10 pr-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm transition-all"
         />
       </div>
+
+      {globalPromotions.length > 0 && (
+        <div className="pt-2">
+          <PromoBanner promotions={globalPromotions as any} isGlobal={true} />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {structures?.map((structure) => {

@@ -8,6 +8,8 @@ import { Trash2, Loader2, UtensilsCrossed, Bed, ShoppingBag } from 'lucide-react
 import { useRouter } from 'next/navigation';
 import { formatFCFA } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
+import { validatePromoCode } from '@/app/actions/promotions';
+import { Tag, Check, X } from 'lucide-react';
 
 export default function CartPage() {
   const { items, structureId, updateQuantity, removeItem, getTotal, clearCart } = useCartStore();
@@ -17,6 +19,10 @@ export default function CartPage() {
   const [phone, setPhone] = useState('');
   const [rooms, setRooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -37,6 +43,41 @@ export default function CartPage() {
     );
   }
 
+  const handleApplyPromo = async () => {
+    if (!promoCode || !structureId) return;
+    setPromoLoading(true);
+    setPromoError('');
+    try {
+      const res = await validatePromoCode(promoCode, structureId);
+      if (res.valid) {
+        setAppliedPromo(res);
+        toast.success('Code promo appliqué !');
+      } else {
+        setPromoError(res.error || 'Code invalide');
+        setAppliedPromo(null);
+      }
+    } catch (err) {
+      setPromoError('Erreur de validation');
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const getDiscount = () => {
+    if (!appliedPromo) return 0;
+    const subtotal = getTotal();
+    if (appliedPromo.scope === 'ORDER') {
+       if (subtotal < appliedPromo.minOrderAmount) return 0;
+       if (appliedPromo.type === 'PERCENTAGE') {
+          return (subtotal * appliedPromo.value) / 100;
+       }
+       return appliedPromo.value;
+    }
+    // Product-specific discount is harder to preview on client without item-by-item check
+    // but for simplicity we show 0 or handle if scope is product
+    return 0; 
+  };
+
   const handleCheckout = async () => {
     if (!structureId) return;
     if (!phone) {
@@ -48,7 +89,8 @@ export default function CartPage() {
     const result = await createClientOrder(structureId, items, {
       roomId: deliveryMode === 'ROOM' ? roomId : undefined,
       tableNumber: deliveryMode === 'TABLE' ? tableNumber : undefined,
-      phone
+      phone,
+      promoCode: appliedPromo ? promoCode : undefined
     });
 
     if (result.success) {
@@ -101,8 +143,54 @@ export default function CartPage() {
 
       <div className="bg-slate-50 rounded-xl p-6 border border-slate-200 mt-8 space-y-4">
         <div className="flex justify-between items-center mb-4">
-          <span className="text-slate-500 font-medium">Total</span>
-          <span className="text-2xl font-bold text-slate-900">{formatFCFA(getTotal())}</span>
+          <span className="text-slate-500 font-medium">Sous-total</span>
+          <span className="text-lg font-semibold text-slate-800">{formatFCFA(getTotal())}</span>
+        </div>
+
+        {appliedPromo && (
+           <div className="flex justify-between items-center mb-4 text-green-600 bg-green-50 p-2 rounded-lg border border-green-100">
+             <div className="flex items-center gap-2">
+               <Tag className="w-4 h-4" />
+               <span className="text-sm font-medium">Réduction ({promoCode.toUpperCase()})</span>
+             </div>
+             <span className="font-bold">- {formatFCFA(getDiscount())}</span>
+           </div>
+        )}
+
+        {/* Promo Code Input */}
+        <div className="pt-2 pb-4">
+           <div className="flex gap-2">
+              <input 
+                type="text"
+                placeholder="Code Promo"
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value)}
+                disabled={!!appliedPromo}
+                className="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+              />
+              {!appliedPromo ? (
+                <button 
+                  onClick={handleApplyPromo}
+                  disabled={promoLoading || !promoCode}
+                  className="bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-700 transition-colors disabled:opacity-50"
+                 >
+                  {promoLoading ? '...' : 'Appliquer'}
+                </button>
+              ) : (
+                <button 
+                  onClick={() => { setAppliedPromo(null); setPromoCode(''); }}
+                  className="bg-red-50 text-red-500 p-2 rounded-xl border border-red-100 hover:bg-red-100 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+           </div>
+           {promoError && <p className="text-[10px] text-red-500 mt-1 ml-1">{promoError}</p>}
+        </div>
+
+        <div className="flex justify-between items-center mb-4 border-t border-slate-200 pt-4">
+          <span className="text-slate-900 font-bold">Total Final</span>
+          <span className="text-2xl font-bold text-slate-900">{formatFCFA(Math.max(0, getTotal() - getDiscount()))}</span>
         </div>
 
         <div className="space-y-4 border-t border-slate-200 pt-6">
@@ -188,7 +276,7 @@ export default function CartPage() {
           {loading ? (
             <><Loader2 className="w-5 h-5 animate-spin" /> Envoi...</>
           ) : (
-            `Valider ma commande (${formatFCFA(getTotal())})`
+            `Valider ma commande (${formatFCFA(Math.max(0, getTotal() - getDiscount()))})`
           )}
         </button>
       </div>

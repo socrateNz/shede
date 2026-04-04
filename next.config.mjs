@@ -55,10 +55,6 @@ const nextConfig = {
   // Exclure les packages du bundle serveur
   serverExternalPackages: ['jspdf', 'jspdf-autotable', 'fflate', 'canvas'],
 
-  // Optimisations
-  swcMinify: true,
-
-  // Pour Vercel
   output: 'standalone',
 };
 

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { getAdminSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { PromoBanner } from '@/components/promo-banner';
+import { getAllGlobalActivePromotions } from '@/app/actions/promotions';
 
 export default async function ClientDashboardPage() {
   const session = await getSession();
@@ -46,14 +48,20 @@ export default async function ClientDashboardPage() {
     return true;
   }) || [];
 
+  const globalPromotions = await getAllGlobalActivePromotions();
+
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-10">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Bienvenue sur votre Espace Client</h1>
-        <p className="text-slate-500 mt-2">
+        <p className="text-slate-500 mt-2 line-clamp-2 md:line-clamp-none">
           Retrouvez ici toutes vos commandes, réservations et parcourez nos établissements partenaires.
         </p>
       </div>
+
+      {globalPromotions.length > 0 && (
+        <PromoBanner promotions={globalPromotions as any} isGlobal={true} />
+      )}
 
       <div className="grid md:grid-cols-2 gap-6">
         <Card className="hover:shadow-md transition">
@@ -120,11 +128,10 @@ export default async function ClientDashboardPage() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                          o.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${o.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
                           o.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
-                          'bg-blue-100 text-blue-700'
-                        }`}>
+                            'bg-blue-100 text-blue-700'
+                          }`}>
                           {o.status}
                         </span>
                         <ClientInvoiceWrapper order={o} />

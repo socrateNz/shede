@@ -37,10 +37,12 @@ export function NewOrderForm({
   products,
   accompanimentsByProductId,
   rooms,
+  promotions = [],
 }: {
   products: OrderProduct[];
   accompanimentsByProductId: Record<string, AccompanimentOption[]>;
   rooms: { id: string; number: string }[];
+  promotions?: any[];
 }) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(createOrderWithItems, {
@@ -50,6 +52,8 @@ export function NewOrderForm({
   const [selectedProduct, setSelectedProduct] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [items, setItems] = useState<SelectedItem[]>([]);
+  const [promoCode, setPromoCode] = useState('');
+  const [selectedPromotionId, setSelectedPromotionId] = useState('');
 
   const productsById = useMemo(
     () => new Map(products.map((product) => [product.id, product])),
@@ -76,7 +80,30 @@ export function NewOrderForm({
     }, 0);
   }, [items, productsById, accompanimentsByProductId]);
 
-  const total = subtotal;
+  const discount = useMemo(() => {
+    if (!selectedPromotionId && !promoCode) return 0;
+    const promo = promotions?.find((p: any) => p.id === selectedPromotionId);
+    if (!promo) return 0;
+
+    let d = 0;
+    if (promo.scope === 'ORDER') {
+       if (subtotal >= (promo.min_order_amount || 0)) {
+          if (promo.type === 'PERCENTAGE') d = (subtotal * promo.value) / 100;
+          else d = promo.value;
+       }
+    } else if (promo.scope === 'PRODUCT' && promo.product_id) {
+       const productItem = items.find(it => it.productId === promo.product_id);
+       if (productItem) {
+          const product = productsById.get(promo.product_id);
+          const lineTotal = (product?.price || 0) * productItem.quantity;
+          if (promo.type === 'PERCENTAGE') d = (lineTotal * promo.value) / 100;
+          else d = Math.min(promo.value, lineTotal);
+       }
+    }
+    return d;
+  }, [selectedPromotionId, promoCode, subtotal, items, promotions, productsById]);
+
+  const total = Math.max(0, subtotal - discount);
 
   const addItem = () => {
     if (!selectedProduct || quantity < 1) return;
@@ -193,6 +220,41 @@ export function NewOrderForm({
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-200">Promotion Manuelle (Optionnel)</label>
+                <select
+                  className="w-full bg-slate-700 border border-slate-600 text-slate-50 rounded-md py-2 px-3 h-10"
+                  value={selectedPromotionId}
+                  onChange={(e) => {
+                    setSelectedPromotionId(e.target.value);
+                    if (e.target.value) setPromoCode(''); // Clear code if manual selected
+                  }}
+                  name="promotionId"
+                >
+                  <option value="">Aucune promotion</option>
+                  {promotions.map((p: any) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.value}{p.type === 'PERCENTAGE' ? '%' : ' FCFA'})
+                    </option>
+                  ))}
+                </select>
+             </div>
+             <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-200">Ou Code Promo</label>
+                <Input 
+                   placeholder="Ex: SUMMER24"
+                   value={promoCode}
+                   onChange={(e) => {
+                     setPromoCode(e.target.value.toUpperCase());
+                     if (e.target.value) setSelectedPromotionId(''); // Clear manual if code entered
+                   }}
+                   name="promoCode"
+                   className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500 uppercase font-mono"
+                />
+             </div>
+          </div>
+
           <div className="rounded-lg border border-slate-700 p-4 space-y-3">
             <p className="text-slate-100 font-medium">Add Products</p>
             <div className="grid grid-cols-12 gap-3">
@@ -205,7 +267,7 @@ export function NewOrderForm({
                   <option value="">Select a product...</option>
                   {products.map((product) => (
                     <option key={product.id} value={product.id}>
-                      {product.name} - ${product.price.toFixed(2)}
+                      {product.name} - {product.price.toFixed(2)}
                     </option>
                   ))}
                 </select>
@@ -249,7 +311,7 @@ export function NewOrderForm({
                     <div>
                       <p className="text-slate-50 font-medium">{product.name}</p>
                       <p className="text-slate-400 text-sm">
-                        {item.quantity} x ${product.price.toFixed(2)} = ${lineTotal.toFixed(2)}
+                        {item.quantity} x {product.price.toFixed(2)} = {lineTotal.toFixed(2)}
                       </p>
 
                       {possibleAccs.length > 0 && (
@@ -267,7 +329,7 @@ export function NewOrderForm({
                                     onChange={(e) => toggleAccompanimentIncluded(item.productId, acc.accompanimentId, e.target.checked)}
                                   />
                                   <span>
-                                    {acc.name} (${acc.unitPrice.toFixed(2)}) x {acc.quantityMultiplier}
+                                    {acc.name} ({acc.unitPrice.toFixed(2)}) x {acc.quantityMultiplier}
                                   </span>
                                 </label>
 
@@ -309,8 +371,11 @@ export function NewOrderForm({
           </div>
 
           <div className="rounded-lg border border-slate-700 p-4 space-y-1">
-            <p className="text-slate-300 text-sm">Subtotal: ${subtotal.toFixed(2)}</p>
-            <p className="text-slate-50 font-bold">Total: ${total.toFixed(2)}</p>
+            <p className="text-slate-300 text-sm">Subtotal: {subtotal.toFixed(2)}</p>
+            {discount > 0 && (
+               <p className="text-green-500 text-sm italic">Discount: -{discount.toFixed(2)}</p>
+            )}
+            <p className="text-slate-50 font-bold">Total: {total.toFixed(2)}</p>
           </div>
 
           <input type="hidden" name="items" value={JSON.stringify(items)} />
