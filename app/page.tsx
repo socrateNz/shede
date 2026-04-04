@@ -12,7 +12,12 @@ import {
   LayoutDashboard,
   WalletCards,
   CalendarCheck,
-  Users
+  Users,
+  Tag,
+  BellRing,
+  BarChart3,
+  SmartphoneNfc,
+  Package
 } from 'lucide-react';
 
 export default async function HomePage() {
@@ -185,17 +190,17 @@ export default async function HomePage() {
             <div className="p-6 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
               <Bed className="w-10 h-10 text-purple-600 mb-4" />
               <h3 className="font-bold text-lg mb-2">Réservations Hôtelières</h3>
-              <p className="text-slate-600 text-sm">Gérez vos séjours, choisissez vos chambres et checkez vos dates de réservation en direct sur la plateforme.</p>
+              <p className="text-slate-600 text-sm">Gérez vos séjours, choisissez vos chambres et checkez vos dates de réservation en direct.</p>
             </div>
             <div className="p-6 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
               <Smartphone className="w-10 h-10 text-emerald-600 mb-4" />
-              <h3 className="font-bold text-lg mb-2">Commandes à Table & Emporter</h3>
-              <p className="text-slate-600 text-sm">Scannez un QR code ou commandez depuis l'appli directement. Fini l'attente en salle ou au téléphone.</p>
+              <h3 className="font-bold text-lg mb-2">Self-Order & App B2C</h3>
+              <p className="text-slate-600 text-sm">Scannez un QR code ou commandez sur l'app. Suivez l'état en direct: de la préparation au service.</p>
             </div>
             <div className="p-6 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
-              <WalletCards className="w-10 h-10 text-blue-600 mb-4" />
-              <h3 className="font-bold text-lg mb-2">Suivi et Historique</h3>
-              <p className="text-slate-600 text-sm">Retrouvez toutes vos factures, l'historique de vos menus goûtés et vos lieux favoris dans votre espace.</p>
+              <Tag className="w-10 h-10 text-pink-600 mb-4" />
+              <h3 className="font-bold text-lg mb-2">Bons Plans & Promos</h3>
+              <p className="text-slate-600 text-sm">Bénéficiez de réductions exclusives visibles sur le panier lors de la commande.</p>
             </div>
           </div>
         </div>
@@ -214,26 +219,36 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl hover:bg-slate-750 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <CalendarCheck className="w-8 h-8 text-blue-400 mb-4" />
-              <h3 className="font-semibold mb-2">Tableau de bord (PMS)</h3>
-              <p className="text-sm text-slate-400">Gérez l'occupation des lits, bloquez les dates et encaissez en quelques clics.</p>
+              <UtensilsCrossed className="w-8 h-8 text-blue-400 mb-4" />
+              <h3 className="font-semibold mb-2">Gestion Restaurant (POS)</h3>
+              <p className="text-sm text-slate-400">Prise de commande sur caisse tactile, suivi du workflow cuisine (En préparation → Prête → Servie).</p>
             </div>
             <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl hover:bg-slate-750 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <Store className="w-8 h-8 text-emerald-400 mb-4" />
-              <h3 className="font-semibold mb-2">Caisse Tactile</h3>
-              <p className="text-sm text-slate-400">Module de caisse restaurant ultra-rapide avec gestion des serveurs.</p>
+              <Bed className="w-8 h-8 text-purple-400 mb-4" />
+              <h3 className="font-semibold mb-2">Gestion Hôtelière (PMS)</h3>
+              <p className="text-sm text-slate-400">Gérez l'état de vos chambres, le planning des réservations et la facturation centralisée.</p>
             </div>
             <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl hover:bg-slate-750 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <Users className="w-8 h-8 text-purple-400 mb-4" />
-              <h3 className="font-semibold mb-2">Rôles Multiples</h3>
-              <p className="text-sm text-slate-400">Permissions granulaires (Réception, Serveur, Admin, Caisse) par accès.</p>
+              <Package className="w-8 h-8 text-amber-400 mb-4" />
+              <h3 className="font-semibold mb-2">Gestion des Stocks</h3>
+              <p className="text-sm text-slate-400">Contrôle en temps réel de votre catalogue, des formules, et évitez les ruptures de produits.</p>
             </div>
             <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl hover:bg-slate-750 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <Globe className="w-8 h-8 text-amber-400 mb-4" />
-              <h3 className="font-semibold mb-2">Visibilité Web</h3>
-              <p className="text-sm text-slate-400">Votre structure s'affiche automatiquement aux clients inscrits sur Shede.</p>
+              <Smartphone className="w-8 h-8 text-emerald-400 mb-4" />
+              <h3 className="font-semibold mb-2">Application Menu B2C</h3>
+              <p className="text-sm text-slate-400">Un portail client B2C innovant (Scan QR) pour que vos clients puissent commander eux-mêmes à table.</p>
+            </div>
+            <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl hover:bg-slate-750 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+              <Tag className="w-8 h-8 text-pink-400 mb-4" />
+              <h3 className="font-semibold mb-2">Gestion des Promotions</h3>
+              <p className="text-sm text-slate-400">Animez vos ventes grâce aux bannières de promotions globales ou des réductions ciblées sur certains plats.</p>
+            </div>
+            <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl hover:bg-slate-750 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+              <Globe className="w-8 h-8 text-cyan-400 mb-4" />
+              <h3 className="font-semibold mb-2">SaaS Multi-tenant</h3>
+              <p className="text-sm text-slate-400">Supervisez un nombre illimité d'établissements de manière cloisonnée en tant que Super Administrateur.</p>
             </div>
           </div>
         </div>
