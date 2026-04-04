@@ -26,8 +26,31 @@ export function PushSubscriptionToggle() {
   const checkSubscription = async () => {
     try {
       const registration = await navigator.serviceWorker.ready;
-      const sub = await registration.pushManager.getSubscription();
-      setSubscription(sub);
+      let sub = await registration.pushManager.getSubscription();
+
+      // Si le navigateur a déjà la permission mais qu'on n'est pas abonné, on s'abonne silencieusement.
+      if (!sub && Notification.permission === 'granted') {
+        const publicKey = await getPublicKey();
+        if (publicKey) {
+          sub = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey),
+          });
+        }
+      }
+
+      // Si on a un abonnement valide, on le synchronise systématiquement avec le backend
+      // pour éviter qu'il soit perdu côté BDD au fil du temps ou suite à une déconnexion.
+      if (sub && Notification.permission === 'granted') {
+        await subscribePush({
+          endpoint: sub.endpoint,
+          keys: {
+            p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('p256dh')!) as any)),
+            auth: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('auth')!) as any)),
+          },
+        });
+        setSubscription(sub);
+      }
     } catch (error) {
       console.error('Error checking subscription:', error);
     } finally {
