@@ -1,6 +1,7 @@
 'use server';
 
 import { createSession, deleteSession, getSession, hashPassword, verifyPassword } from '@/lib/auth';
+export { getSession }; // Allow client components to import this server-side function indirectly if needed via 'use server'
 import { getAdminSupabase } from '@/lib/supabase';
 import type { User } from '@/lib/supabase';
 import { redirect } from 'next/navigation';
@@ -228,4 +229,8 @@ export async function requireModule(moduleName: string) {
     redirect('/unauthorized?error=module_required&module=' + moduleName);
   }
   return session;
+}
+
+export async function getSessionAction() {
+  return await getSession();
 }

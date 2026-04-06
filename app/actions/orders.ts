@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { notifyStructureStaff, notifyUser } from '@/app/actions/push';
 import { validatePromoCode, recordPromoUsage } from './promotions';
+import { getActiveShift, getStructureActiveShift } from './shifts';
 
 type ProductAccompanimentMapping = {
   product_id: string;
@@ -25,6 +26,12 @@ export async function createOrder(
   const session = await getSession();
   if (!session || !['ADMIN', 'CAISSE', 'SERVEUR', 'SUPER_ADMIN'].includes(session.role)) {
     return { success: false, error: 'Unauthorized' };
+  }
+
+  // Check if shift is open for structure
+  const activeShift = await getStructureActiveShift(session.structureId as string);
+  if (!activeShift) {
+    return { success: false, error: 'La caisse doit être ouverte pour effectuer cette opération.' };
   }
 
   try {
@@ -69,6 +76,12 @@ export async function createOrderWithItems(
   const session = await getSession();
   if (!session || !['ADMIN', 'CAISSE', 'SERVEUR', 'SUPER_ADMIN'].includes(session.role)) {
     return { success: false, error: 'Unauthorized' };
+  }
+
+  // Check if shift is open for structure
+  const activeShift = await getStructureActiveShift(session.structureId as string);
+  if (!activeShift) {
+    return { success: false, error: 'La caisse doit être ouverte pour effectuer cette opération.' };
   }
 
   const tableNumberRaw = String(formData.get('tableNumber') || '').trim();
@@ -397,7 +410,7 @@ export async function createOrderWithItems(
     await updateOrderTotal(createdOrderId);
 
     if (verifiedPromo) {
-      await recordPromoUsage(verifiedPromo.promoCodeId as string, session.userId);
+      await recordPromoUsage(verifiedPromo.promotionId as string, session.userId);
     }
 
     await notifyStructureStaff({
@@ -423,6 +436,12 @@ export async function addOrderItem(
   const session = await getSession();
   if (!session) {
     return { success: false, error: 'Unauthorized' };
+  }
+  
+  // Check if shift is open for structure
+  const activeShift = await getStructureActiveShift(session.structureId as string);
+  if (!activeShift) {
+    return { success: false, error: 'La caisse doit être ouverte pour ajouter des articles.' };
   }
 
   try {
@@ -711,10 +730,10 @@ export async function setOrderItemPriceCounted(itemId: string, priceCounted: boo
 export async function updateOrderTotal(orderId: string) {
   const admin = getAdminSupabase();
 
-  // Totaux des produits (lignes parent uniquement)
+  // 1. Totals des produits (lignes parent uniquement)
   const { data: productItems } = await admin
     .from('order_items')
-    .select('total_price, is_price_counted')
+    .select('product_id, unit_price, total_price, is_price_counted, quantity')
     .eq('order_id', orderId)
     .is('parent_order_item_id', null);
 
@@ -724,7 +743,7 @@ export async function updateOrderTotal(orderId: string) {
       return sum + (counted ? item.total_price : 0);
     }, 0) || 0;
 
-  // Totaux des accompagnements choisis
+  // 2. Totals des accompagnements choisis
   const { data: accChoices } = await admin
     .from('order_accompaniments')
     .select('total_price_snapshot, is_price_counted')
@@ -737,65 +756,101 @@ export async function updateOrderTotal(orderId: string) {
     }, 0) || 0;
 
   const subtotal = productSubtotal + accSubtotal;
-  let discount_amount = 0;
 
-  // Handle Promotion
+  // 3. Handle Promotions Logic
   const { data: order } = await admin
     .from('orders')
-    .select('structure_id, promotion_id, order_items(product_id, total_price, is_price_counted, quantity)')
+    .select('structure_id, promotion_id')
     .eq('id', orderId)
     .single();
 
-  if (!order) return;
+  if (!order || !productItems) return;
 
-  // 1. Auto-apply active PRODUCT scope promotions
   const now = new Date().toISOString();
-  const { data: productPromos } = await admin
+
+  // A. Fetch All Currently Active "STANDARD" and "BUY_X_GET_Y" promos (Auto-applied)
+  const { data: autoPromos } = await admin
     .from('promotions')
     .select('*')
     .eq('structure_id', order.structure_id)
-    .eq('scope', 'PRODUCT')
     .eq('is_active', true)
+    .in('promo_mode', ['STANDARD', 'BUY_X_GET_Y'])
     .lte('start_date', now)
     .gte('end_date', now);
 
-  if (productPromos && productPromos.length > 0) {
-    for (const promo of productPromos) {
-      if (!promo.product_id) continue;
-      const matchingItems = order.order_items.filter((it: any) => it.product_id === promo.product_id && (it.is_price_counted ?? true));
-      
-      for (const item of matchingItems) {
-        if (promo.type === 'PERCENTAGE') {
-          discount_amount += (item.total_price * promo.value) / 100;
-        } else {
-          // Fixed discount applied per unit of quantity
-          const itemQuantity = item.quantity || 1;
-          discount_amount += Math.min(promo.value * itemQuantity, item.total_price);
-        }
-      }
-    }
-  }
+  const promosToApply = [...(autoPromos || [])];
 
-  // 2. Apply ORDER scope promotion if a specific promo code or promotion was attached
+  // B. Fetch the specifically attached "CODE" promo (if any)
   if (order.promotion_id) {
-    const { data: promotion } = await admin
+    const { data: selectedPromo } = await admin
       .from('promotions')
       .select('*')
       .eq('id', order.promotion_id)
       .single();
 
-    if (promotion && promotion.scope === 'ORDER') {
-      if (subtotal >= (promotion.min_order_amount || 0)) {
-        if (promotion.type === 'PERCENTAGE') {
-          discount_amount += (subtotal * promotion.value) / 100;
-        } else {
-          discount_amount += promotion.value;
-        }
+    if (selectedPromo && selectedPromo.is_active && selectedPromo.promo_mode === 'CODE') {
+      // Check dates
+      const start = new Date(selectedPromo.start_date);
+      const end = new Date(selectedPromo.end_date);
+      const current = new Date();
+      if (current >= start && current <= end) {
+        promosToApply.push(selectedPromo);
       }
     }
   }
 
-  const total = Math.max(0, subtotal - discount_amount);
+  // C. Apply Cascading Logic
+  let runningSubtotal = 0;
+  
+  // 1. First Pass: Apply PRODUCT-level promotions per item
+  for (const item of productItems) {
+    let itemPriceWithPromo = item.total_price || 0;
+    const productPromos = promosToApply.filter(p => p.scope === 'PRODUCT' && p.product_id === item.product_id);
+    
+    for (const promo of productPromos) {
+      if (promo.promo_mode === 'BUY_X_GET_Y') {
+        const y = promo.required_qty || 1;
+        const x = promo.free_qty || 0;
+        const setSize = y + x;
+        const quantity = item.quantity || 0;
+        
+        let freeUnits = 0;
+        const isCumulative = promo.is_cumulative !== false; // default to true
+        if (isCumulative) {
+          freeUnits = Math.floor(quantity / setSize) * x;
+        } else if (quantity >= setSize) {
+          freeUnits = x;
+        }
+        itemPriceWithPromo -= (freeUnits * (item.unit_price || 0));
+      } else {
+        // STANDARD or CODE with PRODUCT scope
+        if (promo.type === 'PERCENTAGE') {
+          itemPriceWithPromo *= (1 - (promo.value || 0) / 100);
+        } else {
+          itemPriceWithPromo = Math.max(0, itemPriceWithPromo - ((promo.value || 0) * (item.quantity || 0)));
+        }
+      }
+    }
+    runningSubtotal += Math.max(0, itemPriceWithPromo);
+  }
+
+  // Add accompaniments to the intermediate subtotal (usually they don't get product-level promos)
+  runningSubtotal += accSubtotal;
+
+  // 2. Second Pass: Apply ORDER-level promotions to the intermediate subtotal
+  const orderPromos = promosToApply.filter(p => p.scope === 'ORDER');
+  for (const promo of orderPromos) {
+    if (runningSubtotal >= (promo.min_order_amount || 0)) {
+      if (promo.type === 'PERCENTAGE') {
+        runningSubtotal *= (1 - (promo.value || 0) / 100);
+      } else {
+        runningSubtotal = Math.max(0, runningSubtotal - (promo.value || 0));
+      }
+    }
+  }
+
+  const discount_amount = subtotal - runningSubtotal;
+  const total = Math.round(Math.max(0, runningSubtotal));
 
   await admin
     .from('orders')
@@ -814,7 +869,23 @@ export async function updateOrderStatus(
   status: string
 ) {
   const session = await getSession();
-  if (!session || !['ADMIN', 'CAISSE', 'SUPER_ADMIN'].includes(session.role)) {
+  if (!session) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  // Check if shift is open for structure
+  const activeShift = await getStructureActiveShift(session.structureId as string);
+  if (!activeShift) {
+    return { success: false, error: 'La caisse doit être ouverte pour traiter une commande.' };
+  }
+
+  // ROLE ENFORCEMENT: Server cannot validate (COMPLETED) or cancel
+  if (session.role === 'SERVEUR' && ['COMPLETED', 'CANCELLED'].includes(status)) {
+    return { success: false, error: 'Seuls les administrateurs ou caissiers peuvent effectuer cette opération.' };
+  }
+
+  // General unauthorized check for non-management
+  if (!['ADMIN', 'CAISSE', 'SUPER_ADMIN', 'SERVEUR'].includes(session.role)) {
     return { success: false, error: 'Unauthorized' };
   }
 
@@ -950,7 +1021,7 @@ export async function getOrder(orderId: string) {
 
     const { data: order } = await admin
       .from('orders')
-      .select('*, rooms(number), order_items(*, products(*))')
+      .select('*, structures(name), rooms(number), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))')
       .eq('id', orderId)
       .eq('structure_id', session.structureId)
       .single();
@@ -971,7 +1042,7 @@ export async function getOrders(
 
     let query = admin
       .from('orders')
-      .select('*, rooms(number)')
+      .select('*, structures(name), rooms(number), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))')
       .eq('structure_id', structureId)
       .order('created_at', { ascending: false })
       .limit(limit);

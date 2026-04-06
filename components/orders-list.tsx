@@ -19,6 +19,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useState } from 'react';
+import { TablePagination } from './table-pagination';
 
 interface OrdersListProps {
   orders: Order[];
@@ -74,9 +76,23 @@ export function OrdersList({
   onStatusChange,
   updatingOrderId = null,
 }: OrdersListProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   const getSourceConfig = (source: string) => {
     return sourceConfig[source] || sourceConfig.CAISSE;
   };
+
+  const totalPages = Math.ceil(orders.length / itemsPerPage);
+  const paginatedOrders = orders.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset to first page if current page is out of bounds (e.g. after filtering/deletion elsewhere)
+  if (currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(1);
+  }
 
   return (
     <div className="rounded-xl border border-slate-700/50 overflow-hidden bg-slate-800/30">
@@ -94,7 +110,7 @@ export function OrdersList({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map((order) => {
+            {paginatedOrders.map((order) => {
               const statusColor = statusColors[order.status] || statusColors.PENDING;
               const StatusIcon = statusColor.icon;
               const source = getSourceConfig(order.source || 'CAISSE');
@@ -226,6 +242,11 @@ export function OrdersList({
           </TableBody>
         </Table>
       </div>
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

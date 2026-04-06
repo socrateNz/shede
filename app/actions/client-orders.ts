@@ -28,7 +28,7 @@ export async function createClientOrder(
 
     let verifiedPromo = null;
     if (options?.promoCode) {
-       const validation = await validatePromoCode(options.promoCode, structureId, clientId || undefined);
+       const validation = await validatePromoCode(options.promoCode, structureId, clientId || undefined, options.phone);
        if (!validation.valid) {
           return { success: false, error: validation.error || 'Code promo invalide' };
        }
@@ -59,7 +59,7 @@ export async function createClientOrder(
       return { success: false, error: 'Failed to create order' };
     }
 
-    // Fetch real original prices from the database to prevent trusting frontend (which sends pre-discounted prices for display)
+    // 2. Fetch real original prices from the database
     const uniqueProductIds = [...new Set(items.map(i => i.productId))];
     const { data: dbProducts } = await admin
       .from('products')
@@ -68,14 +68,42 @@ export async function createClientOrder(
       
     const realPrices = new Map((dbProducts || []).map(p => [p.id, Number(p.price)]));
 
+    // 3. Fetch active BUY_X_GET_Y promos to calculate free units (auto-complete)
+    const { data: bogoPromos } = await admin
+      .from('promotions')
+      .select('*')
+      .eq('structure_id', structureId)
+      .eq('promo_mode', 'BUY_X_GET_Y')
+      .eq('is_active', true)
+      .lte('start_date', new Date().toISOString())
+      .gte('end_date', new Date().toISOString());
+
     const orderItemsPayload = items.map(item => {
-      const realDbPrice = realPrices.get(item.productId) || item.price; // fallback to item.price if not found (shouldn't happen)
+      const realDbPrice = realPrices.get(item.productId) || item.price;
+      
+      let finalQuantity = item.quantity;
+      const bogo = (bogoPromos || []).find(p => p.product_id === item.productId);
+      
+      if (bogo) {
+        const x = bogo.required_qty || 1;
+        const y = bogo.free_qty || 0;
+        const isCumulative = bogo.is_cumulative !== false; // default to true
+        
+        let freeUnits = 0;
+        if (isCumulative) {
+          freeUnits = Math.floor(item.quantity / x) * y;
+        } else if (item.quantity >= x) {
+          freeUnits = y;
+        }
+        finalQuantity = item.quantity + freeUnits;
+      }
+
       return {
         order_id: order.id,
         product_id: item.productId,
-        quantity: item.quantity,
+        quantity: finalQuantity,
         unit_price: realDbPrice,
-        total_price: realDbPrice * item.quantity,
+        total_price: realDbPrice * finalQuantity,
         is_price_counted: true,
         parent_order_item_id: null,
       };
@@ -128,7 +156,7 @@ export async function createClientOrder(
     await updateOrderTotal(order.id);
 
     if (verifiedPromo && clientId) {
-       await recordPromoUsage(verifiedPromo.promoCodeId as string, clientId);
+       await recordPromoUsage(verifiedPromo.promotionId as string, clientId);
     }
 
 

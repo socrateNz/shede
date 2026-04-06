@@ -4,9 +4,12 @@ import { requireRole } from '@/app/actions/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { NewOrderForm } from '@/components/new-order-form';
 import { getPromotions } from '@/app/actions/promotions';
+import { getStructureActiveShift } from '@/app/actions/shifts';
+import { AlertTriangle } from 'lucide-react';
 
 export default async function NewOrderPage() {
   const session = await requireRole('ADMIN', 'CAISSE', 'SERVEUR');
+  const activeShift = await getStructureActiveShift(session.structureId!);
   const admin = getAdminSupabase();
 
   const { data: productsData } = await admin
@@ -95,12 +98,31 @@ export default async function NewOrderPage() {
         Back to Orders
       </Link>
 
-      <NewOrderForm
-        products={products}
-        accompanimentsByProductId={accompanimentsByProductId}
-        rooms={rooms || []}
-        promotions={activePromotions}
-      />
+      {!activeShift ? (
+        <div className="max-w-2xl mx-auto mt-12 p-8 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center backdrop-blur-sm">
+          <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle className="w-8 h-8 text-amber-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-amber-500 mb-4">Caisse fermée</h2>
+          <p className="text-slate-300 mb-8 max-w-md mx-auto">
+            Vous ne pouvez pas créer de nouvelle commande tant qu'aucune session de caisse n'est ouverte pour cet établissement.
+          </p>
+          {(session.role === 'ADMIN' || session.role === 'CAISSE') && (
+            <Link href="/shifts">
+              <button className="px-6 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors font-medium">
+                Ouvrir la caisse
+              </button>
+            </Link>
+          )}
+        </div>
+      ) : (
+        <NewOrderForm
+          products={products}
+          accompanimentsByProductId={accompanimentsByProductId}
+          rooms={rooms || []}
+          promotions={activePromotions}
+        />
+      )}
     </div>
   );
 }

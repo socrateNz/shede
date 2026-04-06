@@ -8,6 +8,7 @@ import { Bed, CalendarDays, UtensilsCrossed, X, Edit, MapPin } from 'lucide-reac
 import { ClientInvoiceWrapper } from '@/components/client-invoice-wrapper';
 import { updateClientBooking, cancelClientOrder } from '@/app/actions/client-history';
 import { toast } from 'sonner';
+import { TablePagination } from './table-pagination';
 
 export function ClientHistoryList({ bookings, orders }: { bookings: any[], orders: any[] }) {
   const [activeTab, setActiveTab] = useState<'BOOKINGS' | 'ORDERS'>('BOOKINGS');
@@ -15,6 +16,19 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [bookingPage, setBookingPage] = useState(1);
+  const [orderPage, setOrderPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const totalBookingPages = Math.ceil(bookings.length / itemsPerPage);
+  const paginatedBookings = bookings.slice((bookingPage - 1) * itemsPerPage, bookingPage * itemsPerPage);
+
+  const totalOrderPages = Math.ceil(orders.length / itemsPerPage);
+  const paginatedOrders = orders.slice((orderPage - 1) * itemsPerPage, orderPage * itemsPerPage);
+
+  if (bookingPage > totalBookingPages && totalBookingPages > 0) setBookingPage(1);
+  if (orderPage > totalOrderPages && totalOrderPages > 0) setOrderPage(1);
 
   const handleBookingUpdate = async (e: React.FormEvent, action: 'UPDATE' | 'CANCEL') => {
     e.preventDefault();
@@ -61,7 +75,7 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
       <div className="grid grid-cols-1 gap-6">
         {activeTab === 'BOOKINGS' && (
           <div className="space-y-4">
-            {bookings.length > 0 ? bookings.map((b: any) => (
+            {paginatedBookings.length > 0 ? paginatedBookings.map((b: any) => (
               <Card key={b.id} className="hover:shadow-md transition bg-white border-slate-200">
                 <CardContent className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
@@ -105,12 +119,17 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
                 <p className="text-lg font-medium">Aucune réservation</p>
               </div>
             )}
+            <TablePagination 
+              currentPage={bookingPage}
+              totalPages={totalBookingPages}
+              onPageChange={setBookingPage}
+            />
           </div>
         )}
 
         {activeTab === 'ORDERS' && (
           <div className="space-y-4">
-            {orders.length > 0 ? orders.map((o: any) => (
+            {paginatedOrders.length > 0 ? paginatedOrders.map((o: any) => (
               <Card key={o.id} className="hover:shadow-md transition bg-white border-slate-200">
                 <CardContent className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
@@ -149,6 +168,11 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
                 <p className="text-lg font-medium">Aucune commande</p>
               </div>
             )}
+            <TablePagination 
+              currentPage={orderPage}
+              totalPages={totalOrderPages}
+              onPageChange={setOrderPage}
+            />
           </div>
         )}
       </div>

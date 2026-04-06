@@ -1,5 +1,6 @@
 import { getPromotions } from '@/app/actions/promotions';
 import { requireRole } from '@/app/actions/auth';
+import { getAdminSupabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,6 +29,12 @@ export default async function PromotionsPage() {
   const session = await requireRole('ADMIN', 'SUPER_ADMIN');
   const promotions = await getPromotions();
   const stats = await getPromotionsStats(promotions);
+
+  const admin = getAdminSupabase();
+  const { data: products } = await admin
+    .from('products')
+    .select('id, name')
+    .eq('structure_id', session.structureId);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -148,7 +155,7 @@ export default async function PromotionsPage() {
                 </Link>
               </div>
             ) : (
-              <PromotionsList promotions={promotions} />
+              <PromotionsList promotions={promotions} products={products || []} />
             )}
           </CardContent>
         </Card>

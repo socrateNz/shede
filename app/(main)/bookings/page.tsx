@@ -47,11 +47,37 @@ const statusLabels: Record<string, string> = {
   CANCELLED: 'Annulée',
 };
 
+async function getBookingStats(bookings: any[]) {
+  const total = bookings.length;
+  const totalRev = bookings.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
+  
+  const pendingCount = bookings.filter((b: any) => b.status === 'PENDING').length;
+  const pendingRev = bookings.filter((b: any) => b.status === 'PENDING').reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
+  
+  const confirmedCount = bookings.filter((b: any) => b.status === 'CONFIRMED').length;
+  const confirmedRev = bookings.filter((b: any) => b.status === 'CONFIRMED').reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
+  
+  const inProgressCount = bookings.filter((b: any) => b.status === 'IN_PROGRESS').length;
+  const inProgressRev = bookings.filter((b: any) => b.status === 'IN_PROGRESS').reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
+  
+  const completedCount = bookings.filter((b: any) => b.status === 'COMPLETED').length;
+  const completedRev = bookings.filter((b: any) => b.status === 'COMPLETED').reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
+
+  return {
+    total: { count: total, revenue: totalRev },
+    pending: { count: pendingCount, revenue: pendingRev },
+    confirmed: { count: confirmedCount, revenue: confirmedRev },
+    inProgress: { count: inProgressCount, revenue: inProgressRev },
+    completed: { count: completedCount, revenue: completedRev }
+  };
+}
+
 export default async function BookingsPage() {
   const session = await requireRole('ADMIN', 'RECEPTION');
 
   if (!session?.structureId) return null;
   const bookings = await getBookings(session.structureId);
+  const stats = await getBookingStats(bookings);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -85,24 +111,29 @@ export default async function BookingsPage() {
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300">
-            <div className="text-2xl font-bold text-white">{bookings.length}</div>
-            <div className="text-sm text-slate-400">Total</div>
+            <div className="text-sm text-slate-400 mb-1">Total</div>
+            <div className="text-2xl font-bold text-white">{stats.total.count}</div>
+            <div className="text-xs font-semibold text-blue-400 mt-1">{stats.total.revenue.toLocaleString()} FCFA</div>
           </div>
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300">
-            <div className="text-2xl font-bold text-yellow-400">{bookings.filter((b: any) => b.status === 'PENDING').length}</div>
-            <div className="text-sm text-slate-400">En attente</div>
+            <div className="text-sm text-slate-400 mb-1">En attente</div>
+            <div className="text-2xl font-bold text-yellow-400">{stats.pending.count}</div>
+            <div className="text-xs font-semibold text-yellow-500/80 mt-1">{stats.pending.revenue.toLocaleString()} FCFA</div>
           </div>
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300">
-            <div className="text-2xl font-bold text-blue-400">{bookings.filter((b: any) => b.status === 'CONFIRMED').length}</div>
-            <div className="text-sm text-slate-400">Confirmées</div>
+            <div className="text-sm text-slate-400 mb-1">Confirmées</div>
+            <div className="text-2xl font-bold text-blue-400">{stats.confirmed.count}</div>
+            <div className="text-xs font-semibold text-blue-500/80 mt-1">{stats.confirmed.revenue.toLocaleString()} FCFA</div>
           </div>
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300">
-            <div className="text-2xl font-bold text-purple-400">{bookings.filter((b: any) => b.status === 'IN_PROGRESS').length}</div>
-            <div className="text-sm text-slate-400">En cours</div>
+            <div className="text-sm text-slate-400 mb-1">En cours</div>
+            <div className="text-2xl font-bold text-purple-400">{stats.inProgress.count}</div>
+            <div className="text-xs font-semibold text-purple-500/80 mt-1">{stats.inProgress.revenue.toLocaleString()} FCFA</div>
           </div>
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300">
-            <div className="text-2xl font-bold text-green-400">{bookings.filter((b: any) => b.status === 'COMPLETED').length}</div>
-            <div className="text-sm text-slate-400">Terminées</div>
+            <div className="text-sm text-slate-400 mb-1">Payées</div>
+            <div className="text-2xl font-bold text-green-400">{stats.completed.count}</div>
+            <div className="text-xs font-semibold text-green-500 mt-1">{stats.completed.revenue.toLocaleString()} FCFA</div>
           </div>
         </div>
 

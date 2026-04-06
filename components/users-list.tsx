@@ -23,6 +23,7 @@ import { deleteUser } from '@/app/actions/users';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { TablePagination } from './table-pagination';
 
 interface UsersListProps {
   users: User[];
@@ -40,6 +41,18 @@ const roleConfig: Record<string, { label: string; icon: any; color: string; bg: 
 export function UsersList({ users }: UsersListProps) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const totalPages = Math.ceil(users.length / itemsPerPage);
+  const paginatedUsers = users.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  if (currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(1);
+  }
 
   const handleDelete = async (userId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return;
@@ -77,7 +90,7 @@ export function UsersList({ users }: UsersListProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {users.map((user) => {
+          {paginatedUsers.map((user) => {
             const role = getRoleConfig(user.role);
             const RoleIcon = role.icon;
             const isSuperAdmin = user.role === 'SUPER_ADMIN';
@@ -182,6 +195,11 @@ export function UsersList({ users }: UsersListProps) {
           })}
         </TableBody>
       </Table>
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

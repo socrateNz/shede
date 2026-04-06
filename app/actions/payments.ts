@@ -2,6 +2,7 @@
 
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
+import { getStructureActiveShift } from './shifts';
 
 export async function createPayment(
   orderId: string,
@@ -13,6 +14,12 @@ export async function createPayment(
   const session = await getSession();
   if (!session || !['ADMIN', 'CAISSE', 'SUPER_ADMIN'].includes(session.role)) {
     return { success: false, error: 'Unauthorized' };
+  }
+
+  // Check if shift is open for structure
+  const activeShift = await getStructureActiveShift(session.structureId as string);
+  if (!activeShift) {
+    return { success: false, error: 'La caisse doit être ouverte pour encaisser un paiement.' };
   }
 
   try {

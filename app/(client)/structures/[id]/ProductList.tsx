@@ -87,16 +87,15 @@ export default function ProductList({
     const orderedAccIds = selectedAccs.map(a => `${a.accompaniment_id}x${a.quantity}`).sort().join('-');
     const cartItemId = `${selectedProduct.id}${orderedAccIds ? `-${orderedAccIds}` : ''}`;
 
-    const promo = getProductPromotion(selectedProduct.id);
-    const finalPrice = promo 
-        ? (promo.type === 'PERCENTAGE' ? selectedProduct.price * (1 - promo.value/100) : Math.max(0, selectedProduct.price - promo.value))
-        : selectedProduct.price;
-
+    // Use the original product price. The cart logic will handle discounts 
+    // to avoid double application (once here and once in the cart view).
+    const basePrice = selectedProduct.price;
+    
     addItem({
       id: cartItemId,
       productId: selectedProduct.id,
       name: selectedProduct.name,
-      price: finalPrice,
+      price: basePrice,
       quantity: 1,
       selectedAccompaniments: selectedAccs
     }, structureId);

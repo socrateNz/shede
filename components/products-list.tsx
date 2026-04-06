@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { deleteProduct } from '@/app/actions/products';
 import { useState } from 'react';
+import { TablePagination } from './table-pagination';
 
 interface ProductsListProps {
   products: Product[];
@@ -29,6 +30,18 @@ interface ProductsListProps {
 
 export function ProductsList({ products, onProductDeleted }: ProductsListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const totalPages = Math.ceil(products.length / itemsPerPage);
+  const paginatedProducts = products.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  if (currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(1);
+  }
 
   const handleDelete = async (productId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) return;
@@ -69,7 +82,7 @@ export function ProductsList({ products, onProductDeleted }: ProductsListProps) 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {products.map((product) => (
+          {paginatedProducts.map((product) => (
             <TableRow
               key={product.id}
               className="border-slate-700 hover:bg-slate-800/50 transition-colors group"
@@ -156,6 +169,11 @@ export function ProductsList({ products, onProductDeleted }: ProductsListProps) 
           ))}
         </TableBody>
       </Table>
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

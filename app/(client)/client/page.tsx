@@ -74,7 +74,7 @@ export default async function ClientDashboardPage() {
               <Bed className="w-5 h-5 text-purple-600" />
             </div>
           </CardHeader>
-          <CardContent className="pt-4">
+          <CardContent className="pt-4 max-h-[250px] overflow-auto">
             {bookings && bookings.length > 0 ? (
               <div className="space-y-3">
                 {bookings.map((b: any) => (
@@ -115,7 +115,7 @@ export default async function ClientDashboardPage() {
               <UtensilsCrossed className="w-5 h-5 text-emerald-600" />
             </div>
           </CardHeader>
-          <CardContent className="pt-4">
+          <CardContent className="pt-4 max-h-[250px] overflow-auto">
             {orders && orders.length > 0 ? (
               <div className="space-y-3">
                 {orders.map((o: any) => (

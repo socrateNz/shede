@@ -131,16 +131,16 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
               <BarChart3 className="w-4 h-4 text-blue-400" />
               <span className="text-sm text-blue-400 font-medium">
-                {data.type === 'SUPER_ADMIN' ? 'Vue globale' : 'Analyses de performance'}
+                {data.type === 'SUPER_ADMIN' ? 'Vue globale' : 'Statistiques de performance'}
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
-              Analyses
+              Statistiques
             </h1>
             <p className="text-slate-400">
               {data.type === 'SUPER_ADMIN'
                 ? `Performance globale sur ${rangeLabel.toLowerCase()}`
-                : `Performances de votre établissement sur ${rangeLabel.toLowerCase()}`}
+                : `Statistiques de votre établissement sur ${rangeLabel.toLowerCase()}`}
             </p>
           </div>
 
@@ -274,7 +274,7 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
             <CardHeader>
               <CardTitle className="text-slate-50 flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-blue-400" />
-                Informations sur l'analyse
+                Informations sur les statistiques
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -282,7 +282,7 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-slate-400">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                    <span>Période d'analyse :</span>
+                    <span>Période des statistiques :</span>
                     <span className="text-white font-medium">{rangeLabel}</span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-400">

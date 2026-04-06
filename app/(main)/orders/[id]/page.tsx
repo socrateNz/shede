@@ -11,6 +11,7 @@ import {
   addOrderAccompaniment,
   setOrderItemPriceCounted,
 } from '@/app/actions/orders';
+import { getSessionAction } from '@/app/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,7 @@ import Link from 'next/link';
 import { PaymentForm } from '@/components/payment-form';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { PrintOrderButton } from '@/components/print-order-button';
 
 interface OrderDetail {
   id: string;
@@ -102,17 +104,22 @@ export default function OrderDetailPage() {
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [accompanimentChoices, setAccompanimentChoices] = useState<ParentAccompanimentChoices[]>([]);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const orderData = await getOrder(orderId);
-        setOrder(orderData);
-        const productsData = await getAvailableProducts();
-        setProducts(productsData || []);
+        const [orderData, productsData, accomp, session] = await Promise.all([
+          getOrder(orderId),
+          getAvailableProducts(),
+          getOrderAccompanimentChoices(orderId),
+          getSessionAction(),
+        ]);
 
-        const accomp = await getOrderAccompanimentChoices(orderId);
+        setOrder(orderData);
+        setProducts(productsData || []);
         setAccompanimentChoices(accomp?.parents || []);
+        setUserRole(session?.role || null);
       } catch (error) {
         console.error('Erreur lors du chargement de la commande:', error);
         toast.error('Erreur lors du chargement de la commande');
@@ -252,9 +259,15 @@ export default function OrderDetailPage() {
             <ShoppingCart className="w-4 h-4 text-blue-400" />
             <span className="text-sm text-blue-400 font-medium">Détails de la commande</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
-            Commande #{order.id.slice(0, 8)}
-          </h1>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+              Commande #{order.id.slice(0, 8)}
+            </h1>
+            <div className="flex items-center gap-3">
+               <PrintOrderButton order={order} />
+               <span className="text-xs text-slate-500 hidden md:inline">Imprimer le reçu</span>
+            </div>
+          </div>
           <p className="text-slate-400">Gérez les articles et le statut de la commande</p>
         </div>
 
@@ -297,18 +310,18 @@ export default function OrderDetailPage() {
                     <StatusIcon className="w-3 h-3" />
                     {currentStatus.label}
                   </span>
-                  <select
-                    value={order.status}
-                    onChange={(e) => handleStatusChange(e.target.value)}
-                    disabled={updatingStatus}
-                    className="bg-slate-700 border border-slate-600 text-slate-50 rounded-lg px-2 py-1 text-sm focus:border-blue-500"
-                  >
-                    {statusOptions.map((status) => (
-                      <option key={status} value={status}>
-                        {statusConfig[status]?.label || status}
-                      </option>
-                    ))}
-                  </select>
+                    <select
+                      value={order.status}
+                      onChange={(e) => handleStatusChange(e.target.value)}
+                      disabled={updatingStatus || userRole === 'SERVEUR'}
+                      className={`bg-slate-700 border border-slate-600 text-slate-50 rounded-lg px-2 py-1 text-sm focus:border-blue-500 ${userRole === 'SERVEUR' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {statusOptions.map((status) => (
+                        <option key={status} value={status}>
+                          {statusConfig[status]?.label || status}
+                        </option>
+                      ))}
+                    </select>
                   {updatingStatus && <Loader2 className="w-3 h-3 animate-spin text-blue-400" />}
                 </div>
               </div>
@@ -430,7 +443,7 @@ export default function OrderDetailPage() {
                     <Plus className="w-4 h-4 mr-2" />
                     Ajouter
                   </Button>
-                  {order.order_items.length > 0 && (
+                  {order.order_items.length > 0 && userRole !== 'SERVEUR' && (
                     <Button
                       type="button"
                       onClick={() => setShowPaymentForm(true)}

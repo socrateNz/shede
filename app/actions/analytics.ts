@@ -26,7 +26,16 @@ export async function getAnalyticsData(structureId: string, role: string, range:
 
     const { data: globalPayments } = await paymentsQuery;
 
-    let totalOrderRevenue = (globalPayments || []).reduce((sum, p) => sum + p.amount, 0);
+    let globalCompletedOrdersQuery = admin
+      .from('orders')
+      .select('total, status');
+
+    if (startDate) {
+      globalCompletedOrdersQuery = globalCompletedOrdersQuery.gte('created_at', startDate);
+    }
+
+    const { data: globalOrders } = await globalCompletedOrdersQuery;
+    let totalOrderRevenue = (globalOrders || []).filter(o => o.status === 'COMPLETED').reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
     let bookingsRevenueQuery = admin
       .from('bookings')
@@ -43,7 +52,7 @@ export async function getAnalyticsData(structureId: string, role: string, range:
 
     const paymentsByMethod: Record<string, number> = {};
     (globalPayments || []).forEach((p) => {
-      const method = String(p.payment_method || 'UNKNOWN');
+      const method = String(p.payment_method || 'AUTRE');
       paymentsByMethod[method] = (paymentsByMethod[method] || 0) + p.amount;
     });
 
@@ -86,33 +95,50 @@ export async function getAnalyticsData(structureId: string, role: string, range:
     };
   }
 
-  // Admin logic (specific to structure)
+  // Re-calcul des revenus pour l'ADMIN (Restaurant + Hotel)
+  // 1. Revenu Restaurant: somme des totaux des commandes COMPLETED (plus fiable que payments)
   let adminOrdersQuery = admin
     .from('orders')
-    .select('*, payments(*)')
-    .eq('structure_id', structureId)
-    .eq('status', 'COMPLETED');
+    .select('total, status, created_at')
+    .eq('structure_id', structureId);
 
   if (startDate) adminOrdersQuery = adminOrdersQuery.gte('created_at', startDate);
-  const { data: orders } = await adminOrdersQuery;
+  const { data: allOrders } = await adminOrdersQuery;
 
-  let adminPaidBookingsQuery = admin
+  // 2. Revenu Hotel: toutes les réservations payées ou complétées liée à la structure
+  let adminBookingsQuery = admin
     .from('bookings')
     .select('total_amount, status, is_paid, rooms!inner(structure_id)')
     .eq('rooms.structure_id', structureId)
     .or(`status.eq.COMPLETED,is_paid.eq.true`);
 
-  if (startDate) adminPaidBookingsQuery = adminPaidBookingsQuery.gte('created_at', startDate);
-  const { data: paidBookings } = await adminPaidBookingsQuery;
+  if (startDate) adminBookingsQuery = adminBookingsQuery.gte('created_at', startDate);
+  const { data: paidBookings } = await adminBookingsQuery;
 
-  let orderRevenue = (orders || []).reduce((sum, order) => {
-    const payments = order.payments || [];
-    return sum + payments.reduce((pSum: number, p: any) => pSum + p.amount, 0);
-  }, 0);
-
+  let orderRevenue = (allOrders || []).filter(o => o.status === 'COMPLETED').reduce((sum, o) => sum + (Number(o.total) || 0), 0);
   let hotelRevenue = (paidBookings || []).reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
   let totalRevenue = orderRevenue + hotelRevenue;
 
+  // breakdown par méthode de paiement (depuis la table payments)
+  let adminPaymentsQuery = admin
+    .from('payments')
+    .select('amount, payment_method, orders!inner(structure_id)')
+    .eq('orders.structure_id', structureId)
+    .eq('status', 'COMPLETED');
+
+  if (startDate) adminPaymentsQuery = adminPaymentsQuery.gte('created_at', startDate);
+  const { data: completedPayments } = await adminPaymentsQuery;
+
+  const paymentsByMethod: Record<string, number> = {};
+  (completedPayments || []).forEach((payment: any) => {
+    const method = payment.payment_method || 'AUTRE';
+    paymentsByMethod[method] = (paymentsByMethod[method] || 0) + payment.amount;
+  });
+
+  let completedOrdersCount = allOrders?.filter(o => o.status === 'COMPLETED').length || 0;
+  const averageOrderValue = completedOrdersCount > 0 ? orderRevenue / completedOrdersCount : 0;
+
+  // Récupérer les stats des réservations
   let adminAllBookingsQuery = admin
     .from('bookings')
     .select('status, rooms!inner(structure_id)')
@@ -133,25 +159,6 @@ export async function getAnalyticsData(structureId: string, role: string, range:
     .eq('structure_id', structureId)
     .eq('is_deleted', false);
 
-  const averageOrderValue = (orders?.length || 0) > 0 ? totalRevenue / (orders!.length) : 0;
-
-  const paymentsByMethod: Record<string, number> = {};
-  (orders || []).forEach((order) => {
-    const payments = order.payments || [];
-    payments.forEach((payment: any) => {
-      const method = payment.payment_method || 'UNKNOWN';
-      paymentsByMethod[method] = (paymentsByMethod[method] || 0) + payment.amount;
-    });
-  });
-
-  let adminAllOrdersQuery = admin
-    .from('orders')
-    .select('status')
-    .eq('structure_id', structureId);
-
-  if (startDate) adminAllOrdersQuery = adminAllOrdersQuery.gte('created_at', startDate);
-  const { data: allOrders } = await adminAllOrdersQuery;
-
   const ordersByStatus: Record<string, number> = {};
   (allOrders || []).forEach((order) => {
     const status = order.status || 'UNKNOWN';
@@ -163,7 +170,7 @@ export async function getAnalyticsData(structureId: string, role: string, range:
     totalRevenue,
     hotelRevenue,
     orderRevenue,
-    completedOrdersCount: orders?.length || 0,
+    completedOrdersCount: completedOrdersCount,
     totalBookingsCount: allBookings?.length || 0,
     averageOrderValue,
     productCount: productCount || 0,

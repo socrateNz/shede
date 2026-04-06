@@ -37,6 +37,7 @@ export async function getActivePromotionsForClient(structureId: string) {
       .select('*, products(name)')
       .eq('structure_id', structureId)
       .eq('is_active', true)
+      .neq('promo_mode', 'CODE')
       .lte('start_date', now)
       .gte('end_date', now)
       .order('created_at', { ascending: false });
@@ -58,6 +59,7 @@ export async function getAllGlobalActivePromotions() {
       .from('promotions')
       .select('*, structures!inner(id, name, modules), products(name)')
       .eq('is_active', true)
+      .neq('promo_mode', 'CODE')
       .lte('start_date', now)
       .gte('end_date', now)
       .order('created_at', { ascending: false });
@@ -81,18 +83,44 @@ export async function createPromotion(formData: FormData) {
     return { success: false, error: 'Unauthorized' };
   }
 
+  // --- Common Fields ---
   const name = String(formData.get('name') || '').trim();
+  const startDate = String(formData.get('start_date') || '');
+  const endDate = String(formData.get('end_date') || '');
+  const promoMode = String(formData.get('promo_mode') || 'STANDARD') as 'STANDARD' | 'CODE' | 'BUY_X_GET_Y';
+  
+  // --- STANDARD & CODE Fields ---
   const type = String(formData.get('type') || 'PERCENTAGE') as 'PERCENTAGE' | 'FIXED';
   const value = Number(formData.get('value') || 0);
   const scope = String(formData.get('scope') || 'ORDER') as 'PRODUCT' | 'ORDER';
   const productIdRaw = formData.get('product_id');
   const productId = (productIdRaw && productIdRaw !== 'none') ? String(productIdRaw) : null;
   const minOrderAmount = Number(formData.get('min_order_amount') || 0);
-  const startDate = String(formData.get('start_date') || '');
-  const endDate = String(formData.get('end_date') || '');
+  
+  // --- CODE Specific Fields ---
+  const codeNameRaw = formData.get('code_name');
+  const codeName = codeNameRaw ? String(codeNameRaw).trim().toUpperCase() : null;
+  const usageLimitRaw = formData.get('usage_limit');
+  const usageLimit = usageLimitRaw ? parseInt(String(usageLimitRaw)) : null;
 
-  if (!name || value <= 0 || !startDate || !endDate) {
-    return { success: false, error: 'Missing required fields' };
+  // --- BUY_X_GET_Y Specific Fields ---
+  const requiredQtyRaw = formData.get('required_qty');
+  const requiredQty = requiredQtyRaw ? parseInt(String(requiredQtyRaw)) : null;
+  const freeQtyRaw = formData.get('free_qty');
+  const freeQty = freeQtyRaw ? parseInt(String(freeQtyRaw)) : null;
+  const isCumulative = formData.get('is_cumulative') === 'on';
+
+  // --- Validations ---
+  if (!name || !startDate || !endDate) {
+    return { success: false, error: 'Champs obligatoires manquants' };
+  }
+
+  if (promoMode === 'STANDARD' || promoMode === 'CODE') {
+    if (value <= 0) return { success: false, error: 'La valeur de la réduction doit être supérieure à 0' };
+    if (promoMode === 'CODE' && !codeName) return { success: false, error: 'Le code promo est requis pour ce mode' };
+  } else if (promoMode === 'BUY_X_GET_Y') {
+    if (!requiredQty || !freeQty) return { success: false, error: 'Les quantités (X et Y) sont requises pour ce mode' };
+    if (!productId) return { success: false, error: 'Un produit spécifique doit être sélectionné pour le Buy X Get Y' };
   }
 
   try {
@@ -101,15 +129,22 @@ export async function createPromotion(formData: FormData) {
       .from('promotions')
       .insert({
         name,
-        type,
-        value,
-        scope,
+        type: promoMode === 'BUY_X_GET_Y' ? 'PERCENTAGE' : type, // Fallback for DB constraint if needed
+        value: promoMode === 'BUY_X_GET_Y' ? 0 : value,
+        scope: promoMode === 'BUY_X_GET_Y' ? 'PRODUCT' : scope,
         product_id: productId,
         min_order_amount: minOrderAmount,
         start_date: new Date(startDate).toISOString(),
         end_date: new Date(endDate).toISOString(),
         structure_id: session.structureId,
-        is_active: true
+        is_active: true,
+        promo_mode: promoMode,
+        code_name: promoMode === 'CODE' ? codeName : null,
+        usage_limit: promoMode === 'CODE' ? usageLimit : null,
+        used_count: 0,
+        required_qty: promoMode === 'BUY_X_GET_Y' ? requiredQty : null,
+        free_qty: promoMode === 'BUY_X_GET_Y' ? freeQty : null,
+        is_cumulative: promoMode === 'BUY_X_GET_Y' ? isCumulative : true
       })
       .select()
       .single();
@@ -147,90 +182,10 @@ export async function togglePromotionStatus(promotionId: string, isActive: boole
   }
 }
 
-export async function getPromoCodes(promotionId?: string) {
-  const session = await getSession();
-  if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
-    return [];
-  }
-
-  try {
-    const admin = getAdminSupabase();
-    let query = admin.from('promo_codes').select('*, promotions(name)');
-    
-    if (promotionId) {
-      query = query.eq('promotion_id', promotionId);
-    } else {
-      // Filter by structure through promotion relation
-      const { data: promotions } = await admin.from('promotions').select('id').eq('structure_id', session.structureId);
-      const promoIds = promotions?.map(p => p.id) || [];
-      query = query.in('promotion_id', promoIds);
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error('Get promo codes error:', error);
-    return [];
-  }
-}
-
-export async function createPromoCode(formData: FormData) {
-  const session = await getSession();
-  if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
-  }
-
-  const code = String(formData.get('code') || '').trim().toUpperCase();
-  const promotionId = String(formData.get('promotion_id') || '');
-  const usageLimitRaw = formData.get('usage_limit');
-  const usageLimit = usageLimitRaw ? parseInt(String(usageLimitRaw)) : null;
-
-  if (!code || !promotionId) {
-    return { success: false, error: 'Code and Promotion are required' };
-  }
-
-  try {
-    const admin = getAdminSupabase();
-    
-    // Verify promotion belongs to this structure
-    const { data: promo } = await admin
-      .from('promotions')
-      .select('id')
-      .eq('id', promotionId)
-      .eq('structure_id', session.structureId)
-      .single();
-
-    if (!promo) return { success: false, error: 'Invalid promotion' };
-
-    const { data, error } = await admin
-      .from('promo_codes')
-      .insert({
-        code,
-        promotion_id: promotionId,
-        usage_limit: usageLimit,
-        used_count: 0
-      })
-      .select()
-      .single();
-
-    if (error) {
-      if (error.code === '23505') return { success: false, error: 'Promo code already exists' };
-      throw error;
-    }
-
-    revalidatePath('/promotions');
-    return { success: true, promoCode: data };
-  } catch (error: any) {
-    console.error('Create promo code error:', error);
-    return { success: false, error: error.message || 'Failed to create promo code' };
-  }
-}
-
 /**
  * Validates a promo code and returns the discount details
  */
-export async function validatePromoCode(code: string, structureId: string, userId?: string) {
+export async function validatePromoCode(code: string, structureId: string, userId?: string, phone?: string) {
   try {
     const admin = getAdminSupabase();
 
@@ -248,18 +203,19 @@ export async function validatePromoCode(code: string, structureId: string, userI
       return { valid: false, error: 'Promotion module not enabled for this establishment' };
     }
 
-    // 2. Find Promo Code
-    const { data: promoCode, error: codeError } = await admin
-      .from('promo_codes')
-      .select('*, promotions(*)')
-      .eq('code', code.toUpperCase())
+    // 2. Find Promotion with this code in the structure
+    const { data: promotion, error: codeError } = await admin
+      .from('promotions')
+      .select('*')
+      .eq('promo_mode', 'CODE')
+      .eq('code_name', code.toUpperCase())
+      .eq('structure_id', structureId)
       .single();
 
-    if (codeError || !promoCode) return { valid: false, error: 'Invalid promo code' };
+    if (codeError || !promotion) return { valid: false, error: 'Invalid promo code' };
 
-    const promotion = promoCode.promotions;
-    if (!promotion || promotion.structure_id !== structureId || !promotion.is_active) {
-      return { valid: false, error: 'Promo code not active or invalid' };
+    if (!promotion.is_active) {
+      return { valid: false, error: 'Promo code not active' };
     }
 
     // 3. Check Dates
@@ -270,26 +226,39 @@ export async function validatePromoCode(code: string, structureId: string, userI
     if (now > end) return { valid: false, error: 'Promo code has expired' };
 
     // 4. Check Global Usage Limit
-    if (promoCode.usage_limit !== null && promoCode.used_count >= promoCode.usage_limit) {
-      return { valid: false, error: 'Promo code usage limit reached' };
+    if (promotion.usage_limit !== null && promotion.used_count >= promotion.usage_limit) {
+      return { valid: false, error: 'Usage maximum du code promo atteint' };
     }
 
-    // 5. Check User Usage (if userId provided)
-    if (userId) {
-      const { data: usage, error: usageError } = await admin
-        .from('promo_code_usages')
+    // 5. Check Single-Use Per User/Phone
+    // If we have identification, check if used before
+    if (userId || phone) {
+      const query = admin
+        .from('orders')
         .select('id')
-        .eq('promo_code_id', promoCode.id)
-        .eq('user_id', userId)
-        .maybeSingle();
+        .eq('promotion_id', promotion.id)
+        .neq('status', 'CANCELLED'); // Allow reuse if previous order was cancelled
 
-      if (usage) return { valid: false, error: 'You have already used this promo code' };
+      if (userId && phone) {
+        query.or(`user_id.eq.${userId},phone.eq.${phone},client_id.eq.${userId}`);
+      } else if (userId) {
+        query.or(`user_id.eq.${userId},client_id.eq.${userId}`);
+      } else if (phone) {
+        query.eq('phone', phone);
+      }
+
+      const { data: existing, error: usageError } = await query.limit(1);
+      
+      if (existing && existing.length > 0) {
+        return { valid: false, error: 'Vous avez déjà utilisé ce code promo' };
+      }
     }
 
+    // Return the full promotion details
     return {
       valid: true,
-      promoCodeId: promoCode.id,
       promotionId: promotion.id,
+      name: promotion.name,
       type: promotion.type,
       value: promotion.value,
       scope: promotion.scope,
@@ -302,31 +271,119 @@ export async function validatePromoCode(code: string, structureId: string, userI
   }
 }
 
-/**
- * Records the usage of a promo code
- */
-export async function recordPromoUsage(promoCodeId: string, userId: string) {
-  const admin = getAdminSupabase();
-  
-  // Start usage record
-  const { error: usageError } = await admin
-    .from('promo_code_usages')
-    .insert({
-      promo_code_id: promoCodeId,
-      user_id: userId
-    });
-
-  if (usageError) {
-    if (usageError.code === '23505') throw new Error('Promo code already used by this user');
-    throw usageError;
+export async function updatePromotion(promotionId: string, formData: FormData) {
+  const session = await getSession();
+  if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
+    return { success: false, error: 'Unauthorized' };
   }
 
-  // Increment counter
-  const { error: updateError } = await admin.rpc('increment_promo_usage', { p_promo_code_id: promoCodeId });
+  const name = String(formData.get('name') || '').trim();
+  const startDate = String(formData.get('start_date') || '');
+  const endDate = String(formData.get('end_date') || '');
   
-  if (updateError) {
-    // Fallback if RPC doesn't exist
-    const { data: current } = await admin.from('promo_codes').select('used_count').eq('id', promoCodeId).single();
-    await admin.from('promo_codes').update({ used_count: (current?.used_count || 0) + 1 }).eq('id', promoCodeId);
+  // Note: promo_mode is usually fixed after creation, but we extract it from formData if provided
+  const type = String(formData.get('type') || 'PERCENTAGE') as 'PERCENTAGE' | 'FIXED';
+  const value = Number(formData.get('value') || 0);
+  const scope = String(formData.get('scope') || 'ORDER') as 'PRODUCT' | 'ORDER';
+  const productIdRaw = formData.get('product_id');
+  const productId = (productIdRaw && productIdRaw !== 'none') ? String(productIdRaw) : null;
+  const minOrderAmount = Number(formData.get('min_order_amount') || 0);
+  
+  const codeNameRaw = formData.get('code_name');
+  const codeName = codeNameRaw ? String(codeNameRaw).trim().toUpperCase() : null;
+  const usageLimitRaw = formData.get('usage_limit');
+  const usageLimit = usageLimitRaw ? parseInt(String(usageLimitRaw)) : null;
+
+  const requiredQtyRaw = formData.get('required_qty');
+  const requiredQty = requiredQtyRaw ? parseInt(String(requiredQtyRaw)) : null;
+  const freeQtyRaw = formData.get('free_qty');
+  const freeQty = freeQtyRaw ? parseInt(String(freeQtyRaw)) : null;
+  const isCumulative = formData.get('is_cumulative') === 'on' || formData.get('is_cumulative') === 'true';
+
+  if (!name || !startDate || !endDate) {
+    return { success: false, error: 'Champs obligatoires manquants' };
+  }
+
+  try {
+    const admin = getAdminSupabase();
+    
+    // First fetch current to check mode and structure
+    const { data: current } = await admin.from('promotions').select('*').eq('id', promotionId).single();
+    if (!current || current.structure_id !== session.structureId) {
+      return { success: false, error: 'Promotion introuvable' };
+    }
+
+    const updatePayload: any = {
+      name,
+      start_date: new Date(startDate).toISOString(),
+      end_date: new Date(endDate).toISOString()
+      // Note: removed updated_at as it's missing in some schemas
+    };
+
+    if (current.promo_mode === 'STANDARD' || current.promo_mode === 'CODE') {
+      updatePayload.type = type;
+      updatePayload.value = value;
+      updatePayload.scope = scope;
+      updatePayload.product_id = productId;
+      updatePayload.min_order_amount = minOrderAmount;
+      if (current.promo_mode === 'CODE') {
+        updatePayload.code_name = codeName;
+        updatePayload.usage_limit = usageLimit;
+      }
+    } else if (current.promo_mode === 'BUY_X_GET_Y') {
+       updatePayload.product_id = productId;
+       updatePayload.required_qty = requiredQty;
+       updatePayload.free_qty = freeQty;
+       updatePayload.is_cumulative = isCumulative;
+    }
+
+    const { error } = await admin
+      .from('promotions')
+      .update(updatePayload)
+      .eq('id', promotionId)
+      .eq('structure_id', session.structureId);
+
+    if (error) throw error;
+
+    revalidatePath('/promotions');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Update promotion error:', error);
+    return { success: false, error: error.message || 'Failed to update promotion' };
+  }
+}
+
+export async function deletePromotion(promotionId: string) {
+  const session = await getSession();
+  if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  try {
+    const admin = getAdminSupabase();
+    const { error } = await admin
+      .from('promotions')
+      .delete()
+      .eq('id', promotionId)
+      .eq('structure_id', session.structureId);
+
+    if (error) throw error;
+
+    revalidatePath('/promotions');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Delete promotion error:', error);
+    return { success: false, error: error.message || 'Failed to delete promotion' };
+  }
+}/**
+ * Records the usage of a promo code
+ */
+export async function recordPromoUsage(promotionId: string, userId?: string) {
+  const admin = getAdminSupabase();
+  
+  // Increment counter safely using raw update (or RPC if available)
+  const { data: current } = await admin.from('promotions').select('used_count').eq('id', promotionId).single();
+  if (current) {
+    await admin.from('promotions').update({ used_count: (current.used_count || 0) + 1 }).eq('id', promotionId);
   }
 }

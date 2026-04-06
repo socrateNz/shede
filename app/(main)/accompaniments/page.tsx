@@ -21,12 +21,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { TablePagination } from '@/components/table-pagination';
 
 export default function AccompanimentsPage() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: '', price: 0, is_available: true });
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const totalPages = Math.ceil(items.length / itemsPerPage);
+  const paginatedItems = items.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  if (currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(1);
+  }
 
   const [state, formAction, isPending] = useActionState(createAccompaniment, {
     success: false,
@@ -235,7 +249,7 @@ export default function AccompanimentsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {items.map(item => (
+                      {paginatedItems.map(item => (
                         <TableRow
                           key={item.id}
                           className="border-slate-700 hover:bg-slate-800/50 transition-colors group"
@@ -351,6 +365,11 @@ export default function AccompanimentsPage() {
                   </Table>
                 </div>
               )}
+              <TablePagination 
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
             </CardContent>
           </Card>
         </div>

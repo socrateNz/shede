@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 import { notifyUser } from '@/app/actions/push';
+import { getActiveShift, getStructureActiveShift } from './shifts';
 
 export async function getBookings(structureId: string) {
   const session = await getSession();
@@ -55,6 +56,12 @@ export async function createBooking(
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN', 'RECEPTION'].includes(session.role)) {
     return { success: false, error: 'Unauthorized' };
+  }
+
+  // Check if shift is open
+  const activeShift = await getActiveShift();
+  if (!activeShift && ['ADMIN', 'RECEPTION'].includes(session.role)) {
+    return { success: false, error: 'La caisse doit être ouverte pour effectuer cette opération.' };
   }
 
   const roomId = String(formData.get('roomId') || '');
@@ -147,6 +154,12 @@ export async function updateBookingStatus(bookingId: string, status: string, roo
     return { success: false, error: 'Unauthorized' };
   }
 
+  // Check if shift is open for structure
+  const activeShift = await getStructureActiveShift(session.structureId as string);
+  if (!activeShift) {
+    return { success: false, error: 'La caisse doit être ouverte pour modifier le statut d\'une réservation.' };
+  }
+
   try {
     const admin = getAdminSupabase();
 
@@ -189,6 +202,12 @@ export async function markBookingAsPaid(bookingId: string) {
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN', 'RECEPTION'].includes(session.role)) {
     return { success: false, error: 'Unauthorized' };
+  }
+
+  // Check if shift is open for structure
+  const activeShift = await getStructureActiveShift(session.structureId as string);
+  if (!activeShift) {
+    return { success: false, error: 'La caisse doit être ouverte pour effectuer cette opération.' };
   }
 
   try {

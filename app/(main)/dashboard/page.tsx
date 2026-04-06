@@ -42,18 +42,21 @@ async function getDashboardStats(structureId: string, role: string, userId: stri
       .select('*', { count: 'exact', head: true })
       .eq('structure_id', structureId);
 
-    const { data: payments } = await admin
-      .from('payments')
-      .select('amount')
-      .eq('status', 'COMPLETED')
-      .in('order_id', (
-        await admin
-          .from('orders')
-          .select('id')
-          .eq('structure_id', structureId)
-      ).data?.map((o: any) => o.id) || []);
+    // Chiffre d'affaires global: Commandes + Réservations
+    const { data: completedOrders } = await admin
+      .from('orders')
+      .select('total')
+      .eq('structure_id', structureId)
+      .eq('status', 'COMPLETED');
 
-    const totalRevenue = payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+    const { data: paidBookings } = await admin
+      .from('bookings')
+      .select('total_amount, rooms!inner(structure_id)')
+      .eq('rooms.structure_id', structureId)
+      .or(`status.eq.COMPLETED,is_paid.eq.true`);
+
+    const orderRevenue = completedOrders?.reduce((sum, o) => sum + (Number(o.total) || 0), 0) || 0;
+    const hotelRevenue = paidBookings?.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0) || 0;
 
     return {
       type: 'ADMIN',
@@ -61,7 +64,7 @@ async function getDashboardStats(structureId: string, role: string, userId: stri
         ordersCount: ordersCount || 0,
         productsCount: productsCount || 0,
         usersCount: usersCount || 0,
-        totalRevenue: totalRevenue,
+        totalRevenue: orderRevenue + hotelRevenue,
       }
     };
   }
@@ -89,22 +92,29 @@ async function getDashboardStats(structureId: string, role: string, userId: stri
       .eq('structure_id', structureId)
       .gte('created_at', todayIso);
 
-    const todayOrderIds = todayOrders?.map(o => o.id) || [];
-    let todayRevenue = 0;
-    if (todayOrderIds.length > 0) {
-      const { data: payments } = await admin
-        .from('payments')
-        .select('amount')
-        .eq('status', 'COMPLETED')
-        .in('order_id', todayOrderIds);
-      todayRevenue = payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
-    }
+    const { data: todayCompletedOrders } = await admin
+      .from('orders')
+      .select('total')
+      .eq('structure_id', structureId)
+      .eq('status', 'COMPLETED')
+      .gte('updated_at', todayIso);
+
+    const todayOrderRevenue = todayCompletedOrders?.reduce((sum, o) => sum + (Number(o.total) || 0), 0) || 0;
+
+    const { data: todayPaidBookings } = await admin
+      .from('bookings')
+      .select('total_amount, rooms!inner(structure_id)')
+      .eq('rooms.structure_id', structureId)
+      .or(`status.eq.COMPLETED,is_paid.eq.true`)
+      .gte('updated_at', todayIso);
+
+    const todayHotelRevenue = todayPaidBookings?.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0) || 0;
 
     return {
       type: 'CAISSE',
       data: {
         todayOrdersCount: todayOrdersCount || 0,
-        todayRevenue: todayRevenue,
+        todayRevenue: todayOrderRevenue + todayHotelRevenue,
         pendingOrdersCount: pendingOrdersCount || 0,
       }
     };
@@ -167,14 +177,24 @@ async function getDashboardStats(structureId: string, role: string, userId: stri
       .eq('structure_id', structureId)
       .eq('is_available', true);
 
-    const { data: todayPayments } = await admin
+    const { data: todayPaidBookings } = await admin
       .from('bookings')
-      .select('total_amount')
+      .select('total_amount, rooms!inner(structure_id)')
+      .eq('rooms.structure_id', structureId)
+      .or(`status.eq.COMPLETED,is_paid.eq.true`)
+      .gte('updated_at', todayIso);
+
+    const todayHotelRevenue = todayPaidBookings?.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0) || 0;
+
+    // Inclusion des commandes restaurant d'aujourd'hui pour la réception si mixte
+    const { data: todayCompletedOrders } = await admin
+      .from('orders')
+      .select('total')
       .eq('structure_id', structureId)
       .eq('status', 'COMPLETED')
-      .gte('created_at', todayIso);
-
-    const todayRevenue = todayPayments?.reduce((sum, p) => sum + (Number(p.total_amount) || 0), 0) || 0;
+      .gte('updated_at', todayIso);
+    
+    const todayOrderRevenue = todayCompletedOrders?.reduce((sum, o) => sum + (Number(o.total) || 0), 0) || 0;
 
     return {
       type: 'RECEPTION',
@@ -183,7 +203,7 @@ async function getDashboardStats(structureId: string, role: string, userId: stri
         pendingBookingsCount: pendingBookingsCount || 0,
         totalRoomsCount: totalRoomsCount || 0,
         availableRoomsCount: availableRoomsCount || 0,
-        todayRevenue: todayRevenue,
+        todayRevenue: todayHotelRevenue + todayOrderRevenue,
       }
     };
   }
