@@ -171,3 +171,29 @@
 @utility animate-bounce-subtle {
   animation: bounce-subtle 3s ease-in-out infinite;
 }
+
+/* Scrollbar personnalisée pour tous les éléments */
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-slate-600, #475569);
+  border-radius: 20px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-slate-500, #64748b);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-slate-600, #475569) transparent;
+}

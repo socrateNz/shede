@@ -5,11 +5,14 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { requireModule } from './auth';
 import { revalidatePath } from 'next/cache';
 
+export type StockItemType = 'product' | 'accompaniment';
+
 export async function getStockList() {
   const session = await requireModule('STOCK');
   const admin = getAdminSupabase();
 
-  const { data, error } = await admin
+  // 1. Produits
+  const { data: productStocks, error: productError } = await admin
     .from('products')
     .select(`
       id,
@@ -21,29 +24,76 @@ export async function getStockList() {
     .eq('is_deleted', false)
     .order('name');
 
-  if (error) {
-    console.error('Error fetching stock list:', error);
-    return [];
+  if (productError) {
+    console.error('Error fetching product stock list:', productError);
   }
 
-  return data.map((p: any) => ({
+  const productItems = (productStocks || []).map((p: any) => ({
     id: p.id,
     name: p.name,
     category: p.category,
-    quantity: p.stocks?.[0]?.quantity || 0,
-    threshold: p.stocks?.[0]?.threshold || 5,
+    quantity: p.stocks?.[0]?.quantity ?? 0,
+    threshold: p.stocks?.[0]?.threshold ?? 5,
+    type: 'product' as StockItemType,
   }));
+
+  // 2. Accompagnements
+  const { data: accompStocks, error: accompError } = await admin
+    .from('accompaniments')
+    .select(`
+      id,
+      name,
+      stocks(quantity, threshold)
+    `)
+    .eq('structure_id', session.structureId)
+    .eq('is_available', true)
+    .eq('is_deleted', false)
+    .order('name');
+
+  if (accompError) {
+    console.error('Error fetching accompaniment stock list:', accompError);
+  }
+
+  const accompItems = (accompStocks || []).map((a: any) => ({
+    id: a.id,
+    name: a.name,
+    category: null,
+    quantity: a.stocks?.[0]?.quantity ?? 0,
+    threshold: a.stocks?.[0]?.threshold ?? 5,
+    type: 'accompaniment' as StockItemType,
+  }));
+
+  return [...productItems, ...accompItems];
+}
+
+export async function getAvailableAccompanimentsForStock() {
+  const session = await requireModule('STOCK');
+  const admin = getAdminSupabase();
+
+  const { data, error } = await admin
+    .from('accompaniments')
+    .select('id, name')
+    .eq('structure_id', session.structureId)
+    .eq('is_available', true)
+    .eq('is_deleted', false)
+    .order('name');
+
+  if (error) return [];
+  return data || [];
 }
 
 export async function addStockMovement(
-  productId: string,
+  itemId: string,
   type: 'IN' | 'OUT' | 'ADJUSTMENT',
   quantity: number,
   reason: string,
+  itemType: StockItemType = 'product',
   referenceId?: string
 ) {
   const session = await requireModule('STOCK');
   const admin = getAdminSupabase();
+
+  const isAccompaniment = itemType === 'accompaniment';
 
   try {
     // 1. Create the movement
@@ -51,7 +101,8 @@ export async function addStockMovement(
       .from('stock_movements')
       .insert({
         structure_id: session.structureId,
-        product_id: productId,
+        product_id: isAccompaniment ? null : itemId,
+        accompaniment_id: isAccompaniment ? itemId : null,
         type,
         quantity,
         reason,
@@ -61,14 +112,19 @@ export async function addStockMovement(
 
     if (movementError) throw movementError;
 
-    // 2. Update the stock quantity
-    // We fetch current stock first
-    const { data: currentStock } = await admin
+    // 2. Fetch current stock
+    let stockQuery = admin
       .from('stocks')
       .select('quantity, threshold')
-      .eq('structure_id', session.structureId)
-      .eq('product_id', productId)
-      .maybeSingle();
+      .eq('structure_id', session.structureId);
+
+    if (isAccompaniment) {
+      stockQuery = stockQuery.eq('accompaniment_id', itemId) as any;
+    } else {
+      stockQuery = stockQuery.eq('product_id', itemId) as any;
+    }
+
+    const { data: currentStock } = await (stockQuery as any).maybeSingle();
 
     const currentQty = Number(currentStock?.quantity || 0);
     let newQty = currentQty;
@@ -77,15 +133,29 @@ export async function addStockMovement(
     else if (type === 'OUT') newQty -= quantity;
     else if (type === 'ADJUSTMENT') newQty = quantity;
 
+    // 3. Upsert stock record
+    const upsertPayload: Record<string, any> = {
+      structure_id: session.structureId,
+      quantity: newQty,
+      threshold: currentStock?.threshold ?? 5,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (isAccompaniment) {
+      upsertPayload.accompaniment_id = itemId;
+      upsertPayload.product_id = null;
+    } else {
+      upsertPayload.product_id = itemId;
+      upsertPayload.accompaniment_id = null;
+    }
+
+    const conflictKey = isAccompaniment
+      ? 'structure_id, accompaniment_id'
+      : 'structure_id, product_id';
+
     const { error: stockError } = await admin
       .from('stocks')
-      .upsert({
-        structure_id: session.structureId,
-        product_id: productId,
-        quantity: newQty,
-        threshold: currentStock?.threshold ?? 5, // Preserve existing threshold
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'structure_id, product_id' });
+      .upsert(upsertPayload, { onConflict: conflictKey });
 
     if (stockError) throw stockError;
 
@@ -104,7 +174,7 @@ export async function processOrderStock(orderId: string) {
   const admin = getAdminSupabase();
 
   try {
-    // 1. Fetch order items
+    // 1. Fetch order items (products)
     const { data: items } = await admin
       .from('order_items')
       .select('product_id, quantity')
@@ -120,23 +190,42 @@ export async function processOrderStock(orderId: string) {
         .eq('product_id', item.product_id);
 
       if (recipe && recipe.length > 0) {
-        // Reduce stock for each ingredient
         for (const ing of recipe) {
           await addStockMovement(
             ing.ingredient_id,
             'OUT',
             ing.quantity * item.quantity,
             'sale',
+            'product',
             orderId
           );
         }
       } else {
-        // Direct reduction for the product itself
         await addStockMovement(
           item.product_id,
           'OUT',
           item.quantity,
           'sale',
+          'product',
+          orderId
+        );
+      }
+    }
+
+    // 3. Fetch order accompaniments and deduct their stock
+    const { data: accompChoices } = await admin
+      .from('order_accompaniments')
+      .select('accompaniment_id, quantity')
+      .eq('order_id', orderId);
+
+    if (accompChoices && accompChoices.length > 0) {
+      for (const choice of accompChoices) {
+        await addStockMovement(
+          choice.accompaniment_id,
+          'OUT',
+          choice.quantity,
+          'sale',
+          'accompaniment',
           orderId
         );
       }
@@ -146,7 +235,7 @@ export async function processOrderStock(orderId: string) {
   }
 }
 
-export async function getStockMovements(productId?: string) {
+export async function getStockMovements(itemId?: string, itemType?: StockItemType) {
   const session = await requireModule('STOCK');
   const admin = getAdminSupabase();
 
@@ -155,13 +244,16 @@ export async function getStockMovements(productId?: string) {
     .select(`
       *,
       products(name),
+      accompaniments(name),
       users(first_name, last_name)
     `)
     .eq('structure_id', session.structureId)
     .order('created_at', { ascending: false });
 
-  if (productId) {
-    query = query.eq('product_id', productId);
+  if (itemId && itemType === 'accompaniment') {
+    query = query.eq('accompaniment_id', itemId) as any;
+  } else if (itemId) {
+    query = query.eq('product_id', itemId) as any;
   }
 
   const { data, error } = await query;
@@ -171,7 +263,12 @@ export async function getStockMovements(productId?: string) {
     return [];
   }
 
-  return data;
+  // Normalize: expose a unified `item_name` field
+  return (data || []).map((m: any) => ({
+    ...m,
+    item_name: m.products?.name || m.accompaniments?.name || '—',
+    item_type: m.accompaniment_id ? 'accompaniment' : 'product',
+  }));
 }
 
 export async function updateProductRecipe(productId: string, ingredients: { ingredientId: string, quantity: number }[]) {
@@ -179,14 +276,12 @@ export async function updateProductRecipe(productId: string, ingredients: { ingr
   const admin = getAdminSupabase();
 
   try {
-    // 1. Delete existing recipe
     await admin
       .from('product_recipes')
       .delete()
       .eq('product_id', productId);
 
     if (ingredients.length > 0) {
-      // 2. Insert new recipe
       const { error } = await admin
         .from('product_recipes')
         .insert(ingredients.map(ing => ({

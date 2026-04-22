@@ -89,15 +89,15 @@ export async function closeShift(actualAmount: number, notes: string) {
 
   const safetyStartTime = new Date(new Date(activeShift.opened_at).getTime() - 60000).toISOString();
   
-  // Orders revenue based on ACTUAL payments made during the shift
-  const { data: payments } = await admin
-    .from('payments')
-    .select('amount, order_id, orders!inner(structure_id)')
-    .eq('orders.structure_id', session.structureId)
+  // Orders revenue based on orders paid (paid_at) during the shift
+  const { data: paidOrders } = await admin
+    .from('orders')
+    .select('total')
+    .eq('structure_id', session.structureId)
     .eq('status', 'COMPLETED')
-    .gte('created_at', safetyStartTime);
+    .gte('paid_at', safetyStartTime);
 
-  const orderRevenue = payments?.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) || 0;
+  const orderRevenue = paidOrders?.reduce((sum, o) => sum + (Number(o.total) || 0), 0) || 0;
 
   // Bookings revenue - based on when they were marked as PAID during the shift
   const { data: bookings } = await admin
@@ -148,28 +148,17 @@ export async function getShiftReport(shiftId: string) {
   const shiftOpening = new Date(shift.opened_at).getTime();
   const shiftClosing = new Date(shift.closed_at || new Date()).getTime() + 60000;
 
-  // 1. Get ALL payments recorded for this structure during the shift
-  const { data: shiftPayments } = await admin
-    .from('payments')
-    .select('amount, payment_method, created_at, order_id, orders!inner(structure_id)')
-    .eq('orders.structure_id', shift.structure_id)
-    .eq('status', 'COMPLETED')
-    .gte('created_at', new Date(shiftOpening - 60000).toISOString())
-    .lte('created_at', new Date(shiftClosing).toISOString());
-
-  const orderIds = Array.from(new Set(shiftPayments?.map(p => p.order_id) || []));
-
-  // 2. Fetch the orders details for these payments
+  // 1. Get ALL orders paid during this shift (using paid_at)
   const { data: allOrders } = await admin
     .from('orders')
-    .select('id, total, status, updated_at, table_number, room_id, rooms(number), order_items(quantity, products(name))')
-    .in('id', orderIds);
+    .select('id, total, status, paid_at, table_number, room_id, rooms(number), order_items(quantity, products(name))')
+    .eq('structure_id', shift.structure_id)
+    .eq('status', 'COMPLETED')
+    .gte('paid_at', new Date(shiftOpening - 60000).toISOString())
+    .lte('paid_at', new Date(shiftClosing).toISOString());
 
-  // For the report table, we use the amount PAID during this shift as the 'total' for that order line
-  const orders = (allOrders || []).map(o => {
-    const paidInShift = shiftPayments?.filter(p => p.order_id === o.id).reduce((sum, p) => sum + p.amount, 0) || 0;
-    return { ...o, total: paidInShift };
-  });
+  const orderIds = Array.from(new Set((allOrders || []).map(o => o.id)));
+  const orders = allOrders || [];
 
   // 3. Get Bookings marked as paid during the shift
   const { data: allBookings } = await admin
@@ -181,7 +170,13 @@ export async function getShiftReport(shiftId: string) {
 
   const bookings = (allBookings || []).filter(b => b.rooms?.structure_id === shift.structure_id);
 
-  // 4. Breakdown by payment method
+  // 4. Breakdown by payment method (from payments table, linked to orders in shift)
+  const { data: shiftPayments } = await admin
+    .from('payments')
+    .select('amount, payment_method, order_id')
+    .in('order_id', orderIds)
+    .eq('status', 'COMPLETED');
+
   const paymentMethods: Record<string, number> = {};
   shiftPayments?.forEach(p => {
     const method = p.payment_method || 'AUTRE';

@@ -39,14 +39,31 @@ export async function getSidebarCounts() {
     }
 
     // 4. Low Stock (if STOCK module is active)
+    // We count products AND accompaniments whose effective stock is below threshold.
+    // Items with no row in `stocks` are treated as quantity = 0 (below any threshold).
     let stockCount = 0;
     if (session.modules?.includes('STOCK')) {
-      const { data: stocksData } = await admin
-        .from('stocks')
-        .select('quantity, threshold')
-        .eq('structure_id', structureId);
-      
-      stockCount = (stocksData || []).filter(s => s.quantity <= (s.threshold || 5)).length;
+      const [{ data: productsData }, { data: accompData }] = await Promise.all([
+        admin
+          .from('products')
+          .select('id, stocks(quantity, threshold)')
+          .eq('structure_id', structureId)
+          .eq('is_deleted', false),
+        admin
+          .from('accompaniments')
+          .select('id, stocks(quantity, threshold)')
+          .eq('structure_id', structureId)
+          .eq('is_deleted', false)
+          .eq('is_available', true),
+      ]);
+
+      const allItems = [...(productsData || []), ...(accompData || [])];
+      stockCount = allItems.filter((item: any) => {
+        const stock = item.stocks?.[0];
+        const qty = stock?.quantity ?? 0;
+        const threshold = stock?.threshold ?? 5;
+        return qty <= threshold;
+      }).length;
     }
 
     return {

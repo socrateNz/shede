@@ -892,9 +892,14 @@ export async function updateOrderStatus(
   try {
     const admin = getAdminSupabase();
 
+    const updatePayload: Record<string, any> = { status };
+    if (status === 'COMPLETED') {
+      updatePayload.paid_at = new Date().toISOString();
+    }
+
     const { error } = await admin
       .from('orders')
-      .update({ status })
+      .update(updatePayload)
       .eq('id', orderId)
       .eq('structure_id', session.structureId);
 

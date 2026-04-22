@@ -60,10 +60,10 @@ export async function createPayment(
       return { success: false, error: 'Failed to create payment' };
     }
 
-    // Update order status to COMPLETED
+    // Update order status to COMPLETED and record paid_at
     await admin
       .from('orders')
-      .update({ status: 'COMPLETED' })
+      .update({ status: 'COMPLETED', paid_at: new Date().toISOString() })
       .eq('id', orderId);
 
     return { success: true, paymentId: payment.id };

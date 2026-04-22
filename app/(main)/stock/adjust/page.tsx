@@ -1,32 +1,76 @@
-import { requireModule } from '@/app/actions/auth';
-import { getStockList, addStockMovement } from '@/app/actions/stock';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { getStockList, addStockMovement, getAvailableAccompanimentsForStock } from '@/app/actions/stock';
+import type { StockItemType } from '@/app/actions/stock';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Minus, Settings2, Package, ArrowLeft } from 'lucide-react';
+import { Plus, Minus, Settings2, Package, Coffee, ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
-export default async function AdjustStockPage() {
-  await requireModule('STOCK');
-  const stocks = await getStockList();
+interface StockItem {
+  id: string;
+  name: string;
+  quantity: number;
+  threshold: number;
+  type: StockItemType;
+}
 
-  async function handleSubmit(formData: FormData) {
-    'use server';
-    const productId = String(formData.get('productId'));
-    const type = String(formData.get('type')) as 'IN' | 'OUT' | 'ADJUSTMENT';
-    const quantity = Number(formData.get('quantity'));
-    const reason = String(formData.get('reason'));
+export default function AdjustStockPage() {
+  const router = useRouter();
+  const [itemType, setItemType] = useState<StockItemType>('product');
+  const [products, setProducts] = useState<StockItem[]>([]);
+  const [accompaniments, setAccompaniments] = useState<StockItem[]>([]);
+  const [loadingItems, setLoadingItems] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-    if (!productId || !quantity || !type) return;
+  const [selectedItemId, setSelectedItemId] = useState('');
+  const [movementType, setMovementType] = useState<'IN' | 'OUT' | 'ADJUSTMENT'>('IN');
+  const [quantity, setQuantity] = useState('');
+  const [reason, setReason] = useState('manual_adjustment');
 
-    const result = await addStockMovement(productId, type, quantity, reason);
+  useEffect(() => {
+    const load = async () => {
+      setLoadingItems(true);
+      const all = await getStockList();
+      setProducts(all.filter((s) => s.type === 'product'));
+      setAccompaniments(all.filter((s) => s.type === 'accompaniment'));
+      setLoadingItems(false);
+    };
+    load();
+  }, []);
+
+  // Reset selected item when type changes
+  useEffect(() => {
+    setSelectedItemId('');
+  }, [itemType]);
+
+  const currentList = itemType === 'product' ? products : accompaniments;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedItemId || !quantity) return;
+
+    setSubmitting(true);
+    const result = await addStockMovement(
+      selectedItemId,
+      movementType,
+      parseFloat(quantity),
+      reason,
+      itemType
+    );
+
     if (result.success) {
-      redirect('/stock');
+      toast.success('Mouvement de stock enregistré');
+      router.push('/stock');
     } else {
-      redirect(`/stock/adjust?error=${encodeURIComponent(result.error || 'Erreur inconnue')}`);
+      toast.error(result.error || 'Erreur lors de l\'enregistrement');
+      setSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -57,107 +101,150 @@ export default async function AdjustStockPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            {stocks.length === 0 ? (
-              <div className="py-12 text-slate-400">
-                <Package className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                <p className="text-lg">Aucun produit disponible</p>
-                <p className="text-sm mt-2">Créez d'abord des produits dans le menu</p>
-                <Link href="/products/new" className="mt-4 inline-block">
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                    Créer un produit
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <form action={handleSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+            <form onSubmit={handleSubmit} className="space-y-6">
+
+              {/* Sélecteur de type : Produit ou Accompagnement */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300">Type d'article</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setItemType('product')}
+                    className={`flex items-center gap-2 p-3 rounded-lg border transition-all duration-200 ${
+                      itemType === 'product'
+                        ? 'border-blue-500/60 bg-blue-500/10 text-blue-400'
+                        : 'border-slate-700 bg-slate-900/30 text-slate-400 hover:border-slate-600'
+                    }`}
+                  >
                     <Package className="w-4 h-4" />
-                    Produit à impacter
-                  </label>
+                    <span className="text-sm font-semibold">Produit</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setItemType('accompaniment')}
+                    className={`flex items-center gap-2 p-3 rounded-lg border transition-all duration-200 ${
+                      itemType === 'accompaniment'
+                        ? 'border-purple-500/60 bg-purple-500/10 text-purple-400'
+                        : 'border-slate-700 bg-slate-900/30 text-slate-400 hover:border-slate-600'
+                    }`}
+                  >
+                    <Coffee className="w-4 h-4" />
+                    <span className="text-sm font-semibold">Accompagnement</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Sélection de l'article */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                  {itemType === 'product' ? <Package className="w-4 h-4" /> : <Coffee className="w-4 h-4" />}
+                  {itemType === 'product' ? 'Produit à impacter' : 'Accompagnement à impacter'}
+                </label>
+                {loadingItems ? (
+                  <div className="flex items-center gap-2 text-slate-400 py-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Chargement...</span>
+                  </div>
+                ) : currentList.length === 0 ? (
+                  <div className="text-sm text-slate-500 italic py-2">
+                    Aucun {itemType === 'product' ? 'produit' : 'accompagnement'} disponible.
+                  </div>
+                ) : (
                   <select
-                    name="productId"
+                    value={selectedItemId}
+                    onChange={(e) => setSelectedItemId(e.target.value)}
                     className="w-full bg-slate-900/50 border border-slate-700 text-slate-50 rounded-lg p-2.5 focus:border-blue-500 focus:ring-blue-500/20"
                     required
                   >
-                    <option value="">Sélectionner un produit...</option>
-                    {stocks.map((s) => (
+                    <option value="">
+                      Sélectionner {itemType === 'product' ? 'un produit' : 'un accompagnement'}...
+                    </option>
+                    {currentList.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name} (Stock: {s.quantity})
                       </option>
                     ))}
                   </select>
-                </div>
+                )}
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-300">Type de mouvement</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      <label className="cursor-pointer">
-                        <input type="radio" name="type" value="IN" className="peer hidden" required defaultChecked />
-                        <div className="flex flex-col items-center gap-1 p-3 rounded-lg border border-slate-700 bg-slate-900/30 text-slate-400 peer-checked:border-emerald-500/50 peer-checked:bg-emerald-500/10 peer-checked:text-emerald-500 transition-all">
-                          <Plus className="w-5 h-5" />
-                          <span className="text-xs font-semibold">ENTRÉE</span>
-                        </div>
-                      </label>
-                      <label className="cursor-pointer">
-                        <input type="radio" name="type" value="OUT" className="peer hidden" />
-                        <div className="flex flex-col items-center gap-1 p-3 rounded-lg border border-slate-700 bg-slate-900/30 text-slate-400 peer-checked:border-red-500/50 peer-checked:bg-red-500/10 peer-checked:text-red-500 transition-all">
-                          <Minus className="w-5 h-5" />
-                          <span className="text-xs font-semibold">SORTIE</span>
-                        </div>
-                      </label>
-                      <label className="cursor-pointer">
-                        <input type="radio" name="type" value="ADJUSTMENT" className="peer hidden" />
-                        <div className="flex flex-col items-center gap-1 p-3 rounded-lg border border-slate-700 bg-slate-900/30 text-slate-400 peer-checked:border-amber-500/50 peer-checked:bg-amber-500/10 peer-checked:text-amber-500 transition-all">
-                          <Settings2 className="w-5 h-5" />
-                          <span className="text-xs font-semibold">AJUSTEMENT</span>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-300">Quantité</label>
-                    <Input
-                      type="number"
-                      name="quantity"
-                      step="0.001"
-                      min="0"
-                      className="bg-slate-900/50 border-slate-700 text-slate-50"
-                      placeholder="Ex: 5"
-                      required
-                    />
-                    <p className="text-[10px] text-slate-500">Pour ADJUSTMENT, saisissez le nouveau stock final.</p>
-                  </div>
-                </div>
-
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Type de mouvement */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">Raison (Optionnel)</label>
-                  <select
-                    name="reason"
-                    className="w-full bg-slate-900/50 border border-slate-700 text-slate-50 rounded-lg p-2.5 focus:border-blue-500 focus:ring-blue-500/20"
-                  >
-                    <option value="manual_adjustment">Ajustement manuel</option>
-                    <option value="purchase">Nouvel achat / Réapprovisionnement</option>
-                    <option value="loss">Perte / Vol / Casse</option>
-                    <option value="return">Retour client</option>
-                    <option value="inventory">Inventaire physique</option>
-                  </select>
+                  <label className="text-sm font-medium text-slate-300">Type de mouvement</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['IN', 'OUT', 'ADJUSTMENT'] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setMovementType(t)}
+                        className={`flex flex-col items-center gap-1 p-3 rounded-lg border transition-all ${
+                          movementType === t
+                            ? t === 'IN'
+                              ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-500'
+                              : t === 'OUT'
+                              ? 'border-red-500/50 bg-red-500/10 text-red-500'
+                              : 'border-amber-500/50 bg-amber-500/10 text-amber-500'
+                            : 'border-slate-700 bg-slate-900/30 text-slate-400 hover:border-slate-600'
+                        }`}
+                      >
+                        {t === 'IN' ? <Plus className="w-5 h-5" /> : t === 'OUT' ? <Minus className="w-5 h-5" /> : <Settings2 className="w-5 h-5" />}
+                        <span className="text-xs font-semibold">{t === 'IN' ? 'ENTRÉE' : t === 'OUT' ? 'SORTIE' : 'AJUST.'}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="pt-4 flex gap-3">
-                  <Link href="/stock" className="flex-1">
-                    <Button variant="outline" type="button" className="w-full border-slate-700 text-slate-300 hover:bg-slate-800">
-                      Annuler
-                    </Button>
-                  </Link>
-                  <Button type="submit" className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
-                    Enregistrer le mouvement
-                  </Button>
+                {/* Quantité */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-300">Quantité</label>
+                  <Input
+                    type="number"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    step="0.001"
+                    min="0"
+                    className="bg-slate-900/50 border-slate-700 text-slate-50"
+                    placeholder="Ex: 5"
+                    required
+                  />
+                  <p className="text-[10px] text-slate-500">Pour AJUSTEMENT, saisissez le nouveau stock final.</p>
                 </div>
-              </form>
-            )}
+              </div>
+
+              {/* Raison */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300">Raison (Optionnel)</label>
+                <select
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  className="w-full bg-slate-900/50 border border-slate-700 text-slate-50 rounded-lg p-2.5 focus:border-blue-500 focus:ring-blue-500/20"
+                >
+                  <option value="manual_adjustment">Ajustement manuel</option>
+                  <option value="purchase">Nouvel achat / Réapprovisionnement</option>
+                  <option value="loss">Perte / Vol / Casse</option>
+                  <option value="return">Retour client</option>
+                  <option value="inventory">Inventaire physique</option>
+                </select>
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <Link href="/stock" className="flex-1">
+                  <Button variant="outline" type="button" className="w-full border-slate-700 text-slate-300 hover:bg-slate-800">
+                    Annuler
+                  </Button>
+                </Link>
+                <Button
+                  type="submit"
+                  disabled={submitting || !selectedItemId || !quantity}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white disabled:opacity-50"
+                >
+                  {submitting ? (
+                    <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Enregistrement...</span>
+                  ) : 'Enregistrer le mouvement'}
+                </Button>
+              </div>
+            </form>
           </CardContent>
         </Card>
       </div>
