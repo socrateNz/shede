@@ -4,7 +4,7 @@ import { getAccompaniments, createAccompaniment, updateAccompaniment, deleteAcco
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Edit2, Trash2, Check, X, Package, Sparkles, DollarSign, Tag } from 'lucide-react';
+import { Plus, Edit2, Trash2, Check, X, Package, DollarSign, Tag } from 'lucide-react';
 import { useActionState, useEffect, useState } from 'react';
 import {
   Table,
@@ -28,7 +28,7 @@ export default function AccompanimentsPage() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: '', price: 0, is_available: true });
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -314,8 +314,8 @@ export default function AccompanimentsPage() {
                               </TableCell>
                               <TableCell>
                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${item.is_available
-                                    ? 'bg-green-500/10 text-green-400'
-                                    : 'bg-red-500/10 text-red-400'
+                                  ? 'bg-green-500/10 text-green-400'
+                                  : 'bg-red-500/10 text-red-400'
                                   }`}>
                                   <div className={`w-1.5 h-1.5 rounded-full ${item.is_available ? 'bg-green-400' : 'bg-red-400'}`} />
                                   {item.is_available ? 'Disponible' : 'Indisponible'}
@@ -365,7 +365,7 @@ export default function AccompanimentsPage() {
                   </Table>
                 </div>
               )}
-              <TablePagination 
+              <TablePagination
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
