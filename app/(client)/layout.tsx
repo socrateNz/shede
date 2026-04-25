@@ -2,34 +2,45 @@ import Link from "next/link";
 import { CartBadge } from "@/components/cart-badge";
 import { ClientLogout } from "@/components/client-logout";
 import { getSession } from "@/lib/auth";
-import { UserCircle, CalendarDays } from "lucide-react";
+import { UserCircle, CalendarDays, Home, ShoppingBag, Sparkles } from "lucide-react";
+import { MobileNavItem } from "@/components/mobile-nav-item";
 
 export default async function ClientLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b shadow-sm border-slate-200 px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 bg-white/80 backdrop-blur px-3 py-2 rounded-xl shadow-sm border border-slate-200">
-          <img src="/logo.webp" alt="Shede" className="w-8 h-8 rounded-lg" />
-          <h1 className="text-xl font-bold tracking-tight text-slate-800">Shede</h1>
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-50 flex flex-col overflow-y-auto">
+      <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-slate-100 px-4 lg:px-6 h-16 flex items-center justify-between transition-all duration-300">
+        {/* Logo avec effet moderne */}
+        <Link
+          href="/"
+          className="group flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-300 hover:shadow-md"
+        >
+          <div className="relative">
+            <img src="/logo.webp" alt="Shede" className="w-8 h-8 rounded-lg transition-transform group-hover:scale-105" />
+            <div className="absolute inset-0 rounded-lg bg-linear-to-tr from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+          <h1 className="text-xl font-bold bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+            Shede
+          </h1>
         </Link>
-        <div className="flex items-center gap-2 md:gap-4">
+
+        {/* Actions principales */}
+        <div className="flex items-center gap-1 md:gap-3">
           {session ? (
-            <div className="flex items-center gap-1 md:gap-3 mr-2 border-r border-slate-200 pr-3 md:pr-4">
-              <Link href="/history" className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                <CalendarDays className="w-4 h-4" />
-                <span className="hidden sm:inline">Historique</span>
-              </Link>
-              <Link href="/client" className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                <UserCircle className="w-4 h-4" />
-                <span className="hidden sm:inline">Mon Espace</span>
-              </Link>
+            <>
+              <div className="hidden md:flex items-center gap-1 mr-2 border-r border-slate-200 pr-4">
+                <NavLink href="/history" icon={<CalendarDays className="w-4 h-4" />} label="Historique" />
+                <NavLink href="/client" icon={<UserCircle className="w-4 h-4" />} label="Mon Espace" />
+              </div>
               <ClientLogout />
-            </div>
+            </>
           ) : (
-            <div className="flex items-center mr-2 border-r border-slate-200 pr-3 md:pr-4">
-              <Link href="/login" className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-full transition-colors">
+            <div className="hidden md:block mr-2">
+              <Link
+                href="/login"
+                className="relative px-5 py-2 text-sm font-semibold text-white bg-linear-to-r from-blue-600 to-blue-500 rounded-full transition-all duration-300 hover:shadow-lg hover:shadow-blue-200 hover:-translate-y-0.5 active:translate-y-0"
+              >
                 Se connecter
               </Link>
             </div>
@@ -37,30 +48,38 @@ export default async function ClientLayout({ children }: { children: React.React
           <CartBadge />
         </div>
       </header>
-      <main className="flex-1 pb-16">
+
+      {/* Contenu principal */}
+      <main className="flex-1 pb-20 md:pb-8">
         {children}
       </main>
 
-      {/* Mobile Bottom Navigation (optional but requested mobile-first) */}
-      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t flex items-center justify-around md:hidden px-4 z-50">
-        <Link href="/" className="text-slate-600 text-sm font-medium flex flex-col items-center">
-          <span className="text-xl">🏠</span>
-          Accueil
-        </Link>
+      {/* Navigation mobile moderne - Bottom Bar avec effet glassmorphism */}
+      <nav className="fixed bottom-3 left-3 right-3 md:hidden bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-lg flex items-center justify-around px-2 py-2 z-50 transition-all duration-300">
+        <MobileNavItem href="/" icon={<Home className="w-5 h-5" />} label="Accueil" exact />
         {session && (
           <>
-            <Link href="/history" className="text-slate-600 text-sm font-medium flex flex-col items-center">
-              <span className="text-xl">📅</span>
-              Historique
-            </Link>
-            <Link href="/client" className="text-slate-600 text-sm font-medium flex flex-col items-center">
-              <span className="text-xl">👤</span>
-              Espace
-            </Link>
+            <MobileNavItem href="/history" icon={<CalendarDays className="w-5 h-5" />} label="Historique" />
+            <MobileNavItem href="/client" icon={<UserCircle className="w-5 h-5" />} label="Espace" />
           </>
         )}
-        <CartBadge mobile />
+        <div className="relative">
+          <CartBadge mobile />
+        </div>
       </nav>
     </div>
+  );
+}
+
+// Composant réutilisable pour une meilleure organisation (Server side ok car pas de hooks)
+function NavLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 rounded-lg transition-all duration-200 hover:text-blue-600 hover:bg-blue-50/80 hover:scale-105 active:scale-95"
+    >
+      {icon}
+      <span>{label}</span>
+    </Link>
   );
 }

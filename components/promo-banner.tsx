@@ -13,7 +13,7 @@ interface Promotion {
   scope: 'PRODUCT' | 'ORDER';
   min_order_amount?: number;
   structure_id?: string;
-  structures?: { name: string; [key: string]: any };
+  structures?: { name: string;[key: string]: any };
   products?: { name: string };
 }
 
@@ -26,7 +26,7 @@ export function PromoBanner({ promotions, isGlobal = false }: { promotions: Prom
 
   useEffect(() => {
     if (displayPromos.length <= 1) return;
-    
+
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % displayPromos.length);
     }, 5000);
@@ -38,12 +38,15 @@ export function PromoBanner({ promotions, isGlobal = false }: { promotions: Prom
 
   const current = displayPromos[currentIndex];
 
+  if (isGlobal) {
+  }
+
   const bannerContent = (
     <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 p-6 shadow-lg mb-8 ${isGlobal ? 'hover:shadow-indigo-500/30' : ''}`}>
       {/* Decorative elements */}
       <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
       <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-24 w-24 rounded-full bg-blue-400/20 blur-2xl" />
-      
+
       <AnimatePresence mode="wait">
         <motion.div
           key={current.id}
@@ -67,7 +70,7 @@ export function PromoBanner({ promotions, isGlobal = false }: { promotions: Prom
                 </p>
               )}
               <p className="text-blue-100 text-sm font-medium">
-                {current.scope === 'PRODUCT' 
+                {current.scope === 'PRODUCT'
                   ? (current.type === 'PERCENTAGE' ? `-${current.value}% sur ${current.products?.name || 'ce produit'} !` : `-${current.value} FCFA sur ${current.products?.name || 'ce produit'} !`)
                   : (current.type === 'PERCENTAGE' ? `-${current.value}% sur votre commande !` : `-${current.value} FCFA offerts dès aujourd'hui !`)
                 }
@@ -78,18 +81,17 @@ export function PromoBanner({ promotions, isGlobal = false }: { promotions: Prom
           <div className="flex flex-col items-end">
             <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-blue-700 text-sm font-bold shadow-sm">
               <Tag className="h-4 w-4" />
-              {current.min_order_amount && current.min_order_amount > 0 
+              {current.min_order_amount && current.min_order_amount > 0
                 ? `Dès ${current.min_order_amount} FCFA`
                 : 'Sans minimum d\'achat'}
             </div>
             {displayPromos.length > 1 && (
               <div className="mt-3 flex gap-1.5">
                 {displayPromos.map((_, i) => (
-                  <div 
+                  <div
                     key={i}
-                    className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${
-                      i === currentIndex ? 'w-4 bg-white' : 'bg-white/40'
-                    }`}
+                    className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${i === currentIndex ? 'w-4 bg-white' : 'bg-white/40'
+                      }`}
                   />
                 ))}
               </div>
@@ -102,7 +104,7 @@ export function PromoBanner({ promotions, isGlobal = false }: { promotions: Prom
 
   if (isGlobal && current.structure_id) {
     return (
-      <Link href={`/structures/${current.structure_id}`} className="block transition-transform hover:-translate-y-1">
+      <Link href={`/client/structure/${current.structure_id}`} className="block transition-transform hover:-translate-y-1">
         {bannerContent}
       </Link>
     );

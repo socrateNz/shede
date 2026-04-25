@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useActionState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, UserPlus } from 'lucide-react';
+import { ArrowLeft, UserPlus, Mail, Lock, User, Sparkles, CheckCircle } from 'lucide-react';
 
 export default function RegisterClientPage() {
   const router = useRouter();
@@ -23,64 +23,90 @@ export default function RegisterClientPage() {
   }, [state.success, router]);
 
   return (
-    <div className='w-full bg-white'>
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-white shadow-xl border-slate-100">
-          <CardHeader className="text-center pb-2">
-            <Link href="/" className="inline-block mb-4">
-              <img src="/logo.webp" alt="Shede" className="w-12 h-12 rounded-xl mx-auto border border-slate-100 shadow-sm" />
-            </Link>
-            <CardTitle className="text-2xl font-bold text-slate-900">Créer mon compte Client</CardTitle>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Logo/Brand */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-lg mb-4">
+            <Sparkles className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-slate-800">Shede</h1>
+          <p className="text-slate-500 text-sm mt-1">Créez votre espace client</p>
+        </div>
+
+        <Card className="border-0 shadow-xl overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5" />
+
+          <CardHeader className="text-center pb-4 relative">
+            <div className="inline-flex mx-auto bg-blue-100 p-3 rounded-full mb-4">
+              <UserPlus className="w-6 h-6 text-blue-600" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-slate-800">Créer mon compte</CardTitle>
             <CardDescription className="text-slate-500">
-              Rejoignez Shede pour réserver vos chambres et commander vos repas facilement.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form action={formAction} className="space-y-4">
+
+          <CardContent className="relative">
+            <form action={formAction} className="space-y-5">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">Prénom *</label>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                    <User className="w-4 h-4 text-slate-400" />
+                    Prénom
+                  </label>
                   <Input
                     type="text"
                     name="firstName"
                     placeholder="Jean"
+                    className="bg-slate-50 border-slate-200 focus:border-blue-400 focus:ring-blue-400/20 transition-all"
                     required
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">Nom *</label>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Nom</label>
                   <Input
                     type="text"
                     name="lastName"
                     placeholder="Dupont"
+                    className="bg-slate-50 border-slate-200 focus:border-blue-400 focus:ring-blue-400/20 transition-all"
                     required
                   />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Email *</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-slate-400" />
+                  Email
+                </label>
                 <Input
                   type="email"
                   name="email"
                   placeholder="jean.dupont@example.com"
+                  className="bg-slate-50 border-slate-200 focus:border-blue-400 focus:ring-blue-400/20 transition-all"
                   required
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Mot de passe *</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-slate-400" />
+                  Mot de passe
+                </label>
                 <Input
                   type="password"
                   name="password"
                   placeholder="••••••••"
+                  className="bg-slate-50 border-slate-200 focus:border-blue-400 focus:ring-blue-400/20 transition-all"
                   required
                   minLength={6}
                 />
+                <p className="text-xs text-slate-400 mt-1">Minimum 6 caractères</p>
               </div>
 
               {state.error && (
-                <div className="p-3 text-sm rounded-md bg-red-50 text-red-600 border border-red-100">
+                <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full" />
                   {state.error}
                 </div>
               )}
@@ -88,35 +114,45 @@ export default function RegisterClientPage() {
               <Button
                 type="submit"
                 disabled={isPending}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-6 mt-2"
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
               >
-                {isPending ? 'Création en cours...' : (
-                  <>
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    S'inscrire
-                  </>
+                {isPending ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                    Création en cours...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <UserPlus className="w-4 h-4" />
+                    Créer mon compte
+                  </div>
                 )}
               </Button>
 
-              <div className="text-center mt-6">
+              <div className="text-center pt-2">
                 <p className="text-sm text-slate-500">
                   Déjà un compte ?{' '}
-                  <Link href="/login" className="text-blue-600 font-semibold hover:underline">
+                  <Link href="/login" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
                     Se connecter
                   </Link>
                 </p>
-                <p className="text-sm text-slate-500 mt-2">
-                  <Link href="/" className="inline-flex items-center text-slate-400 hover:text-slate-600">
-                    <ArrowLeft className="w-3 h-3 mr-1" />
-                    Retour à l'accueil
-                  </Link>
-                </p>
+              </div>
+
+              <div className="text-center">
+                <Link href="/" className="inline-flex items-center text-sm text-slate-400 hover:text-slate-600 transition-colors">
+                  <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+                  Retour à l'accueil
+                </Link>
               </div>
             </form>
           </CardContent>
         </Card>
-      </div>
 
+        {/* Footer info */}
+        <p className="text-center text-xs text-slate-400 mt-6">
+          En créant un compte, vous acceptez nos conditions d'utilisation
+        </p>
+      </div>
     </div>
   );
 }
