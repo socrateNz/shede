@@ -65,7 +65,7 @@ export default async function StructurePage({ params }: { params: Promise<{ id: 
             )}
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -77,7 +77,7 @@ export default async function StructurePage({ params }: { params: Promise<{ id: 
               <Clock className="w-4 h-4" />
               <span className="text-sm">Ouvert</span>
             </div>
-          </div>
+          </div> */}
 
           {(isHotel) && (
             <div className="mt-6">
@@ -117,7 +117,7 @@ export default async function StructurePage({ params }: { params: Promise<{ id: 
         </div>
 
         {/* Footer Info */}
-        <div className="bg-gradient-to-r from-slate-100 to-white rounded-xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        {/* <div className="bg-gradient-to-r from-slate-100 to-white rounded-xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="bg-blue-100 p-2 rounded-full">
               <Coffee className="w-5 h-5 text-blue-600" />
@@ -136,7 +136,7 @@ export default async function StructurePage({ params }: { params: Promise<{ id: 
               <p className="text-xs text-slate-500">Livraison rapide et gratuite</p>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );
