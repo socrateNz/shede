@@ -172,8 +172,8 @@ export default function ClientBookRoomPage() {
                             key={room.id}
                             onClick={() => setSelectedRoom(room.id)}
                             className={`cursor-pointer rounded-xl p-4 transition-all duration-300 ${selectedRoom === room.id
-                                ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-500 shadow-md'
-                                : 'bg-white border-2 border-slate-200 hover:border-blue-300 hover:shadow-sm'
+                              ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-500 shadow-md'
+                              : 'bg-white border-2 border-slate-200 hover:border-blue-300 hover:shadow-sm'
                               }`}
                           >
                             <div className="flex items-center justify-between mb-2">
@@ -312,7 +312,7 @@ export default function ClientBookRoomPage() {
                 </Card>
               )}
 
-              <Card className="border-0 shadow-lg">
+              {/* <Card className="border-0 shadow-lg">
                 <CardContent className="p-5 space-y-3">
                   <h4 className="font-semibold text-slate-700 mb-2">À savoir</h4>
                   <div className="space-y-2 text-sm">
@@ -330,7 +330,7 @@ export default function ClientBookRoomPage() {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
+              </Card> */}
             </div>
           </div>
         </div>

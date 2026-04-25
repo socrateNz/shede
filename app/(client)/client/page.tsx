@@ -97,7 +97,7 @@ export default async function ClientDashboardPage() {
         )}
 
         {/* Cartes de statistiques */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
           <StatCard
             icon={<Wallet className="w-5 h-5" />}
             label="Commandes"
@@ -119,13 +119,13 @@ export default async function ClientDashboardPage() {
             subValue={orders?.[0]?.structures?.name || 'Aucune'}
             gradient="from-orange-500 to-red-500"
           />
-          <StatCard
+          {/* <StatCard
             icon={<Star className="w-5 h-5" />}
             label="Points fidélité"
             value="---"
             subValue="Bientôt disponible"
             gradient="from-yellow-500 to-amber-500"
-          />
+          /> */}
         </div>
 
         {/* Section réservations & commandes */}
@@ -175,8 +175,8 @@ export default async function ClientDashboardPage() {
                           </div>
                           <div className="flex flex-col items-end gap-2">
                             <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${b.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
-                                b.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
-                                  'bg-slate-200 text-slate-700'
+                              b.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
+                                'bg-slate-200 text-slate-700'
                               }`}>
                               {b.status === 'CONFIRMED' ? 'Confirmé' : b.status === 'PENDING' ? 'En attente' : 'Terminé'}
                             </span>
@@ -243,8 +243,8 @@ export default async function ClientDashboardPage() {
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${o.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                              o.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
-                                'bg-blue-100 text-blue-700'
+                            o.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
+                              'bg-blue-100 text-blue-700'
                             }`}>
                             {o.status === 'COMPLETED' ? 'Livré' : o.status === 'PENDING' ? 'En préparation' : 'Confirmé'}
                           </span>
