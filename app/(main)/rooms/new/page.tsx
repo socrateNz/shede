@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { ArrowLeft, BedDouble, Home, DollarSign, Sparkles, Hotel, Plus } from 'lucide-react';
+import { ArrowLeft, BedDouble, Home, DollarSign, Hotel, Plus } from 'lucide-react';
 import { useActionState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { requireRole } from '@/app/actions/auth';

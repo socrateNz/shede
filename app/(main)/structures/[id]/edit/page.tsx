@@ -3,7 +3,7 @@ import { updateStructure } from '@/app/actions/structures';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Building2, Mail, MapPin, Briefcase, ChevronRight, Sparkles, Save, Check } from 'lucide-react';
+import { ArrowLeft, Building2, Mail, MapPin, Briefcase, ChevronRight, Save, Check } from 'lucide-react';
 import Link from 'next/link';
 import { getAdminSupabase } from '@/lib/supabase';
 import { redirect } from 'next/navigation';
@@ -66,7 +66,6 @@ export default async function EditStructurePage({
         {/* Header */}
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
-            <Sparkles className="w-4 h-4 text-blue-400" />
             <span className="text-sm text-blue-400 font-medium">Modification</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">

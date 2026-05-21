@@ -2,7 +2,7 @@ import { requireRole } from '@/app/actions/auth';
 import { getUsers } from '@/app/actions/users';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Users, UserCheck, UserCog, Shield, Sparkles } from 'lucide-react';
+import { Plus, Users, UserCheck, UserCog, Shield,  } from 'lucide-react';
 import Link from 'next/link';
 import { UsersList } from '@/components/users-list';
 

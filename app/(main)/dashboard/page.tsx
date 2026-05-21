@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { requireAuth } from '@/app/actions/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, Users, ShoppingCart, DollarSign, Clock, CheckCircle, Building2, Sparkles, ArrowRight, Coffee, CreditCard, Hotel, Calendar, Bell, ExternalLink } from 'lucide-react';
+import { TrendingUp, Users, ShoppingCart, DollarSign, Clock, CheckCircle, Building2, ArrowRight, Coffee, CreditCard, Hotel, Calendar, Bell, ExternalLink } from 'lucide-react';
 import { getMyNotifications } from '@/app/actions/push';
 
 async function getDashboardStats(structureId: string, role: string, userId: string) {

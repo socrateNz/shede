@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Plus, Package, DollarSign, Tag, Sparkles, CheckCircle, AlertTriangle, Save, X } from 'lucide-react';
+import { ArrowLeft, Plus, Package, DollarSign, Tag, CheckCircle, AlertTriangle, Save, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -249,7 +249,6 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
 
                 <div className="space-y-2 group">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-emerald-400" />
                     Description
                   </label>
                   <textarea

@@ -2,7 +2,7 @@ import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { redirect } from 'next/navigation';
 import { ClientHistoryList } from '@/components/client-history-list';
-import { CalendarDays, Clock, History, Sparkles } from 'lucide-react';
+import { CalendarDays, Clock, History,  } from 'lucide-react';
 
 export default async function HistoryPage() {
   const session = await getSession();
@@ -81,7 +81,7 @@ export default async function HistoryPage() {
         <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
           <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5" />
+
               Détails
             </h2>
           </div>

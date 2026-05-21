@@ -1,7 +1,7 @@
 'use client';
 
 import { getActivePromotionsForClient, validatePromoCode } from '@/app/actions/promotions';
-import { Tag, Check, X, Trash2, Plus, Minus, Loader2, UtensilsCrossed, Bed, ShoppingBag, Truck, Clock, Shield, Sparkles } from 'lucide-react';
+import { Tag, Check, X, Trash2, Plus, Minus, Loader2, UtensilsCrossed, Bed, ShoppingBag, Truck, Clock, Shield } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { formatFCFA } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
@@ -57,7 +57,6 @@ export default function CartPage() {
             className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all hover:-translate-y-0.5"
           >
             Découvrir les établissements
-            <Sparkles className="w-4 h-4" />
           </button>
         </div>
       </div>

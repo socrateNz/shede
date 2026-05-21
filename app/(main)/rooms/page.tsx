@@ -3,7 +3,7 @@ import { requireAuth } from '@/app/actions/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { BedDouble, Plus, Hotel, Sparkles, Home, CheckCircle, XCircle } from 'lucide-react';
+import { BedDouble, Plus, Hotel, Home, CheckCircle, XCircle } from 'lucide-react';
 import RoomsList from '@/components/rooms-list';
 import { requireRole } from '@/app/actions/auth';
 
@@ -95,7 +95,6 @@ export default async function RoomsPage() {
                 <div className="text-sm text-slate-400">Nettoyage</div>
               </div>
               <div className="p-3 bg-yellow-500/10 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                <Sparkles className="w-6 h-6 text-yellow-400" />
               </div>
             </div>
           </div>

@@ -3,7 +3,7 @@ import { getOrders } from '@/app/actions/orders';
 import { getStructureActiveShift } from '@/app/actions/shifts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, ShoppingCart, Sparkles, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Plus, ShoppingCart, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { OrdersLiveList } from '@/components/orders-live-list';
 
@@ -122,7 +122,6 @@ export default async function OrdersPage() {
                 <div className="text-xs font-semibold text-purple-500/80 mt-1">{stats.inProgress.revenue.toLocaleString()} FCFA</div>
               </div>
               <div className="p-3 bg-purple-500/10 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                <Sparkles className="w-6 h-6 text-purple-400" />
               </div>
             </div>
           </div>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CartBadge } from "@/components/cart-badge";
 import { ClientLogout } from "@/components/client-logout";
 import { getSession } from "@/lib/auth";
-import { UserCircle, CalendarDays, Home, ShoppingBag, Sparkles } from "lucide-react";
+import { UserCircle, CalendarDays, Home } from "lucide-react";
 import { MobileNavItem } from "@/components/mobile-nav-item";
 
 export default async function ClientLayout({ children }: { children: React.ReactNode }) {

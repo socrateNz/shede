@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Calendar, BedDouble, Users, Phone, CheckCircle, Sparkles, Clock, Coffee, Wifi, Tv, Wind, Shield } from 'lucide-react';
+import { ArrowLeft, Calendar, BedDouble, Users, Phone, CheckCircle, Clock, Coffee, Wifi, Tv, Wind, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { createClientBooking } from '@/app/actions/client-bookings';
 import { formatFCFA } from '@/lib/utils';
@@ -285,7 +285,7 @@ export default function ClientBookRoomPage() {
                 <Card className="border-0 shadow-lg overflow-hidden">
                   <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-4 text-white">
                     <h3 className="font-bold text-lg flex items-center gap-2">
-                      <Sparkles className="w-5 h-5" />
+
                       Récapitulatif
                     </h3>
                   </div>

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Bed, CalendarDays, UtensilsCrossed, MapPin, Store, Building2, ArrowRight, TrendingUp, Clock, Star, Wallet, Sparkles } from 'lucide-react';
+import { Bed, CalendarDays, UtensilsCrossed, MapPin, Store, Building2, ArrowRight, TrendingUp, Clock, Star, Wallet,  } from 'lucide-react';
 import { ClientInvoiceWrapper } from '@/components/client-invoice-wrapper';
 import Link from 'next/link';
 import { getAdminSupabase } from '@/lib/supabase';
@@ -68,7 +68,6 @@ export default async function ClientDashboardPage() {
           <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 mb-3">
-                <Sparkles className="w-4 h-4" />
                 <span className="text-sm font-medium">Espace Personnel</span>
               </div>
               <h1 className="text-2xl md:text-3xl font-bold mb-2">

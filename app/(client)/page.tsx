@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { Building2, Search, Utensils, Bed, MapPin, Star, ArrowRight, Sparkles, TrendingUp } from 'lucide-react';
+import { Building2, Search, Utensils, Bed, MapPin, Star, ArrowRight, TrendingUp } from 'lucide-react';
 import { getAllGlobalActivePromotions } from '@/app/actions/promotions';
 import { PromoBanner } from '@/components/promo-banner';
 
@@ -46,7 +46,6 @@ export default async function ClientHomePage() {
 
         <div className="relative max-w-4xl mx-auto px-4 py-12 md:py-20 text-center">
           <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
-            <Sparkles className="w-4 h-4" />
             <span className="text-sm font-medium">Bienvenue sur Shede</span>
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">

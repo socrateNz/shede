@@ -1,7 +1,7 @@
 'use client';
 
 import { useCartStore } from '@/lib/cart-store';
-import { ShoppingCart, Plus, Minus, Tag, Star, Clock, Flame, Sparkles } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Tag, Star, Clock, Flame,  } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatFCFA } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -184,9 +184,7 @@ export default function ProductList({
                 const promo = getProductPromotion(selectedProduct.id);
                 return promo ? (
                   <div className="bg-gradient-to-r from-red-500 to-orange-500 text-white px-6 py-3 text-center text-sm font-bold flex items-center justify-center gap-2">
-                    <Sparkles className="w-4 h-4" />
                     Promotion Spéciale Active
-                    <Sparkles className="w-4 h-4" />
                   </div>
                 ) : null;
               })()}

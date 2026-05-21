@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, DollarSign, ShoppingCart, Users, BarChart3, PieChart, Calendar, Sparkles, Hotel, UtensilsCrossed, Loader2 } from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingCart, Users, BarChart3, PieChart, Calendar, Hotel, UtensilsCrossed, Loader2 } from 'lucide-react';
 import { AnalyticsCharts } from '@/components/analytics-charts';
 import { fetchClientAnalyticsData } from '@/app/actions/analytics';
 
@@ -273,7 +273,6 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5" />
             <CardHeader>
               <CardTitle className="text-slate-50 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-blue-400" />
                 Informations sur les statistiques
               </CardTitle>
             </CardHeader>

@@ -78,17 +78,7 @@ BEGIN
     END IF;
 END $$;
 
--- 5. RLS POLICIES (Assuming existing RLS structure)
--- Enable RLS and add basic structure-based filtering
-
+-- 5. RLS — activer les tables ; policies dans scripts/05-enable-rls.sql
 ALTER TABLE public.promotions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.promo_codes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.promo_code_usages ENABLE ROW LEVEL SECURITY;
-
--- Dynamic policies based on structure_id (replace with your actual auth claim if different)
--- Example assuming 'structure_id' is in jwt claims or we filter by user's structure
-CREATE POLICY "Users can view their structure's promotions" ON public.promotions
-    FOR SELECT USING (structure_id = (SELECT structure_id FROM public.users WHERE id = auth.uid()));
-
-CREATE POLICY "Admins can manage their structure's promotions" ON public.promotions
-    FOR ALL USING (structure_id = (SELECT structure_id FROM public.users WHERE id = auth.uid()));

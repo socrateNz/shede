@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BedDouble, Pencil, Trash2, MoreVertical, CheckCircle, XCircle, Sparkles, Home, Hotel, Eye, DollarSign, Tag, Calendar, Info } from 'lucide-react';
+import { BedDouble, Pencil, Trash2, MoreVertical, CheckCircle, XCircle, Home, Hotel, Eye, DollarSign, Tag, Calendar, Info, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,

@@ -1,14 +1,14 @@
-import { getAdminSupabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
 import ProductList from './ProductList';
 import Link from 'next/link';
 import { getActivePromotionsForClient } from '@/app/actions/promotions';
 import { PromoBanner } from '@/components/promo-banner';
-import { Building2, MapPin, Phone, Star, Clock, Coffee, Bed, UtensilsCrossed, Sparkles, ArrowRight } from 'lucide-react';
+import { Building2, MapPin, Phone, Star, Clock, Coffee, Bed, UtensilsCrossed, ArrowRight } from 'lucide-react';
 
 export default async function StructurePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = getAdminSupabase();
+  // Clé anon + RLS : pas d'accès aux établissements sans licence active
 
   const { data: structure, error: structError } = await supabase
     .from('structures')
@@ -129,7 +129,7 @@ export default async function StructurePage({ params }: { params: Promise<{ id: 
           </div>
           <div className="flex items-center gap-3">
             <div className="bg-emerald-100 p-2 rounded-full">
-              <Sparkles className="w-5 h-5 text-emerald-600" />
+
             </div>
             <div>
               <p className="font-semibold text-slate-700">Commandez en ligne</p>

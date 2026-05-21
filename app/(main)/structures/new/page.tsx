@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { ArrowLeft, Building2, Mail, MapPin, User, Lock, Briefcase, ChevronRight, Sparkles, Check } from 'lucide-react';
+import { ArrowLeft, Building2, Mail, MapPin, User, Lock, Briefcase, ChevronRight, Check } from 'lucide-react';
 import { useActionState, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -63,7 +63,6 @@ export default function NewStructurePage() {
         {/* Header */}
         <div className="mb-8 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
-            <Sparkles className="w-4 h-4 text-blue-400" />
             <span className="text-sm text-blue-400 font-medium">Nouvelle structure</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">

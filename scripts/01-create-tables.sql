@@ -180,8 +180,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- RLS will be managed through application-level permissions
--- Using server-side filtering and validation instead of database RLS policies
+-- RLS : exécuter scripts/05-enable-rls.sql après la création des tables
 
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_users_structure_id ON users(structure_id);

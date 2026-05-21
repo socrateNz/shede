@@ -8,7 +8,7 @@ import { useActionState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { LogIn, Mail, Lock, Sparkles, ArrowRight } from 'lucide-react';
+import { LogIn, Mail, Lock, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,7 +29,6 @@ export default function LoginPage() {
         {/* Logo/Brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-lg mb-4">
-            <Sparkles className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-white">Shede POS</h1>
           <p className="text-slate-400 text-sm mt-1">Plateforme de gestion professionnelle</p>
@@ -103,11 +102,23 @@ export default function LoginPage() {
                 )}
               </Button>
 
-              <div className="text-center pt-4">
+              <div className="space-y-2 pt-4 text-center">
                 <p className="text-sm text-slate-400">
-                  Pas encore de compte ?{' '}
-                  <Link href="/register-client" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
-                    S'inscrire
+                  Établissement professionnel ?{' '}
+                  <Link
+                    href="/register-business"
+                    className="font-medium text-blue-400 transition-colors hover:text-blue-300"
+                  >
+                    Créer un compte business
+                  </Link>
+                </p>
+                <p className="text-sm text-slate-400">
+                  Client particulier ?{' '}
+                  <Link
+                    href="/register-client"
+                    className="font-medium text-blue-400 transition-colors hover:text-blue-300"
+                  >
+                    S&apos;inscrire
                   </Link>
                 </p>
               </div>

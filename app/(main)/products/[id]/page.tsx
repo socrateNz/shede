@@ -2,7 +2,7 @@ import { requireRole } from '@/app/actions/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import type { Product } from '@/lib/supabase';
 import { ProductEditForm } from '@/components/product-edit-form';
-import { ArrowLeft, Package, Sparkles } from 'lucide-react';
+import { ArrowLeft, Package,  } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -101,7 +101,7 @@ export default async function EditProductPage({
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5" />
           <CardHeader className="border-b border-slate-700/50 pb-4">
             <CardTitle className="text-slate-50 flex items-center gap-2 text-lg">
-              <Sparkles className="w-4 h-4 text-blue-400" />
+
               Informations générales
             </CardTitle>
           </CardHeader>

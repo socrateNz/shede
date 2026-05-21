@@ -3,7 +3,7 @@ import { updateUser } from '@/app/actions/users';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, User, Mail, Briefcase, Shield, CheckCircle, AlertCircle, Save, X, Sparkles } from 'lucide-react';
+import { ArrowLeft, User, Mail, Briefcase, Shield, CheckCircle, AlertCircle, Save, X } from 'lucide-react';
 import Link from 'next/link';
 import { getAdminSupabase } from '@/lib/supabase';
 import { redirect } from 'next/navigation';
@@ -180,7 +180,6 @@ export default async function EditUserPage({
                     disabled
                   />
                   <p className="text-xs text-slate-500 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" />
                     L'email ne peut pas être modifié
                   </p>
                 </div>

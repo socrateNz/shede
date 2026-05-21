@@ -12,9 +12,20 @@ if (!supabaseAnonKey) {
   throw new Error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY');
 }
 
+/**
+ * Client Supabase public (clé anon).
+ * Soumis au RLS — à utiliser pour le catalogue B2C (pages client, composants navigateur).
+ * Ne jamais utiliser pour les opérations staff ou les écritures sensibles.
+ */
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Server-side admin client (only use in server actions)
+/** Alias explicite pour les lectures catalogue soumises au RLS. */
+export const supabasePublic = supabase;
+
+/**
+ * Client admin (service role) — contourne le RLS.
+ * Réservé aux Server Actions et routes API serveur. Ne jamais importer dans un composant client.
+ */
 export function getAdminSupabase() {
   if (!supabaseServiceRoleKey) {
     throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY');

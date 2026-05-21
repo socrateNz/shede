@@ -1,9 +1,216 @@
 'use server';
 
-import { getSession, hashPassword } from '@/lib/auth';
+import { createSession, getSession, hashPassword } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 import { notifyStructureStaff } from '@/app/actions/push';
+import {
+  BUSINESS_TRIAL_MONTHS,
+  formatTrialDateFr,
+  getBusinessTrialEndDate,
+} from '@/lib/trial';
+
+function parseModulesFromFormData(formData: FormData): string[] {
+  const raw = formData.getAll('modules').flatMap((value) =>
+    String(value)
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean)
+  );
+  const unique = [...new Set(raw)];
+  return unique.length > 0 ? unique : ['POS'];
+}
+
+type StructureRegistrationInput = {
+  structureName: string;
+  structureEmail: string;
+  city: string;
+  structureType: string;
+  modules: string[];
+  adminFirstName: string;
+  adminLastName: string;
+  adminEmail: string;
+  adminPassword: string;
+  license: {
+    plan: string;
+    maxUsers: number;
+    maxTables: number;
+    expiresAt: string | null;
+  };
+};
+
+function parseStructureRegistrationFormData(
+  formData: FormData
+): { data: StructureRegistrationInput } | { error: string } {
+  const structureName = String(formData.get('structureName') || '').trim();
+  const structureEmail = String(formData.get('structureEmail') || '').trim().toLowerCase();
+  const city = String(formData.get('city') || '').trim();
+  const adminFirstName = String(formData.get('adminFirstName') || '').trim();
+  const adminLastName = String(formData.get('adminLastName') || '').trim();
+  const adminEmail = String(formData.get('adminEmail') || '').trim().toLowerCase();
+  const adminPassword = String(formData.get('adminPassword') || '');
+  const structureType = String(formData.get('structureType') || 'RESTAURANT');
+  const modules = parseModulesFromFormData(formData);
+
+  if (
+    !structureName ||
+    !structureEmail ||
+    !city ||
+    !adminFirstName ||
+    !adminLastName ||
+    !adminEmail ||
+    !adminPassword
+  ) {
+    return { error: 'Tous les champs obligatoires doivent être remplis.' };
+  }
+
+  if (adminPassword.length < 8) {
+    return {
+      error: 'Le mot de passe doit contenir au moins 8 caractères.',
+    };
+  }
+
+  return {
+    data: {
+      structureName,
+      structureEmail,
+      city,
+      structureType,
+      modules,
+      adminFirstName,
+      adminLastName,
+      adminEmail,
+      adminPassword,
+      license: {
+        plan: 'FREE',
+        maxUsers: 5,
+        maxTables: 10,
+        expiresAt: null,
+      },
+    },
+  };
+}
+
+async function createStructureWithAdminCore(
+  input: StructureRegistrationInput,
+  options?: {
+    autoLogin?: boolean;
+    welcomeBody?: string;
+  }
+): Promise<{
+  success: boolean;
+  error: string;
+  structureId?: string;
+  redirect?: string;
+  trialEndsAt?: string;
+}> {
+  try {
+    const admin = getAdminSupabase();
+
+    const { data: existingStructure } = await admin
+      .from('structures')
+      .select('id')
+      .eq('email', input.structureEmail)
+      .maybeSingle();
+
+    if (existingStructure) {
+      return {
+        success: false,
+        error: 'Une structure utilise déjà cet email professionnel.',
+      };
+    }
+
+    const { data: existingUser } = await admin
+      .from('users')
+      .select('id')
+      .eq('email', input.adminEmail)
+      .maybeSingle();
+
+    if (existingUser) {
+      return {
+        success: false,
+        error: 'Un compte existe déjà avec cet email administrateur.',
+      };
+    }
+
+    const { data: structure, error: structureError } = await admin
+      .from('structures')
+      .insert({
+        name: input.structureName,
+        email: input.structureEmail,
+        city: input.city,
+        type: input.structureType,
+        modules: input.modules,
+      })
+      .select('id, modules')
+      .single();
+
+    if (structureError || !structure) {
+      return { success: false, error: 'Échec de la création de la structure.' };
+    }
+
+    const passwordHash = await hashPassword(input.adminPassword);
+
+    const { data: user, error: userError } = await admin
+      .from('users')
+      .insert({
+        structure_id: structure.id,
+        email: input.adminEmail,
+        password_hash: passwordHash,
+        first_name: input.adminFirstName,
+        last_name: input.adminLastName,
+        role: 'ADMIN',
+        is_active: true,
+      })
+      .select('id, email, role')
+      .single();
+
+    if (userError || !user) {
+      await admin.from('structures').delete().eq('id', structure.id);
+      return { success: false, error: 'Échec de la création du compte administrateur.' };
+    }
+
+    await admin.from('licenses').insert({
+      structure_id: structure.id,
+      plan: input.license.plan,
+      max_users: input.license.maxUsers,
+      max_tables: input.license.maxTables,
+      is_active: true,
+      expires_at: input.license.expiresAt,
+    });
+
+    const trialEndsAt = input.license.expiresAt ?? undefined;
+
+    await notifyStructureStaff({
+      structureId: structure.id,
+      title: 'Bienvenue chez Shede !',
+      body:
+        options?.welcomeBody ??
+        `Votre structure ${input.structureName} a été enregistrée avec succès.`,
+      url: '/dashboard',
+    });
+
+    if (options?.autoLogin) {
+      await createSession({
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        structureId: structure.id,
+        modules: (structure.modules as string[]) || input.modules,
+      });
+    }
+
+    return {
+      success: true,
+      error: '',
+      structureId: structure.id,
+      redirect: options?.autoLogin ? '/dashboard' : undefined,
+      trialEndsAt,
+    };
+  } catch {
+    return { success: false, error: 'Échec de la création de la structure.' };
+  }
+}
 
 export async function getAllStructures() {
   const session = await getSession();
@@ -37,81 +244,58 @@ export async function createStructureWithAdmin(
     return { success: false, error: 'Unauthorized' };
   }
 
-  const structureName = String(formData.get('structureName') || '').trim();
-  const structureEmail = String(formData.get('structureEmail') || '').trim().toLowerCase();
-  const city = String(formData.get('city') || '').trim();
-  const adminFirstName = String(formData.get('adminFirstName') || '').trim();
-  const adminLastName = String(formData.get('adminLastName') || '').trim();
-  const adminEmail = String(formData.get('adminEmail') || '').trim().toLowerCase();
-  const adminPassword = String(formData.get('adminPassword') || '');
-  const type = String(formData.get('structureType') || 'RESTAURANT');
-  const modules = formData.getAll('modules').map(String);
-
-  if (!structureName || !structureEmail || !adminFirstName || !adminLastName || !adminEmail || !adminPassword) {
-    return { success: false, error: 'All fields are required' };
+  const parsed = parseStructureRegistrationFormData(formData);
+  if ('error' in parsed) {
+    return { success: false, error: parsed.error };
   }
 
-  if (adminPassword.length < 8) {
-    return { success: false, error: 'Admin password must be at least 8 characters' };
+  return createStructureWithAdminCore(parsed.data);
+}
+
+export async function registerBusiness(
+  _prevState: {
+    success: boolean;
+    error: string;
+    redirect?: string;
+    trialEndsAt?: string;
+  },
+  formData: FormData
+) {
+  const parsed = parseStructureRegistrationFormData(formData);
+  if ('error' in parsed) {
+    return { success: false, error: parsed.error };
   }
 
-  try {
-    const admin = getAdminSupabase();
+  const trialEnd = getBusinessTrialEndDate();
+  const trialEndIso = trialEnd.toISOString();
+  const trialEndLabel = formatTrialDateFr(trialEnd);
 
-    const { data: structure, error: structureError } = await admin
-      .from('structures')
-      .insert({
-        name: structureName,
-        email: structureEmail,
-        city: city || null,
-        type: type,
-        modules: modules.length > 0 ? modules : ['POS'],
-      })
-      .select('id')
-      .single();
-
-    if (structureError || !structure) {
-      return { success: false, error: 'Failed to create structure' };
+  const result = await createStructureWithAdminCore(
+    {
+      ...parsed.data,
+      license: {
+        plan: 'TRIAL',
+        maxUsers: 5,
+        maxTables: 10,
+        expiresAt: trialEndIso,
+      },
+    },
+    {
+      autoLogin: true,
+      welcomeBody: `Votre établissement est actif avec ${BUSINESS_TRIAL_MONTHS} mois d'essai gratuit, jusqu'au ${trialEndLabel}.`,
     }
+  );
 
-    const passwordHash = await hashPassword(adminPassword);
-
-    const { error: userError } = await admin
-      .from('users')
-      .insert({
-        structure_id: structure.id,
-        email: adminEmail,
-        password_hash: passwordHash,
-        first_name: adminFirstName,
-        last_name: adminLastName,
-        role: 'ADMIN',
-        is_active: true,
-      });
-
-    if (userError) {
-      await admin.from('structures').delete().eq('id', structure.id);
-      return { success: false, error: 'Failed to create structure admin' };
-    }
-
-    await admin.from('licenses').insert({
-      structure_id: structure.id,
-      plan: 'FREE',
-      max_users: 5,
-      max_tables: 10,
-      is_active: true,
-    });
-
-    await notifyStructureStaff({
-      structureId: structure.id,
-      title: 'Bienvenue chez Shede !',
-      body: `Votre structure ${structureName} a été enregistrée avec succès.`,
-      url: '/dashboard',
-    });
-
-    return { success: true, error: '', structureId: structure.id };
-  } catch (error) {
-    return { success: false, error: 'Failed to create structure' };
+  if (!result.success) {
+    return { success: false, error: result.error };
   }
+
+  return {
+    success: true,
+    error: '',
+    redirect: result.redirect ?? '/dashboard',
+    trialEndsAt: result.trialEndsAt ?? trialEndIso,
+  };
 }
 
 export async function updateStructureLicense(
@@ -170,7 +354,7 @@ export async function updateStructure(
   const email = String(formData.get('structureEmail') || '').trim().toLowerCase();
   const city = String(formData.get('city') || '').trim();
   const type = String(formData.get('structureType') || '');
-  const modules = formData.getAll('modules').map(String);
+  const modules = parseModulesFromFormData(formData);
 
   if (!name || !email) {
     return { success: false, error: 'Name and email are required' };
