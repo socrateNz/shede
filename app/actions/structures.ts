@@ -197,6 +197,7 @@ async function createStructureWithAdminCore(
         role: user.role,
         structureId: structure.id,
         modules: (structure.modules as string[]) || input.modules,
+        licenseActive: true,
       });
     }
 

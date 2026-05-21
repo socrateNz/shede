@@ -73,6 +73,7 @@ export async function login(
       role: users.role,
       structureId: users.structure_id,
       modules: users.structures?.modules || [],
+      licenseActive: users.structure_id ? licenseActive : undefined,
     });
 
     return { 

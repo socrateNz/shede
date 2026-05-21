@@ -36,6 +36,20 @@ RESET ROLE;
 
 `scripts/05-disable-rls-rollback.sql` — uniquement en développement.
 
+## Middleware Next.js (`middleware.ts`)
+
+Complète le RLS au niveau des **routes** :
+
+| Zone | Accès |
+|------|--------|
+| `/`, `/login`, `/register-*`, `/docs`, `/cart`, `/client/structure/*` | Public |
+| `/client`, `/history` | Rôle `CLIENT` uniquement |
+| `/dashboard`, `/orders`, … | Staff (`ADMIN`, `CAISSE`, …) |
+| `/structures` | `SUPER_ADMIN` |
+| Modules `HOTEL`, `STOCK`, `PROMOTION` | Contrôle via `session.modules` |
+
+La session JWT inclut `licenseActive` (renseigné à la connexion). Si la licence expire en cours de session, `requireAuth()` dans les layouts continue de vérifier en base.
+
 ## Évolutions possibles
 
 - Brancher Supabase Auth + JWT custom claims (`structure_id`, `role`) pour des policies staff sans service role côté client

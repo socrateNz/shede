@@ -12,6 +12,8 @@ export interface SessionPayload {
   role: 'SUPER_ADMIN' | 'ADMIN' | 'CAISSE' | 'SERVEUR' | 'RECEPTION' | 'CLIENT';
   structureId?: string;
   modules?: string[];
+  /** Présent pour le staff rattaché à une structure (vérifié à la connexion). */
+  licenseActive?: boolean;
   iat: number;
   exp: number;
 }

@@ -4,32 +4,37 @@ import { login } from '@/app/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { useActionState } from 'react';
+import { useActionState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { LogIn, Mail, Lock, ArrowRight } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [state, formAction, isPending] = useActionState(login, {
     success: false,
     error: '',
   });
 
+  const licenseExpired = searchParams.get('error') === 'license_expired';
+  const redirectAfterLogin = searchParams.get('redirect');
+
   useEffect(() => {
     if (state.success && state.redirect) {
-      router.push(state.redirect);
+      const target =
+        redirectAfterLogin?.startsWith('/') && !redirectAfterLogin.startsWith('//')
+          ? redirectAfterLogin
+          : state.redirect;
+      router.push(target);
     }
-  }, [state.success, state.redirect, router]);
+  }, [state.success, state.redirect, redirectAfterLogin, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 p-4">
       <div className="w-full max-w-md">
-        {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-lg mb-4">
-          </div>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-lg mb-4" />
           <h1 className="text-2xl font-bold text-white">Shede POS</h1>
           <p className="text-slate-400 text-sm mt-1">Plateforme de gestion professionnelle</p>
         </div>
@@ -48,6 +53,15 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent className="relative">
+            {licenseExpired && (
+              <div
+                role="alert"
+                className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200"
+              >
+                Votre licence a expiré. Contactez le support pour prolonger votre abonnement.
+              </div>
+            )}
+
             <form action={formAction} className="space-y-5">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-200 flex items-center gap-2">
@@ -126,11 +140,24 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        {/* Footer info */}
         <p className="text-center text-xs text-slate-500 mt-6">
           © 2024 Shede - Tous droits réservés
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-900 text-slate-400">
+          Chargement…
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }
