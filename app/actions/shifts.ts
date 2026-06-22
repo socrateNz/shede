@@ -151,7 +151,7 @@ export async function getShiftReport(shiftId: string) {
   // 1. Get ALL orders paid during this shift (using paid_at)
   const { data: allOrders } = await admin
     .from('orders')
-    .select('id, total, status, paid_at, table_number, room_id, rooms(number), order_items(quantity, products(name))')
+    .select('id, total, subtotal, discount_amount, status, paid_at, table_number, room_id, rooms(number), order_items(quantity, products(name))')
     .eq('structure_id', shift.structure_id)
     .eq('status', 'COMPLETED')
     .gte('paid_at', new Date(shiftOpening - 60000).toISOString())

@@ -49,6 +49,8 @@ export function RapportZ({ shiftId }: Props) {
   const { shift, orders, bookings, paymentMethods } = data;
   const isPositiveEcart = Number(shift.difference) > 0;
   const isNegativeEcart = Number(shift.difference) < 0;
+  const totalDiscounts = orders.reduce((sum: number, o: any) => sum + Number(o.discount_amount || 0), 0);
+  const grossSales = Number(shift.expected_amount) - Number(shift.opening_balance) + totalDiscounts;
 
   return (
     <div className="bg-slate-100/50 p-4 min-h-screen print:p-0 print:bg-white transition-all duration-300">
@@ -137,7 +139,15 @@ export function RapportZ({ shiftId }: Props) {
                 <span className="font-bold text-blue-600">{formatFCFA(shift.opening_balance)}</span>
               </p>
               <p className="flex justify-between items-center border-b pb-1">
-                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">Ventes Totales :</span>
+                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">Ventes (Brut) :</span>
+                <span className="font-bold text-slate-700">{formatFCFA(grossSales)}</span>
+              </p>
+              <p className="flex justify-between items-center border-b pb-1">
+                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">Promotions / Remises :</span>
+                <span className="font-bold text-red-500">-{formatFCFA(totalDiscounts)}</span>
+              </p>
+              <p className="flex justify-between items-center border-b pb-1">
+                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">Ventes Net (Payé) :</span>
                 <span className="font-bold text-green-600">{formatFCFA(Number(shift.expected_amount) - Number(shift.opening_balance))}</span>
               </p>
               <p className="flex justify-between items-center border-b pb-1">
@@ -190,7 +200,15 @@ export function RapportZ({ shiftId }: Props) {
                   <td className="py-2 text-blue-600 font-bold">
                     {o.rooms?.number ? `Chambre ${o.rooms.number}` : o.table_number ? `Table ${o.table_number}` : o.guest_name || 'Comptoir'}
                   </td>
-                  <td className="py-2 text-right font-black">{formatFCFA(o.total)}</td>
+                  <td className="py-2 text-right font-black">
+                    {Number(o.discount_amount) > 0 && (
+                      <div className="flex flex-col items-end">
+                        <span className="line-through text-slate-400 text-[10px]">{formatFCFA(Number(o.subtotal || o.total + o.discount_amount))}</span>
+                        <span className="text-red-500 text-[10px]">-{formatFCFA(o.discount_amount)}</span>
+                      </div>
+                    )}
+                    {formatFCFA(o.total)}
+                  </td>
                 </tr>
               )) : (
                 <tr><td colSpan={4} className="py-8 text-center italic text-slate-400">Aucune commande restaurant pendant cette session.</td></tr>
