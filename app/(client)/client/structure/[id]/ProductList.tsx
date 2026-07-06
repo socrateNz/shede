@@ -65,6 +65,7 @@ export default function ProductList({
         name: product.name,
         price: finalPrice,
         quantity: 1,
+        image_url: product.image_url,
         selectedAccompaniments: []
       }, structureId);
       toast.success(`${product.name} ajouté au panier`);
@@ -111,6 +112,7 @@ export default function ProductList({
       name: selectedProduct.name,
       price: basePrice,
       quantity: 1,
+      image_url: selectedProduct.image_url,
       selectedAccompaniments: selectedAccs
     }, structureId);
 

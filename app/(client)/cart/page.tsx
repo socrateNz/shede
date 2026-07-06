@@ -15,6 +15,7 @@ export default function CartPage() {
   const [deliveryMode, setDeliveryMode] = useState<'TABLE' | 'ROOM' | 'TAKEAWAY'>('TABLE');
   const [roomId, setRoomId] = useState('');
   const [tableNumber, setTableNumber] = useState('');
+  const [isScannedTable, setIsScannedTable] = useState(false);
   const [phone, setPhone] = useState('');
   const [rooms, setRooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -31,6 +32,7 @@ export default function CartPage() {
     if (scannedTable) {
       setTableNumber(scannedTable);
       setDeliveryMode('TABLE');
+      setIsScannedTable(true);
     }
 
     if (structureId) {
@@ -223,10 +225,16 @@ export default function CartPage() {
                 >
                   <div className="p-4">
                     <div className="flex gap-4">
-                      {/* Image placeholder */}
-                      <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <UtensilsCrossed className="w-8 h-8 text-blue-500" />
-                      </div>
+                      {/* Product Image */}
+                      {item.image_url ? (
+                        <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
+                          <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0 border border-slate-100">
+                          <UtensilsCrossed className="w-8 h-8 text-blue-500 opacity-50" />
+                        </div>
+                      )}
 
                       <div className="flex-1">
                         <div className="flex items-start justify-between">
@@ -369,38 +377,50 @@ export default function CartPage() {
                   Livraison
                 </h3>
 
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { mode: 'TABLE' as const, icon: UtensilsCrossed, label: 'Sur place', color: 'orange' },
-                    { mode: 'ROOM' as const, icon: Bed, label: 'En chambre', color: 'purple' },
-                    { mode: 'TAKEAWAY' as const, icon: ShoppingBag, label: 'À emporter', color: 'blue' },
-                  ].map(({ mode, icon: Icon, label, color }) => (
-                    <button
-                      key={mode}
-                      onClick={() => setDeliveryMode(mode)}
-                      className={`p-3 rounded-xl border-2 transition-all duration-200 flex flex-col items-center gap-1 ${deliveryMode === mode
-                          ? `border-${color}-500 bg-${color}-50 text-${color}-700`
-                          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50'
-                        }`}
-                    >
-                      <Icon className={`w-4 h-4 ${deliveryMode === mode ? `text-${color}-600` : ''}`} />
-                      <span className="text-xs font-medium">{label}</span>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Champs spécifiques */}
-                {deliveryMode === 'TABLE' && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">Numéro de table</label>
-                    <input
-                      type="number"
-                      value={tableNumber}
-                      onChange={(e) => setTableNumber(e.target.value)}
-                      placeholder="Ex: 12"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
-                    />
+                {isScannedTable ? (
+                  <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-orange-800">Livraison sur place</span>
+                      <span className="text-xs text-orange-600 font-medium mt-1">Table {tableNumber}</span>
+                    </div>
+                    <UtensilsCrossed className="w-8 h-8 text-orange-400 opacity-50" />
                   </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { mode: 'TABLE' as const, icon: UtensilsCrossed, label: 'Sur place', color: 'orange' },
+                        { mode: 'ROOM' as const, icon: Bed, label: 'En chambre', color: 'purple' },
+                        { mode: 'TAKEAWAY' as const, icon: ShoppingBag, label: 'À emporter', color: 'blue' },
+                      ].map(({ mode, icon: Icon, label, color }) => (
+                        <button
+                          key={mode}
+                          onClick={() => setDeliveryMode(mode)}
+                          className={`p-3 rounded-xl border-2 transition-all duration-200 flex flex-col items-center gap-1 ${deliveryMode === mode
+                              ? `border-${color}-500 bg-${color}-50 text-${color}-700`
+                              : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50'
+                            }`}
+                        >
+                          <Icon className={`w-4 h-4 ${deliveryMode === mode ? `text-${color}-600` : ''}`} />
+                          <span className="text-xs font-medium">{label}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Champs spécifiques */}
+                    {deliveryMode === 'TABLE' && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">Numéro de table</label>
+                        <input
+                          type="number"
+                          value={tableNumber}
+                          onChange={(e) => setTableNumber(e.target.value)}
+                          placeholder="Ex: 12"
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {deliveryMode === 'ROOM' && (
