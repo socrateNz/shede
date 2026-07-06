@@ -14,7 +14,7 @@ export default async function NewOrderPage() {
 
   const { data: productsData } = await admin
     .from('products')
-    .select('id, name, price')
+    .select('id, name, price, image_url, category')
     .eq('structure_id', session.structureId)
     .eq('is_available', true)
     .eq('is_deleted', false)
@@ -24,6 +24,8 @@ export default async function NewOrderPage() {
     id: item.id,
     name: item.name,
     price: Number(item.price),
+    image_url: item.image_url as string | null,
+    category: item.category as string | null,
   }));
 
   // Charge pour chaque produit ses accompagnements configurés.
@@ -91,6 +93,18 @@ export default async function NewOrderPage() {
   const promotions = await getPromotions();
   const activePromotions = promotions.filter(p => p.is_active);
 
+  const { data: clients } = await admin
+    .from('clients')
+    .select('id, first_name, last_name, phone')
+    .eq('structure_id', session.structureId)
+    .order('last_name', { ascending: true });
+
+  const { data: tables } = await admin
+    .from('tables')
+    .select('id, name, floor_name')
+    .eq('structure_id', session.structureId)
+    .order('name', { ascending: true });
+
   return (
     <div className="p-8">
       <Link href="/orders" className="flex items-center gap-2 text-blue-400 hover:text-blue-300 mb-8">
@@ -121,6 +135,8 @@ export default async function NewOrderPage() {
           accompanimentsByProductId={accompanimentsByProductId}
           rooms={rooms || []}
           promotions={activePromotions}
+          clients={clients || []}
+          tables={tables || []}
         />
       )}
     </div>

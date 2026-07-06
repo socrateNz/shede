@@ -4,6 +4,22 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { notifyStructureStaff } from '@/app/actions/push';
 
+export async function getRoomsForClient(structureId: string) {
+  try {
+    const admin = getAdminSupabase();
+    const { data, error } = await admin
+      .from('rooms')
+      .select('*')
+      .eq('structure_id', structureId)
+      .order('number', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('getRoomsForClient error:', error);
+    return [];
+  }
+}
+
 export async function createClientBooking(
   structureId: string,
   roomId: string,
@@ -87,6 +103,7 @@ export async function createClientBooking(
       title: 'Nouvelle réservation (Web)',
       body: `Demande de réservation reçue au nom de ${guestName} du ${new Date(checkIn).toLocaleDateString()} au ${new Date(checkOut).toLocaleDateString()}`,
       url: `/bookings`,
+      roles: ['ADMIN', 'RECEPTION', 'SUPER_ADMIN'],
     });
     
     return { success: true };

@@ -3,7 +3,21 @@ import type { NextRequest } from 'next/server';
 import type { SessionPayload } from '@/lib/auth';
 import { getSessionFromRequest, hasModule } from '@/lib/auth-session';
 
-const STAFF_ROLES = ['SUPER_ADMIN', 'ADMIN', 'CAISSE', 'SERVEUR', 'RECEPTION'] as const;
+/** Tous les rôles staff (hors CLIENT) */
+const STAFF_ROLES = [
+  'SUPER_ADMIN',
+  'ADMIN',
+  'MANAGER',
+  'CAISSE',
+  'SERVEUR',
+  'RECEPTION',
+  'CUISINIER',
+  'BAR',
+  'LIVREUR',
+  'COMPTABLE',
+  'MAGASINIER',
+  'RH',
+] as const;
 
 /** Chemins accessibles sans connexion */
 const PUBLIC_EXACT = new Set([
@@ -42,6 +56,10 @@ const STAFF_PREFIXES = [
   '/settings',
   '/statistics',
   '/shifts',
+  '/kitchen',
+  '/bar',
+  '/delivery',
+  '/hr',
 ];
 
 type RouteRule = {
@@ -50,18 +68,53 @@ type RouteRule = {
   modules?: string[];
 };
 
+/**
+ * Règles d'accès par préfixe.
+ * SUPER_ADMIN bypasse toutes les règles (voir checkRouteRule).
+ */
 const ROUTE_RULES: RouteRule[] = [
+  // Administration globale
   { prefix: '/structures', roles: ['SUPER_ADMIN'] },
-  { prefix: '/users', roles: ['ADMIN', 'SUPER_ADMIN'] },
-  { prefix: '/products', roles: ['ADMIN', 'SUPER_ADMIN'] },
-  { prefix: '/statistics', roles: ['ADMIN', 'SUPER_ADMIN'] },
-  { prefix: '/shifts', roles: ['ADMIN', 'SUPER_ADMIN'] },
-  { prefix: '/accompaniments', roles: ['ADMIN'] },
-  { prefix: '/orders', roles: ['ADMIN', 'CAISSE', 'SERVEUR'] },
-  { prefix: '/bookings', roles: ['ADMIN', 'RECEPTION'], modules: ['HOTEL'] },
-  { prefix: '/rooms', roles: ['ADMIN', 'RECEPTION'], modules: ['HOTEL'] },
-  { prefix: '/stock', roles: ['ADMIN'], modules: ['STOCK'] },
-  { prefix: '/promotions', roles: ['ADMIN'], modules: ['PROMOTION'] },
+
+  // Gestion équipe & RH
+  { prefix: '/users',    roles: ['ADMIN', 'SUPER_ADMIN', 'RH'] },
+
+  // Produits & menu
+  { prefix: '/products',       roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'] },
+  { prefix: '/accompaniments', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'] },
+
+  // Commandes
+  { prefix: '/orders', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR'] },
+
+  // Cuisine & Bar
+  { prefix: '/kitchen',  roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CUISINIER'], modules: ['CUISINE'] },
+  { prefix: '/bar',      roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'BAR'],       modules: ['BAR'] },
+
+  // Livraison
+  { prefix: '/delivery', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'LIVREUR'],   modules: ['LIVRAISON'] },
+
+  // Hôtel (module requis)
+  { prefix: '/bookings', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'RECEPTION'], modules: ['HOTEL'] },
+  { prefix: '/rooms',    roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'RECEPTION'], modules: ['HOTEL'] },
+
+  // Stock
+  { prefix: '/stock', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'MAGASINIER'], modules: ['STOCK'] },
+
+  // Promotions
+  { prefix: '/promotions', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'], modules: ['PROMOTION'] },
+
+  // Statistiques & Finances
+  { prefix: '/statistics', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'COMPTABLE'] },
+  { prefix: '/shifts',     roles: ['ADMIN', 'SUPER_ADMIN', 'CAISSE', 'COMPTABLE'] },
+
+  // RH
+  { prefix: '/hr', roles: ['ADMIN', 'SUPER_ADMIN', 'RH'], modules: ['RH'] },
+
+  // CRM Clients
+  { prefix: '/clients', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CAISSE'], modules: ['CRM'] },
+
+  // Floor Manager
+  { prefix: '/floor-manager', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SERVEUR', 'CAISSE'], modules: ['TABLES'] },
 ];
 
 const AUTH_ONLY_PATHS = new Set(['/login', '/register-client', '/register-business']);
@@ -83,10 +136,19 @@ function matchesPrefix(pathname: string, prefixes: string[]): boolean {
   );
 }
 
+/** Redirige le staff vers sa page d'accueil selon son rôle */
 function getStaffHome(session: SessionPayload): string {
-  if (session.role === 'SUPER_ADMIN') return '/structures';
-  if (session.role === 'CLIENT') return '/client';
-  return '/dashboard';
+  switch (session.role) {
+    case 'SUPER_ADMIN':  return '/structures';
+    case 'CLIENT':       return '/client';
+    case 'CUISINIER':    return '/kitchen';
+    case 'BAR':          return '/bar';
+    case 'LIVREUR':      return '/delivery';
+    case 'MAGASINIER':   return '/stock';
+    case 'COMPTABLE':    return '/statistics';
+    case 'RH':           return '/users';
+    default:             return '/dashboard';
+  }
 }
 
 function checkRouteRule(
@@ -142,7 +204,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const isClientArea = matchesPrefix(pathname, CLIENT_PREFIXES);
-  const isStaffArea = matchesPrefix(pathname, STAFF_PREFIXES);
+  const isStaffArea  = matchesPrefix(pathname, STAFF_PREFIXES);
 
   if (isClientArea) {
     if (session.role !== 'CLIENT') {

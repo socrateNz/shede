@@ -13,6 +13,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { useAppStore } from '@/lib/store';
+import { ImageUpload } from '@/components/image-upload';
 
 type ProductOption = {
   id: string;
@@ -44,6 +45,7 @@ type CreateProductParams = {
   description?: string;
   price: number;
   category?: string;
+  destination?: string;
   isAvailable: boolean;
   accompaniments: AccompanimentItem[];
   threshold?: number;
@@ -59,6 +61,7 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
   const [newAccompName, setNewAccompName] = useState('');
   const [newAccompPrice, setNewAccompPrice] = useState<number>(0);
   const [newAccompItems, setNewAccompItems] = useState<NewAccomp[]>([]);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const createMutation = useMutation({
     mutationFn: async (params: CreateProductParams) => {
@@ -153,6 +156,8 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
       description: (formData.get('description') as string) || undefined,
       price: parseFloat(formData.get('price') as string),
       category: (formData.get('category') as string) || undefined,
+      destination: (formData.get('destination') as string) || 'CUISINE',
+      image_url: imageUrl || undefined,
       isAvailable: formData.get('isAvailable') === 'on',
       accompaniments: accompanimentsPayload,
       threshold: hasStockModule ? Number(formData.get('threshold')) : undefined,
@@ -231,6 +236,18 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
 
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                      <Package className="w-4 h-4 text-emerald-400" />
+                      Image du produit
+                    </label>
+                    <ImageUpload 
+                      value={imageUrl} 
+                      onChange={setImageUrl} 
+                      disabled={isPending}
+                    />
+                  </div>
+
+                  <div className="space-y-2 group">
+                    <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-purple-400" />
                       Prix *
                     </label>
@@ -244,6 +261,21 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                       required
                     />
                     <p className="text-xs text-slate-500 mt-1">Prix en FCFA</p>
+                  </div>
+
+                  <div className="space-y-2 group">
+                    <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                      <Tag className="w-4 h-4 text-orange-400" />
+                      Destination
+                    </label>
+                    <select
+                      name="destination"
+                      className="w-full bg-slate-900/50 border border-slate-600 text-slate-50 rounded-lg py-2 px-3 h-10 focus:border-orange-500 focus:ring-orange-500/20 transition-all duration-300"
+                    >
+                      <option value="CUISINE">Cuisine</option>
+                      <option value="BAR">Bar</option>
+                    </select>
+                    <p className="text-xs text-slate-500 mt-1">Où le produit est-il préparé ?</p>
                   </div>
                 </div>
 

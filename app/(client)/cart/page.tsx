@@ -27,6 +27,12 @@ export default function CartPage() {
   const [autoPromos, setAutoPromos] = useState<any[]>([]);
 
   useEffect(() => {
+    const scannedTable = sessionStorage.getItem('scannedTable');
+    if (scannedTable) {
+      setTableNumber(scannedTable);
+      setDeliveryMode('TABLE');
+    }
+
     if (structureId) {
       supabase.from('rooms').select('*').eq('structure_id', structureId)
         .order('number', { ascending: true })

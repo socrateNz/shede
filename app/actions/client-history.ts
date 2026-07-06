@@ -47,6 +47,7 @@ export async function updateClientBooking(
         title: 'Réservation annulée',
         body: `Le client a annulé la réservation ${bookingId.slice(0, 8)}.`,
         url: '/bookings',
+        roles: ['ADMIN', 'RECEPTION', 'SUPER_ADMIN'],
       });
     }
 
@@ -98,6 +99,7 @@ export async function updateClientBooking(
       title: 'Réservation modifiée',
       body: `Le client a modifié les dates de la réservation ${bookingId.slice(0, 8)}.`,
       url: '/bookings',
+      roles: ['ADMIN', 'RECEPTION', 'SUPER_ADMIN'],
     });
   }
 
@@ -137,6 +139,7 @@ export async function cancelClientOrder(orderId: string) {
     title: 'Commande annulée',
     body: `Le client a annulé la commande ${order.id.slice(0, 8)}.`,
     url: `/orders/${order.id}`,
+    roles: ['ADMIN', 'CAISSE', 'SERVEUR', 'SUPER_ADMIN'],
   });
 
   revalidatePath('/client/history');

@@ -2,8 +2,9 @@
 
 import { Product } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Edit2, Trash2, MoreVertical, CheckCircle, XCircle, Package, Tag } from 'lucide-react';
+import { Edit2, Trash2, MoreVertical, CheckCircle, XCircle, Package, Tag, ImageIcon } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Table,
   TableBody,
@@ -20,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { deleteProduct } from '@/app/actions/products';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { TablePagination } from './table-pagination';
 
 interface ProductsListProps {
@@ -31,10 +32,16 @@ interface ProductsListProps {
 export function ProductsList({ products, onProductDeleted }: ProductsListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [destinationFilter, setDestinationFilter] = useState<string>('ALL');
   const itemsPerPage = 10;
 
-  const totalPages = Math.ceil(products.length / itemsPerPage);
-  const paginatedProducts = products.slice(
+  const filteredProducts = useMemo(() => {
+    if (destinationFilter === 'ALL') return products;
+    return products.filter((p) => (p.destination || 'CUISINE') === destinationFilter);
+  }, [products, destinationFilter]);
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -70,13 +77,29 @@ export function ProductsList({ products, onProductDeleted }: ProductsListProps) 
   };
 
   return (
-    <div className="rounded-xl border border-slate-700/50 overflow-hidden bg-slate-800/30">
-      <Table>
-        <TableHeader>
-          <TableRow className="border-slate-700 hover:bg-transparent bg-slate-800/50">
-            <TableHead className="text-slate-300 font-semibold">Nom</TableHead>
-            <TableHead className="text-slate-300 font-semibold">Catégorie</TableHead>
-            <TableHead className="text-slate-300 font-semibold text-right">Prix</TableHead>
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <select
+          value={destinationFilter}
+          onChange={(e) => {
+            setDestinationFilter(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="bg-slate-900/50 border border-slate-600 text-slate-50 rounded-lg py-2 px-3 text-sm focus:border-blue-500 focus:ring-blue-500/20"
+        >
+          <option value="ALL">Toutes les destinations</option>
+          <option value="CUISINE">Cuisine</option>
+          <option value="BAR">Bar</option>
+        </select>
+      </div>
+      <div className="rounded-xl border border-slate-700/50 overflow-hidden bg-slate-800/30">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-slate-700 hover:bg-transparent bg-slate-800/50">
+              <TableHead className="text-slate-300 font-semibold">Nom</TableHead>
+              <TableHead className="text-slate-300 font-semibold">Catégorie</TableHead>
+              <TableHead className="text-slate-300 font-semibold">Destination</TableHead>
+              <TableHead className="text-slate-300 font-semibold text-right">Prix</TableHead>
             <TableHead className="text-slate-300 font-semibold">Disponibilité</TableHead>
             <TableHead className="text-slate-300 font-semibold text-right">Actions</TableHead>
           </TableRow>
@@ -88,10 +111,21 @@ export function ProductsList({ products, onProductDeleted }: ProductsListProps) 
               className="border-slate-700 hover:bg-slate-800/50 transition-colors group"
             >
               <TableCell className="text-slate-50 font-medium">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center text-lg">
-                    {getCategoryIcon(product.category || '')}
-                  </div>
+                <div className="flex items-center gap-3">
+                  {product.image_url ? (
+                    <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-slate-700">
+                      <Image 
+                        src={product.image_url} 
+                        alt={product.name} 
+                        fill 
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center text-lg border border-slate-700/50">
+                      {getCategoryIcon(product.category || '')}
+                    </div>
+                  )}
                   <span>{product.name}</span>
                 </div>
               </TableCell>
@@ -104,6 +138,15 @@ export function ProductsList({ products, onProductDeleted }: ProductsListProps) 
                 ) : (
                   <span className="text-slate-500 text-sm">-</span>
                 )}
+              </TableCell>
+              <TableCell className="text-slate-400">
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium border ${
+                  (product.destination || 'CUISINE') === 'CUISINE' 
+                    ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' 
+                    : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+                }`}>
+                  {(product.destination || 'CUISINE') === 'CUISINE' ? 'Cuisine' : 'Bar'}
+                </span>
               </TableCell>
               <TableCell className="text-slate-50 text-right font-bold">
                 {product.price.toLocaleString()} FCFA
@@ -168,12 +211,13 @@ export function ProductsList({ products, onProductDeleted }: ProductsListProps) 
             </TableRow>
           ))}
         </TableBody>
-      </Table>
-      <TablePagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+        </Table>
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      </div>
     </div>
   );
 }

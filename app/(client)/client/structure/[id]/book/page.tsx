@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Calendar, BedDouble, Users, Phone, CheckCircle, Clock, Coffee, Wifi, Tv, Wind, Shield } from 'lucide-react';
+import { ArrowLeft, Calendar, BedDouble, Users, Phone, CheckCircle, Clock, Wifi, Shield, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import { createClientBooking } from '@/app/actions/client-bookings';
+import { createClientBooking, getRoomsForClient } from '@/app/actions/client-bookings';
 import { formatFCFA } from '@/lib/utils';
 
 interface Room {
@@ -19,6 +18,7 @@ interface Room {
   price: number;
   capacity?: number;
   description?: string;
+  images?: string[];
 }
 
 export default function ClientBookRoomPage() {
@@ -42,12 +42,7 @@ export default function ClientBookRoomPage() {
 
   useEffect(() => {
     async function fetchRooms() {
-      const { data } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('structure_id', structureId)
-        .order('number', { ascending: true });
-
+      const data = await getRoomsForClient(structureId);
       if (data) setRooms(data);
       setLoading(false);
     }
@@ -89,31 +84,41 @@ export default function ClientBookRoomPage() {
 
   if (success) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center px-4">
-        <div className="max-w-md w-full text-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-2xl text-center border border-slate-100">
           <div className="relative inline-block mb-6">
-            <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full blur-2xl opacity-30 animate-pulse" />
-            <div className="relative bg-gradient-to-br from-green-50 to-emerald-50 rounded-full p-6">
-              <CheckCircle className="w-16 h-16 text-green-600" />
+            <div className="absolute inset-0 bg-green-500 rounded-full blur-xl opacity-30 animate-pulse" />
+            <div className="relative bg-gradient-to-br from-green-50 to-emerald-50 rounded-full p-6 border border-green-100">
+              <CheckCircle className="w-16 h-16 text-green-500" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">Réservation Confirmée !</h2>
-          <p className="text-slate-600 mb-4">
-            Votre réservation a bien été envoyée à la réception.
+          <h2 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">Réservation Confirmée !</h2>
+          <p className="text-slate-500 font-medium mb-8">
+            Votre demande a été envoyée à la réception. Nous vous attendons avec impatience.
           </p>
-          <div className="bg-slate-50 rounded-xl p-4 mb-6 text-left space-y-2">
-            <p className="text-sm text-slate-600">
-              <span className="font-semibold">Chambre :</span> {selectedRoomData?.number} - {selectedRoomData?.type}
-            </p>
-            <p className="text-sm text-slate-600">
-              <span className="font-semibold">Dates :</span> {new Date(checkIn).toLocaleDateString('fr-FR')} → {new Date(checkOut).toLocaleDateString('fr-FR')}
-            </p>
-            <p className="text-sm text-slate-600">
-              <span className="font-semibold">Total :</span> {formatFCFA(totalPrice)}
-            </p>
+          
+          <div className="bg-slate-50 rounded-2xl p-6 text-left space-y-4 mb-8 border border-slate-100">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-4">
+              <span className="text-slate-500 font-medium">Chambre</span>
+              <span className="font-bold text-slate-900">N° {selectedRoomData?.number} <span className="text-slate-400 font-normal">({selectedRoomData?.type})</span></span>
+            </div>
+            <div className="flex justify-between items-center border-b border-slate-200 pb-4">
+              <span className="text-slate-500 font-medium">Dates</span>
+              <span className="font-bold text-slate-900">
+                {new Date(checkIn).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} 
+                <ArrowRight className="inline w-3 h-3 mx-2 text-slate-400" /> 
+                {new Date(checkOut).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 font-medium">Total</span>
+              <span className="font-black text-xl text-green-600">{formatFCFA(totalPrice)}</span>
+            </div>
           </div>
-          <div className="animate-pulse">
-            <p className="text-sm text-slate-400">Redirection...</p>
+          
+          <div className="flex items-center justify-center gap-2 text-sm font-bold text-blue-600 animate-pulse">
+            <div className="w-4 h-4 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+            Retour à l'établissement...
           </div>
         </div>
       </div>
@@ -121,157 +126,197 @@ export default function ClientBookRoomPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-      <div className="max-w-6xl mx-auto px-4 py-6 md:py-10">
+    <div className="min-h-screen bg-slate-50 selection:bg-blue-200">
+      {/* Header Premium */}
+      <div className="relative bg-slate-900 text-white overflow-hidden py-12 lg:py-16">
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500 rounded-full blur-[100px] opacity-20" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500 rounded-full blur-[100px] opacity-20" />
+        
+        <div className="relative max-w-6xl mx-auto px-4">
+          <Link
+            href={`/client/structure/${structureId}`}
+            className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors mb-8 group bg-white/10 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md w-fit"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span className="font-medium text-sm">Retour à l'établissement</span>
+          </Link>
+          
+          <div className="flex items-center gap-4">
+            <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/20">
+              <BedDouble className="w-8 h-8 text-blue-300" />
+            </div>
+            <div>
+              <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white mb-2">Réserver votre séjour</h1>
+              <p className="text-blue-100 text-lg md:text-xl font-medium">Sélectionnez vos dates et la chambre de vos rêves.</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        <Link
-          href={`/client/structure/${structureId}`}
-          className="inline-flex items-center gap-2 text-slate-600 hover:text-blue-600 transition-colors mb-6 group"
-        >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-          <span className="font-medium">Retour</span>
-        </Link>
-
-        <div className="grid lg:grid-cols-3 gap-6">
+      <div className="max-w-6xl mx-auto px-4 py-8 md:py-12 -mt-8 relative z-10">
+        <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            <Card className="border-0 shadow-xl overflow-hidden">
-              <div className="relative bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 p-6 text-white overflow-hidden">
-                <div className="absolute inset-0 bg-black/10" />
-                <div className="absolute -top-24 -right-24 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
-                <div className="relative flex items-center gap-3">
-                  <div className="bg-white/20 backdrop-blur-sm p-2 rounded-xl">
-                    <BedDouble className="w-6 h-6" />
-                  </div>
+            <Card className="border border-slate-100 shadow-xl rounded-3xl overflow-hidden bg-white">
+              <CardContent className="p-6 md:p-10">
+                <form onSubmit={handleSubmit} className="space-y-10">
+                  
+                  {/* Dates Section */}
                   <div>
-                    <h1 className="text-xl font-bold">Réserver votre séjour</h1>
-                    <p className="text-blue-100 text-sm mt-0.5">Sélectionnez vos dates et votre chambre</p>
+                    <h3 className="text-lg font-black text-slate-900 flex items-center gap-2 mb-6">
+                      <Calendar className="w-5 h-5 text-blue-600" />
+                      Dates de séjour
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-600">Arrivée</label>
+                        <Input
+                          type="date"
+                          value={checkIn}
+                          onChange={e => setCheckIn(e.target.value)}
+                          required
+                          min={new Date().toISOString().split('T')[0]}
+                          className="h-14 bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all rounded-xl font-medium"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-600">Départ</label>
+                        <Input
+                          type="date"
+                          value={checkOut}
+                          onChange={e => setCheckOut(e.target.value)}
+                          required
+                          min={checkIn || new Date().toISOString().split('T')[0]}
+                          className="h-14 bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all rounded-xl font-medium"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              <CardContent className="p-6">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="space-y-3">
-                    <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                      <BedDouble className="w-4 h-4 text-blue-600" />
-                      Chambres disponibles
-                    </label>
+                  {/* Chambres Section */}
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 flex items-center gap-2 mb-6">
+                      <BedDouble className="w-5 h-5 text-blue-600" />
+                      Choisissez votre chambre
+                    </h3>
 
                     {loading ? (
-                      <div className="flex items-center justify-center p-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                      <div className="flex items-center justify-center p-12 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div className="animate-spin rounded-full h-10 w-10 border-4 border-slate-200 border-t-blue-600" />
                       </div>
                     ) : rooms.length === 0 ? (
-                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
-                        <p className="text-amber-700 text-sm">Aucune chambre disponible.</p>
+                      <div className="bg-orange-50 border border-orange-100 rounded-2xl p-8 text-center">
+                        <p className="text-orange-800 font-bold text-lg">Aucune chambre disponible.</p>
+                        <p className="text-orange-600/80 mt-1">L'établissement affiche complet pour le moment.</p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-2 gap-3">
-                        {rooms.map(room => (
-                          <div
-                            key={room.id}
-                            onClick={() => setSelectedRoom(room.id)}
-                            className={`cursor-pointer rounded-xl p-4 transition-all duration-300 ${selectedRoom === room.id
-                              ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-500 shadow-md'
-                              : 'bg-white border-2 border-slate-200 hover:border-blue-300 hover:shadow-sm'
-                              }`}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <span className={`text-lg font-bold ${selectedRoom === room.id ? 'text-blue-700' : 'text-slate-700'}`}>
-                                Ch. {room.number}
-                              </span>
-                              {selectedRoom === room.id && (
-                                <CheckCircle className="w-4 h-4 text-blue-600" />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {rooms.map(room => {
+                          const isSelected = selectedRoom === room.id;
+                          return (
+                            <div
+                              key={room.id}
+                              onClick={() => setSelectedRoom(room.id)}
+                              className={`cursor-pointer rounded-2xl overflow-hidden transition-all duration-300 transform ${isSelected
+                                ? 'bg-blue-50 border-2 border-blue-600 shadow-lg scale-[1.02]'
+                                : 'bg-white border-2 border-slate-100 hover:border-blue-300 hover:shadow-md hover:-translate-y-1'
+                                }`}
+                            >
+                              {/* Optionnel: Si la chambre a des images (selon demande), on les affichera ici */}
+                              {room.images && room.images.length > 0 ? (
+                                <div className="h-32 w-full bg-slate-200 relative">
+                                  <img src={room.images[0]} alt={`Chambre ${room.number}`} className="w-full h-full object-cover" />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                                  <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                                    <span className="text-white font-black text-lg">N° {room.number}</span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="h-20 w-full bg-slate-100 flex items-center px-4 relative">
+                                  <div className="absolute inset-0 bg-gradient-to-r from-slate-200 to-slate-100 opacity-50" />
+                                  <div className="relative z-10 flex items-center gap-2">
+                                    <BedDouble className="w-5 h-5 text-slate-400" />
+                                    <span className="text-slate-700 font-black text-lg">Chambre {room.number}</span>
+                                  </div>
+                                </div>
                               )}
+                              
+                              <div className="p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                  <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">{room.type || 'Standard'}</span>
+                                  {isSelected && (
+                                    <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-sm">
+                                      <CheckCircle className="w-4 h-4" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-end justify-between">
+                                  <div>
+                                    <span className={`text-2xl font-black ${isSelected ? 'text-blue-700' : 'text-slate-900'}`}>{formatFCFA(room.price)}</span>
+                                    <span className="text-sm font-medium text-slate-400"> / nuit</span>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                            <p className="text-xs text-slate-500 mb-2">{room.type}</p>
-                            <p className="text-sm font-bold text-blue-600">{formatFCFA(room.price)}<span className="text-xs font-normal text-slate-500"> /nuit</span></p>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                        <Users className="w-4 h-4 text-blue-600" />
-                        Nom complet
-                      </label>
-                      <Input
-                        type="text"
-                        placeholder="Jean Dupont"
-                        value={guestName}
-                        onChange={e => setGuestName(e.target.value)}
-                        required
-                        className="bg-slate-50 border-slate-200 focus:bg-white transition-colors"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-blue-600" />
-                        Téléphone
-                      </label>
-                      <Input
-                        type="tel"
-                        placeholder="06 12 34 56 78"
-                        value={phone}
-                        onChange={e => setPhone(e.target.value)}
-                        required
-                        className="bg-slate-50 border-slate-200 focus:bg-white transition-colors"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-blue-600" />
-                        Arrivée
-                      </label>
-                      <Input
-                        type="date"
-                        value={checkIn}
-                        onChange={e => setCheckIn(e.target.value)}
-                        required
-                        min={new Date().toISOString().split('T')[0]}
-                        className="bg-slate-50 border-slate-200 focus:bg-white transition-colors"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-blue-600" />
-                        Départ
-                      </label>
-                      <Input
-                        type="date"
-                        value={checkOut}
-                        onChange={e => setCheckOut(e.target.value)}
-                        required
-                        min={checkIn || new Date().toISOString().split('T')[0]}
-                        className="bg-slate-50 border-slate-200 focus:bg-white transition-colors"
-                      />
+                  {/* Contact Section */}
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 flex items-center gap-2 mb-6">
+                      <Users className="w-5 h-5 text-blue-600" />
+                      Vos Coordonnées
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-600">Nom complet</label>
+                        <Input
+                          type="text"
+                          placeholder="Jean Dupont"
+                          value={guestName}
+                          onChange={e => setGuestName(e.target.value)}
+                          required
+                          className="h-14 bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all rounded-xl font-medium"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-600">Téléphone</label>
+                        <Input
+                          type="tel"
+                          placeholder="06 12 34 56 78"
+                          value={phone}
+                          onChange={e => setPhone(e.target.value)}
+                          required
+                          className="h-14 bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all rounded-xl font-medium"
+                        />
+                      </div>
                     </div>
                   </div>
 
                   {errorStr && (
-                    <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-                      <p className="text-red-600 text-sm">{errorStr}</p>
+                    <div className="bg-red-50 border-l-4 border-red-500 rounded-r-xl p-4 flex items-start gap-3">
+                      <div className="text-red-600 font-bold text-sm">{errorStr}</div>
                     </div>
                   )}
 
                   <Button
                     type="submit"
                     disabled={isSubmitting || !selectedRoom || rooms.length === 0 || !guestName || !phone || !checkIn || !checkOut}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-bold h-12 text-lg rounded-xl shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
+                    className="w-full bg-slate-900 hover:bg-blue-600 text-white font-black h-16 text-lg rounded-2xl shadow-xl transition-all duration-300 hover:shadow-blue-200 hover:-translate-y-1 disabled:opacity-50 disabled:hover:translate-y-0"
                   >
                     {isSubmitting ? (
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-                        Traitement...
+                      <div className="flex items-center gap-3">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white" />
+                        Traitement en cours...
                       </div>
                     ) : (
-                      `Confirmer`
+                      <div className="flex items-center justify-center gap-2">
+                        Confirmer la réservation
+                        <ArrowRight className="w-5 h-5" />
+                      </div>
                     )}
                   </Button>
                 </form>
@@ -280,57 +325,76 @@ export default function ClientBookRoomPage() {
           </div>
 
           <div className="lg:col-span-1">
-            <div className="sticky top-20 space-y-4">
-              {selectedRoomData && nights > 0 && (
-                <Card className="border-0 shadow-lg overflow-hidden">
-                  <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-4 text-white">
-                    <h3 className="font-bold text-lg flex items-center gap-2">
+            <div className="sticky top-28 space-y-6">
+              {/* Résumé Card */}
+              <Card className="border border-slate-100 shadow-xl rounded-3xl overflow-hidden bg-white">
+                <div className="bg-slate-900 p-6 text-white">
+                  <h3 className="font-black text-xl flex items-center gap-2">
+                    Votre Séjour
+                  </h3>
+                </div>
+                <CardContent className="p-6">
+                  {!selectedRoomData || nights <= 0 ? (
+                    <div className="text-center py-6">
+                      <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Calendar className="w-6 h-6 text-slate-300" />
+                      </div>
+                      <p className="text-slate-500 font-medium">Sélectionnez vos dates et une chambre pour voir le récapitulatif.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div>
+                        <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Chambre sélectionnée</p>
+                        <p className="font-black text-slate-900 text-xl">N° {selectedRoomData.number}</p>
+                        <p className="text-sm font-medium text-slate-500">{selectedRoomData.type}</p>
+                      </div>
+                      
+                      <div className="space-y-3 pt-4 border-t border-slate-100">
+                        <div className="flex justify-between items-center text-sm font-medium text-slate-600">
+                          <span>Tarif journalier</span>
+                          <span>{formatFCFA(selectedRoomData.price)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm font-medium text-slate-600">
+                          <span>Durée du séjour</span>
+                          <span className="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">{nights} nuit{nights > 1 ? 's' : ''}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="pt-4 border-t-2 border-dashed border-slate-200">
+                        <div className="flex justify-between items-center">
+                          <span className="text-lg font-black text-slate-900">Total</span>
+                          <span className="text-2xl font-black text-blue-600">{formatFCFA(totalPrice)}</span>
+                        </div>
+                        <p className="text-xs text-right text-slate-400 mt-1 font-medium">Taxes incluses</p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-                      Récapitulatif
-                    </h3>
-                  </div>
-                  <CardContent className="p-5 space-y-4">
+              {/* Info Card */}
+              <Card className="border border-slate-100 shadow-md rounded-3xl overflow-hidden bg-slate-50/50">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100">
+                      <Clock className="w-5 h-5 text-blue-500" />
+                    </div>
                     <div>
-                      <p className="text-sm text-slate-500">Chambre</p>
-                      <p className="font-bold text-slate-800 text-lg">{selectedRoomData.number} - {selectedRoomData.type}</p>
+                      <p className="font-bold text-slate-900">Arrivée & Départ</p>
+                      <p className="text-sm text-slate-500 mt-0.5 font-medium">Check-in à partir de 14h00. Check-out avant 12h00.</p>
                     </div>
-                    <div className="border-t border-slate-100 pt-3">
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-slate-600">Prix / nuit</span>
-                        <span>{formatFCFA(selectedRoomData.price)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-slate-600">{nights} nuit {nights > 1 ? 's' : ''}</span>
-                        <span>{nights > 1 ? formatFCFA(selectedRoomData.price * nights) : formatFCFA(selectedRoomData.price)}</span>
-                      </div>
-                      <div className="flex justify-between text-lg font-bold pt-3 border-t border-slate-200 mt-2">
-                        <span>Total</span>
-                        <span className="text-emerald-600">{formatFCFA(totalPrice)}</span>
-                      </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100">
+                      <Shield className="w-5 h-5 text-green-500" />
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* <Card className="border-0 shadow-lg">
-                <CardContent className="p-5 space-y-3">
-                  <h4 className="font-semibold text-slate-700 mb-2">À savoir</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Clock className="w-4 h-4 text-blue-500" />
-                      <span>Check-in: 14h • Check-out: 12h</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Wifi className="w-4 h-4 text-blue-500" />
-                      <span>Wi-Fi gratuit</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Shield className="w-4 h-4 text-blue-500" />
-                      <span>Annulation gratuite</span>
+                    <div>
+                      <p className="font-bold text-slate-900">Paiement Sécurisé</p>
+                      <p className="text-sm text-slate-500 mt-0.5 font-medium">Le paiement s'effectue à l'arrivée à la réception de l'établissement.</p>
                     </div>
                   </div>
                 </CardContent>
-              </Card> */}
+              </Card>
             </div>
           </div>
         </div>

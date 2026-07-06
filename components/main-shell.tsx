@@ -45,7 +45,7 @@ export function MainShell({
   }, [mobileNavOpen]);
 
   return (
-    <div className="flex h-screen bg-slate-950 min-h-0">
+    <div className="flex h-screen bg-slate-950 min-h-0 print:bg-white print:h-auto print:overflow-visible">
       <Sidebar
         session={session}
         structure={structure}
@@ -56,16 +56,16 @@ export function MainShell({
         <button
           type="button"
           aria-label="Fermer le menu"
-          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden print:hidden"
           onClick={() => setMobileNavOpen(false)}
         />
       ) : null}
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden print:overflow-visible print:block">
         <TopNav
           session={session}
           onMenuClick={() => setMobileNavOpen(true)}
         />
-        <div className="min-h-0 flex-1 overflow-auto bg-slate-900">{children}</div>
+        <div className="min-h-0 flex-1 overflow-auto bg-slate-900 print:bg-white print:overflow-visible">{children}</div>
       </main>
     </div>
   );

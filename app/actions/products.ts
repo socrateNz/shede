@@ -238,6 +238,8 @@ export async function createProduct(params: {
   description?: string;
   price: number;
   category?: string;
+  destination?: string;
+  image_url?: string;
   isAvailable: boolean;
   accompaniments: ProductAccompanimentFormItem[];
   threshold?: number;
@@ -262,6 +264,8 @@ export async function createProduct(params: {
         description: params.description || null,
         price: params.price,
         category: params.category || null,
+        destination: params.destination || 'CUISINE',
+        image_url: params.image_url !== undefined ? params.image_url : null,
         is_available: params.isAvailable,
       })
       .select()
@@ -306,6 +310,8 @@ export async function updateProduct(params: {
   description?: string;
   price: number;
   category?: string;
+  destination?: string;
+  image_url?: string;
   isAvailable: boolean;
   accompaniments: ProductAccompanimentFormItem[];
   threshold?: number;
@@ -325,6 +331,8 @@ export async function updateProduct(params: {
         description: params.description || null,
         price: params.price,
         category: params.category || null,
+        destination: params.destination || 'CUISINE',
+        image_url: params.image_url !== undefined ? params.image_url : null,
         is_available: params.isAvailable,
       })
       .eq('id', params.productId)

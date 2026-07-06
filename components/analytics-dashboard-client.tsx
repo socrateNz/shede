@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, DollarSign, ShoppingCart, Users, BarChart3, PieChart, Calendar, Hotel, UtensilsCrossed, Loader2 } from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingCart, Users, BarChart3, PieChart, Calendar, Hotel, UtensilsCrossed, Loader2, Download } from 'lucide-react';
 import { AnalyticsCharts } from '@/components/analytics-charts';
 import { fetchClientAnalyticsData } from '@/app/actions/analytics';
+import { exportToExcel, exportToCSV } from '@/lib/export';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 const rangeOptions = [
   { label: '7 jours', value: '7' },
@@ -115,6 +118,30 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
     ];
   }
 
+  const handleExport = (type: 'excel' | 'csv') => {
+    const exportData = [
+      { Metrique: 'Revenu Total', Valeur: data.totalRevenue, Devise: 'FCFA' },
+      { Metrique: 'Revenu Restaurant', Valeur: data.orderRevenue, Devise: 'FCFA' },
+      { Metrique: 'Revenu Hôtel', Valeur: data.hotelRevenue, Devise: 'FCFA' },
+      { Metrique: 'Commandes Complétées', Valeur: data.completedOrdersCount, Devise: '' },
+      { Metrique: 'Réservations', Valeur: data.totalBookingsCount || 0, Devise: '' },
+      { Metrique: 'Nouvelles Structures', Valeur: data.newStructuresCount || 0, Devise: '' },
+      { Metrique: 'Panier Moyen', Valeur: data.averageOrderValue || 0, Devise: 'FCFA' },
+    ];
+
+    Object.entries(data.paymentsByMethod || {}).forEach(([method, count]) => {
+      exportData.push({ Metrique: `Paiement (${method})`, Valeur: count as number, Devise: '' });
+    });
+
+    const filename = `Rapport_Statistiques_${rangeLabel.replace(' ', '_')}`;
+    
+    if (type === 'excel') {
+      exportToExcel(exportData, filename);
+    } else {
+      exportToCSV(exportData, filename);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       {/* Background Decoratif */}
@@ -144,22 +171,43 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
             </p>
           </div>
 
-          {/* Range Selector */}
-          <div className="flex bg-slate-800/50 p-1 rounded-lg border border-slate-700 backdrop-blur-sm relative">
-            {loading && <div className="absolute -top-6 right-2 text-blue-400"><Loader2 className="w-4 h-4 animate-spin"/></div>}
-            {rangeOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setRange(option.value)}
-                disabled={loading}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${range === option.value
-                    ? 'bg-blue-600 text-white shadow-lg'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 cursor-pointer'
-                  }`}
-              >
-                {option.label}
-              </button>
-            ))}
+          {/* Controls */}
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Range Selector */}
+            <div className="flex bg-slate-800/50 p-1 rounded-lg border border-slate-700 backdrop-blur-sm relative">
+              {loading && <div className="absolute -top-6 right-2 text-blue-400"><Loader2 className="w-4 h-4 animate-spin"/></div>}
+              {rangeOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setRange(option.value)}
+                  disabled={loading}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${range === option.value
+                      ? 'bg-blue-600 text-white shadow-lg'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 cursor-pointer'
+                    }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Export Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-slate-800/50 backdrop-blur-sm">
+                  <Download className="w-4 h-4 mr-2" />
+                  Exporter
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-slate-200">
+                <DropdownMenuItem onClick={() => handleExport('excel')} className="hover:bg-slate-700 cursor-pointer">
+                  Export Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('csv')} className="hover:bg-slate-700 cursor-pointer">
+                  Export CSV (.csv)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 

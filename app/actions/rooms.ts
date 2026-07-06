@@ -38,6 +38,10 @@ export async function createRoom(
   const priceRaw = String(formData.get('price') || '0').trim();
   const price = isNaN(parseFloat(priceRaw)) ? 0 : parseFloat(priceRaw);
 
+  const image1 = String(formData.get('image1') || '').trim();
+  const image2 = String(formData.get('image2') || '').trim();
+  const images = [image1, image2].filter(Boolean);
+
   if (!number) {
     return { success: false, error: 'Room number is required' };
   }
@@ -49,7 +53,8 @@ export async function createRoom(
       number,
       type,
       price,
-      status: 'AVAILABLE'
+      status: 'AVAILABLE',
+      ...(images.length > 0 ? { images } : {})
     });
 
     if (error) {
@@ -127,6 +132,10 @@ export async function updateRoom(
   const type = String(formData.get('roomType') || '').trim();
   const priceRaw = String(formData.get('price') || '0').trim();
   const price = isNaN(parseFloat(priceRaw)) ? 0 : parseFloat(priceRaw);
+  
+  const image1 = String(formData.get('image1') || '').trim();
+  const image2 = String(formData.get('image2') || '').trim();
+  const images = [image1, image2].filter(Boolean);
 
   if (!number) {
     return { success: false, error: 'Room number is required' };
@@ -136,7 +145,7 @@ export async function updateRoom(
     const admin = getAdminSupabase();
     const { error } = await admin
       .from('rooms')
-      .update({ number, type, price })
+      .update({ number, type, price, ...(images.length > 0 ? { images } : { images: null }) })
       .eq('id', roomId)
       .eq('structure_id', session.structureId);
 

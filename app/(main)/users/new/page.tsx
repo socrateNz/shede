@@ -12,10 +12,10 @@ import { useEffect } from 'react';
 
 export default function NewUserPage() {
   const router = useRouter();
-  const [state, formAction, isPending] = useActionState(createUser, {
-    success: false,
-    error: '',
-  });
+  const [state, formAction, isPending] = useActionState(
+    createUser as any,
+    { success: false, error: '' }
+  );
 
   useEffect(() => {
     if (state.success) {
@@ -24,10 +24,17 @@ export default function NewUserPage() {
   }, [state.success, router]);
 
   const roles = [
-    { value: 'ADMIN', label: 'Administrateur', icon: '👑', description: 'Accès complet à la gestion' },
-    { value: 'CAISSE', label: 'Caisse', icon: '💳', description: 'Gestion des paiements et factures' },
-    { value: 'SERVEUR', label: 'Serveur', icon: '🍽️', description: 'Prise de commandes et service' },
-    { value: 'RECEPTION', label: 'Réception', icon: '🏨', description: 'Gestion des réservations' },
+    { value: 'ADMIN',      label: 'Administrateur',       icon: '👑', description: 'Accès complet à la gestion' },
+    { value: 'MANAGER',    label: 'Manager',               icon: '🎯', description: 'Gestion opérationnelle' },
+    { value: 'CAISSE',     label: 'Caisse',                icon: '💳', description: 'Paiements et factures' },
+    { value: 'SERVEUR',    label: 'Serveur',               icon: '🍽️', description: 'Prise de commandes et service' },
+    { value: 'RECEPTION',  label: 'Réception',             icon: '🏨', description: 'Réservations hôtel' },
+    { value: 'CUISINIER',  label: 'Cuisinier',             icon: '🍳', description: 'Affichage cuisine (KDS)' },
+    { value: 'BAR',        label: 'Bar',                   icon: '🍺', description: 'Affichage bar' },
+    { value: 'LIVREUR',    label: 'Livreur',               icon: '🛵', description: 'Gestion des livraisons' },
+    { value: 'COMPTABLE',  label: 'Comptable',             icon: '📊', description: 'Statistiques et rapports' },
+    { value: 'MAGASINIER', label: 'Magasinier',            icon: '📦', description: 'Gestion des stocks' },
+    { value: 'RH',         label: 'Ressources Humaines',   icon: '👥', description: 'Gestion du personnel' },
   ];
 
   return (

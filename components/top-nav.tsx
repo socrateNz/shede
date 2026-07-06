@@ -28,7 +28,7 @@ export function TopNav({ session, onMenuClick }: TopNavProps) {
     return () => clearInterval(interval);
   }, []);
   return (
-    <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-700 bg-slate-800 px-4 py-3 sm:px-6 sm:py-4">
+    <header className="print:hidden flex shrink-0 items-center justify-between gap-3 border-b border-slate-700 bg-slate-800 px-4 py-3 sm:px-6 sm:py-4">
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
         <Button
           type="button"

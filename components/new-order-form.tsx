@@ -13,6 +13,8 @@ interface OrderProduct {
   id: string;
   name: string;
   price: number;
+  image_url: string | null;
+  category: string | null;
 }
 
 type AccompanimentOption = {
@@ -38,11 +40,15 @@ export function NewOrderForm({
   accompanimentsByProductId,
   rooms,
   promotions = [],
+  clients = [],
+  tables = [],
 }: {
   products: OrderProduct[];
   accompanimentsByProductId: Record<string, AccompanimentOption[]>;
   rooms: { id: string; number: string }[];
   promotions?: any[];
+  clients?: any[];
+  tables?: any[];
 }) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(createOrderWithItems, {
@@ -124,6 +130,20 @@ export function NewOrderForm({
     setQuantity(1);
   };
 
+  const addItemDirect = (productId: string) => {
+    setItems((prev) => {
+      const existing = prev.find((item) => item.productId === productId);
+      if (existing) {
+        return prev.map((item) =>
+          item.productId === productId
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prev, { productId, quantity: 1, accompaniments: [] }];
+    });
+  };
+
   const removeItem = (productId: string) => {
     setItems((prev) => prev.filter((item) => item.productId !== productId));
   };
@@ -177,9 +197,42 @@ export function NewOrderForm({
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Room Number (optional)</label>
+              <label className="text-sm font-medium text-slate-200">Client (CRM)</label>
+              <select
+                name="clientId"
+                className="w-full bg-slate-700 border border-slate-600 text-slate-50 rounded-md py-2 px-3 h-10"
+              >
+                <option value="">Sélectionner un client...</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-200">Phone</label>
+              <Input
+                type="tel"
+                name="phone"
+                placeholder="Client phone"
+                className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-200">Notes</label>
+              <Input
+                type="text"
+                name="notes"
+                placeholder="Special instructions"
+                className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-200">Room Number</label>
               <select
                 name="roomId"
                 className="w-full bg-slate-700 border border-slate-600 text-slate-50 placeholder:text-slate-500 rounded-md py-2 px-3 h-10"
@@ -191,30 +244,23 @@ export function NewOrderForm({
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Table Number (optional)</label>
+              <label className="text-sm font-medium text-slate-200">Table (Floor Manager)</label>
+              <select
+                name="tableId"
+                className="w-full bg-slate-700 border border-slate-600 text-slate-50 rounded-md py-2 px-3 h-10"
+              >
+                <option value="">Sélectionner une table...</option>
+                {tables.map(t => (
+                  <option key={t.id} value={t.id}>{t.name} ({t.floor_name})</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-200">Ou Table (Numéro libre)</label>
               <Input
                 type="number"
                 name="tableNumber"
                 placeholder="e.g. 5"
-                className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Phone *</label>
-              <Input
-                type="tel"
-                name="phone"
-                placeholder="Client phone"
-                className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Notes (optional)</label>
-              <Input
-                type="text"
-                name="notes"
-                placeholder="Special instructions"
                 className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
               />
             </div>
@@ -255,42 +301,72 @@ export function NewOrderForm({
              </div>
           </div>
 
-          <div className="rounded-lg border border-slate-700 p-4 space-y-3">
-            <p className="text-slate-100 font-medium">Add Products</p>
-            <div className="grid grid-cols-12 gap-3">
-              <div className="col-span-7">
-                <select
-                  value={selectedProduct}
-                  onChange={(e) => setSelectedProduct(e.target.value)}
-                  className="w-full bg-slate-700 border border-slate-600 text-slate-50 rounded px-3 py-2 text-sm"
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-700 pt-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-amber-400">Pourboire (Tips)</label>
+              <Input
+                type="number"
+                name="tipAmount"
+                defaultValue={0}
+                min={0}
+                className="bg-slate-700 border-amber-500/50 text-slate-50 focus:border-amber-400"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-red-400">Remise Manuelle</label>
+              <Input
+                type="number"
+                name="discountAmount"
+                defaultValue={0}
+                min={0}
+                className="bg-slate-700 border-red-500/50 text-slate-50 focus:border-red-400"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-red-400">Raison de la remise</label>
+              <Input
+                type="text"
+                name="discountReason"
+                placeholder="Ex: Geste commercial"
+                className="bg-slate-700 border-red-500/50 text-slate-50 focus:border-red-400"
+              />
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-slate-700 p-4 space-y-4 bg-slate-800/50">
+            <p className="text-slate-100 font-medium">Catalogue des Produits</p>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-slate-600">
+              {products.map((product) => (
+                <div 
+                  key={product.id}
+                  onClick={() => addItemDirect(product.id)}
+                  className="cursor-pointer border border-slate-700 rounded-xl overflow-hidden hover:border-blue-500 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-all bg-slate-900 group"
                 >
-                  <option value="">Select a product...</option>
-                  {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.name} - {product.price.toFixed(2)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-span-3">
-                <Input
-                  type="number"
-                  min="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
-                  className="bg-slate-700 border-slate-600 text-slate-50"
-                />
-              </div>
-              <div className="col-span-2">
-                <Button
-                  type="button"
-                  onClick={addItem}
-                  disabled={!selectedProduct}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
+                  <div className="h-28 relative bg-slate-800/50">
+                    {product.image_url ? (
+                      <img 
+                        src={product.image_url} 
+                        alt={product.name} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-500">
+                        <Plus className="w-6 h-6 mb-1 opacity-50" />
+                        <span className="text-[10px] uppercase tracking-wider">{product.category || 'Produit'}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <p className="text-sm font-semibold text-slate-200 truncate" title={product.name}>
+                      {product.name}
+                    </p>
+                    <p className="text-xs text-blue-400 font-medium mt-1">
+                      {product.price.toLocaleString()} FCFA
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

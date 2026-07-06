@@ -159,6 +159,13 @@ export async function createClientOrder(
        await recordPromoUsage(verifiedPromo.promotionId as string, clientId);
     }
 
+    await notifyStructureStaff({
+      structureId: structureId,
+      title: 'Nouvelle commande (Web)',
+      body: `Commande ${order.id.slice(0, 8)} reçue du client en ligne.`,
+      url: `/orders/${order.id}`,
+      roles: ['ADMIN', 'CAISSE', 'SERVEUR', 'SUPER_ADMIN'],
+    });
 
     return { success: true, orderId: order.id };
   } catch (error) {

@@ -44,9 +44,19 @@ export interface Structure {
   country?: string;
   type?: 'RESTAURANT' | 'HOTEL' | 'MIXTE';
   modules?: string[];
+  /** Code devise ISO 4217 (ex: XOF, EUR, USD) */
+  currency?: string;
+  /** Fuseau horaire IANA (ex: Africa/Abidjan) */
+  timezone?: string;
+  /** URL du logo hébergé sur Supabase Storage */
+  logo_url?: string;
+  /** Taux de TVA en % (ex: 18) */
+  tax_rate?: number;
   created_at: string;
   updated_at: string;
 }
+
+import { UserRole } from './auth';
 
 export interface User {
   id: string;
@@ -55,8 +65,51 @@ export interface User {
   password_hash: string;
   first_name?: string;
   last_name?: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'CAISSE' | 'SERVEUR' | 'CLIENT';
+  role: UserRole;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Notification {
+  id: string;
+  user_id?: string;
+  structure_id: string;
+  title: string;
+  body: string;
+  icon?: string;
+  url?: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface Client {
+  id: string;
+  structure_id: string;
+  first_name: string;
+  last_name: string;
+  phone?: string;
+  email?: string;
+  birthday?: string;
+  allergies?: string;
+  preferences?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Table {
+  id: string;
+  structure_id: string;
+  name: string;
+  capacity: number;
+  shape: 'round' | 'square' | 'rectangle';
+  position_x: number;
+  position_y: number;
+  width: number;
+  height: number;
+  floor_name?: string;
+  status: 'AVAILABLE' | 'OCCUPIED';
   created_at: string;
   updated_at: string;
 }
@@ -76,6 +129,7 @@ export interface Room {
   number: string;
   type?: string;
   status: 'AVAILABLE' | 'OCCUPIED' | 'CLEANING';
+  images?: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -117,6 +171,8 @@ export interface Product {
   description?: string;
   price: number;
   category?: string;
+  destination?: string;
+  image_url?: string | null;
   is_available: boolean;
   is_deleted: boolean;
   created_at: string;
@@ -140,11 +196,15 @@ export interface Order {
   user_id?: string;
   client_id?: string;
   room_id?: string;
+  table_id?: string;
   phone?: string;
   source?: 'CAISSE' | 'CLIENT';
   table_number?: number;
   status: 'PENDING' | 'IN_PROGRESS' | 'READY' | 'SERVED' | 'COMPLETED' | 'CANCELLED';
   subtotal: number;
+  discount_amount?: number;
+  discount_reason?: string;
+  tip_amount?: number;
   total: number;
   notes?: string;
   created_at: string;

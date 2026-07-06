@@ -2,34 +2,35 @@ import Link from "next/link";
 import { CartBadge } from "@/components/cart-badge";
 import { ClientLogout } from "@/components/client-logout";
 import { getSession } from "@/lib/auth";
-import { UserCircle, CalendarDays, Home } from "lucide-react";
+import { UserCircle, CalendarDays, Home, Store } from "lucide-react";
 import { MobileNavItem } from "@/components/mobile-nav-item";
 
 export default async function ClientLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-50 flex flex-col overflow-y-auto">
-      <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-slate-100 px-4 lg:px-6 h-16 flex items-center justify-between transition-all duration-300">
+    <div className="min-h-screen bg-slate-50 flex flex-col overflow-y-auto selection:bg-blue-200">
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-2xl border-b border-slate-200/60 px-4 lg:px-8 h-20 flex items-center justify-between transition-all duration-300 shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
         {/* Logo avec effet moderne */}
         <Link
           href="/"
-          className="group flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-300 hover:shadow-md"
+          className="group flex items-center gap-3 px-2 py-2 rounded-2xl transition-all duration-300 hover:bg-slate-50"
         >
           <div className="relative">
-            <img src="/logo.webp" alt="Shede" className="w-8 h-8 rounded-lg transition-transform group-hover:scale-105" />
-            <div className="absolute inset-0 rounded-lg bg-linear-to-tr from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <img src="/logo.webp" alt="Shede" className="w-10 h-10 rounded-xl shadow-sm transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-3" />
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           </div>
-          <h1 className="text-xl font-bold bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl font-black bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent tracking-tight group-hover:from-blue-700 group-hover:to-purple-700 transition-all duration-500">
             Shede
           </h1>
         </Link>
 
         {/* Actions principales */}
-        <div className="flex items-center gap-1 md:gap-3">
+        <div className="flex items-center gap-2 md:gap-4">
           {session ? (
             <>
-              <div className="hidden md:flex items-center gap-1 mr-2 border-r border-slate-200 pr-4">
+              <div className="hidden md:flex items-center gap-2 mr-2 border-r border-slate-200/80 pr-6">
+                <NavLink href="/client/structures" icon={<Store className="w-4 h-4" />} label="Catalogue" />
                 <NavLink href="/history" icon={<CalendarDays className="w-4 h-4" />} label="Historique" />
                 <NavLink href="/client" icon={<UserCircle className="w-4 h-4" />} label="Mon Espace" />
               </div>
@@ -39,7 +40,7 @@ export default async function ClientLayout({ children }: { children: React.React
             <div className="hidden md:block mr-2">
               <Link
                 href="/login"
-                className="relative px-5 py-2 text-sm font-semibold text-white bg-linear-to-r from-blue-600 to-blue-500 rounded-full transition-all duration-300 hover:shadow-lg hover:shadow-blue-200 hover:-translate-y-0.5 active:translate-y-0"
+                className="relative px-6 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-full transition-all duration-300 hover:bg-blue-600 shadow-md hover:shadow-blue-200 hover:-translate-y-0.5 active:translate-y-0"
               >
                 Se connecter
               </Link>
@@ -50,15 +51,16 @@ export default async function ClientLayout({ children }: { children: React.React
       </header>
 
       {/* Contenu principal */}
-      <main className="flex-1 pb-20 md:pb-8">
+      <main className="flex-1 pb-24 md:pb-8">
         {children}
       </main>
 
-      {/* Navigation mobile moderne - Bottom Bar avec effet glassmorphism */}
-      <nav className="fixed bottom-3 left-3 right-3 md:hidden bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-lg flex items-center justify-around px-2 py-2 z-50 transition-all duration-300">
+      {/* Navigation mobile moderne - Bottom Bar avec effet glassmorphism premium */}
+      <nav className="fixed bottom-4 left-4 right-4 md:hidden bg-white/90 backdrop-blur-2xl border border-white/40 rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.12)] flex items-center justify-around px-3 py-3 z-50 transition-all duration-300">
         <MobileNavItem href="/" icon={<Home className="w-5 h-5" />} label="Accueil" exact />
         {session && (
           <>
+            <MobileNavItem href="/client/structures" icon={<Store className="w-5 h-5" />} label="Catalogue" />
             <MobileNavItem href="/history" icon={<CalendarDays className="w-5 h-5" />} label="Historique" />
             <MobileNavItem href="/client" icon={<UserCircle className="w-5 h-5" />} label="Espace" />
           </>
@@ -71,12 +73,12 @@ export default async function ClientLayout({ children }: { children: React.React
   );
 }
 
-// Composant réutilisable pour une meilleure organisation (Server side ok car pas de hooks)
+// Composant réutilisable pour une meilleure organisation
 function NavLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 rounded-lg transition-all duration-200 hover:text-blue-600 hover:bg-blue-50/80 hover:scale-105 active:scale-95"
+      className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-500 rounded-full transition-all duration-300 hover:text-slate-900 hover:bg-slate-100/80 active:scale-95"
     >
       {icon}
       <span>{label}</span>

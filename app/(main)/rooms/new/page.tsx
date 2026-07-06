@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { ArrowLeft, BedDouble, Home, DollarSign, Hotel, Plus } from 'lucide-react';
-import { useActionState, useEffect } from 'react';
+import { ImageUpload } from '@/components/image-upload';
+import { ArrowLeft, BedDouble, Home, DollarSign, Hotel, Plus, Image as ImageIcon } from 'lucide-react';
+import { useActionState, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { requireRole } from '@/app/actions/auth';
 
@@ -16,6 +17,9 @@ export default function NewRoomPage() {
     success: false,
     error: '',
   });
+
+  const [image1, setImage1] = useState<string | null>(null);
+  const [image2, setImage2] = useState<string | null>(null);
 
   useEffect(() => {
     if (state.success) {
@@ -126,6 +130,23 @@ export default function NewRoomPage() {
                     required
                   />
                   <p className="text-xs text-slate-500 mt-1">Prix en FCFA par nuitée</p>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-blue-400" />
+                    Images de la chambre (Max 2)
+                  </label>
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <input type="hidden" name="image1" value={image1 || ''} />
+                      <ImageUpload value={image1} onChange={setImage1} disabled={isPending} />
+                    </div>
+                    <div className="flex-1">
+                      <input type="hidden" name="image2" value={image2 || ''} />
+                      <ImageUpload value={image2} onChange={setImage2} disabled={isPending} />
+                    </div>
+                  </div>
                 </div>
               </div>
 

@@ -18,6 +18,13 @@ import {
   Boxes,
   Tag,
   History as HistoryIcon,
+  ChefHat,
+  Beer,
+  Truck,
+  BookOpen,
+  UserCog,
+  Tags,
+  LayoutDashboard,
 } from 'lucide-react';
 import { ShiftStatusIndicator } from './shift-status-indicator';
 import { logout } from '@/app/actions/auth';
@@ -45,93 +52,164 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       setCounts(res);
     };
     fetchCounts();
-    const interval = setInterval(fetchCounts, 30000); // 30 seconds for better responsiveness
+    const interval = setInterval(fetchCounts, 30000);
     return () => clearInterval(interval);
   }, []);
 
+  const role = session.role;
   const hasHotelModule = structure?.modules?.includes('HOTEL') || storeHasModule('HOTEL');
   const hasStockModule = structure?.modules?.includes('STOCK') || storeHasModule('STOCK');
-  const canManageShift = ['CAISSE', 'RECEPTION', 'ADMIN'].includes(session.role);
+  const hasPromoModule = structure?.modules?.includes('PROMOTION') || storeHasModule('PROMOTION');
+  const hasCuisineModule = structure?.modules?.includes('CUISINE') || storeHasModule('CUISINE');
+  const hasBarModule = structure?.modules?.includes('BAR') || storeHasModule('BAR');
+  const hasLivraisonModule = structure?.modules?.includes('LIVRAISON') || storeHasModule('LIVRAISON');
+  const hasRHModule = structure?.modules?.includes('RH') || storeHasModule('RH');
+  const hasCRMModule = structure?.modules?.includes('CRM') || storeHasModule('CRM');
+  const hasTablesModule = structure?.modules?.includes('TABLES') || storeHasModule('TABLES');
+  const canManageShift = ['CAISSE', 'RECEPTION', 'ADMIN', 'MANAGER'].includes(role);
+
+  const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(role);
+  const isManagerOrAdmin = ['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(role);
+  const isOps = ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR'].includes(role);
 
   const navigationItems = [
+    // ── Général ──
     {
       name: 'Tableau de bord',
       href: '/dashboard',
       icon: Home,
       visible: true,
     },
+
+    // ── Commandes ──
     {
       name: 'Commandes',
       href: '/orders',
       icon: ShoppingCart,
-      visible: ['CAISSE', 'SERVEUR', 'ADMIN'].includes(session.role),
+      visible: isOps,
       badge: counts.orders,
       badgeColor: 'bg-red-500',
+    },
+
+    // ── Cuisine & Bar ──
+    {
+      name: 'Cuisine (KDS)',
+      href: '/kitchen',
+      icon: ChefHat,
+      visible: hasCuisineModule && (isManagerOrAdmin || role === 'CUISINIER'),
+    },
+    {
+      name: 'Bar',
+      href: '/bar',
+      icon: Beer,
+      visible: hasBarModule && (isManagerOrAdmin || role === 'BAR'),
+    },
+
+    // ── Catalogue ──
+    {
+      name: 'Catégories',
+      href: '/categories',
+      icon: Tags,
+      visible: isManagerOrAdmin,
+    },
+    {
+      name: 'Plan de salle',
+      href: '/floor-manager',
+      icon: LayoutDashboard,
+      visible: hasTablesModule && (isManagerOrAdmin || role === 'CAISSE' || role === 'SERVEUR'),
     },
     {
       name: 'Produits',
       href: '/products',
       icon: Package,
-      visible: ['ADMIN'].includes(session.role),
-    },
-    {
-      name: 'Stock',
-      href: '/stock',
-      icon: Boxes,
-      visible: hasStockModule && ['ADMIN'].includes(session.role),
-      badge: counts.stock,
-      badgeColor: 'bg-orange-500',
-    },
-    {
-      name: 'Utilisateurs',
-      href: '/users',
-      icon: Users,
-      visible: ['ADMIN', 'SUPER_ADMIN'].includes(session.role),
+      visible: isManagerOrAdmin,
     },
     {
       name: 'Accompagnements',
       href: '/accompaniments',
       icon: Package,
-      visible: ['ADMIN'].includes(session.role),
+      visible: isManagerOrAdmin,
     },
+
+    // ── Stock ──
+    {
+      name: 'Stock',
+      href: '/stock',
+      icon: Boxes,
+      visible: (hasStockModule && isManagerOrAdmin) || role === 'MAGASINIER',
+      badge: counts.stock,
+      badgeColor: 'bg-orange-500',
+    },
+
+    // ── Livraison ──
+    {
+      name: 'Livraisons',
+      href: '/delivery',
+      icon: Truck,
+      visible: hasLivraisonModule && (isManagerOrAdmin || role === 'LIVREUR'),
+    },
+
+    // ── Hôtel ──
     {
       name: 'Chambres',
       href: '/rooms',
       icon: Bed,
-      visible: hasHotelModule && ['ADMIN', 'RECEPTION'].includes(session.role),
+      visible: hasHotelModule && (isManagerOrAdmin || role === 'RECEPTION'),
     },
     {
       name: 'Réservations',
       href: '/bookings',
       icon: CalendarDays,
-      visible: hasHotelModule && ['ADMIN', 'RECEPTION'].includes(session.role),
+      visible: hasHotelModule && (isManagerOrAdmin || role === 'RECEPTION'),
       badge: counts.bookings,
       badgeColor: 'bg-purple-500',
     },
+
+    // ── Marketing ──
     {
       name: 'Promotions',
       href: '/promotions',
       icon: Tag,
-      visible: (structure?.modules?.includes('PROMOTION') || storeHasModule('PROMOTION')) && ['ADMIN'].includes(session.role),
+      visible: hasPromoModule && isManagerOrAdmin,
+    },
+
+    // ── Équipe & CRM ──
+    {
+      name: 'Clients (CRM)',
+      href: '/clients',
+      icon: Users, // Or Handshake
+      visible: hasCRMModule && (isManagerOrAdmin || role === 'CAISSE'),
     },
     {
-      name: 'Structures',
-      href: '/structures',
-      icon: Building2,
-      visible: ['SUPER_ADMIN'].includes(session.role),
+      name: 'Utilisateurs',
+      href: '/users',
+      icon: Users,
+      visible: isAdmin || (hasRHModule && role === 'RH'),
     },
+
+    // ── Finances & Stats ──
     {
       name: 'Statistiques',
       href: '/statistics',
       icon: BarChart3,
-      visible: ['ADMIN', 'SUPER_ADMIN'].includes(session.role),
+      visible: isManagerOrAdmin || role === 'COMPTABLE',
     },
     {
       name: 'Sessions de caisse',
       href: '/shifts',
       icon: HistoryIcon,
-      visible: ['ADMIN', 'SUPER_ADMIN'].includes(session.role),
+      visible: isAdmin || role === 'COMPTABLE',
     },
+
+    // ── Super Admin ──
+    {
+      name: 'Structures',
+      href: '/structures',
+      icon: Building2,
+      visible: role === 'SUPER_ADMIN',
+    },
+
+    // ── Global ──
     {
       name: 'Notifications',
       href: '/notifications',
@@ -148,10 +226,26 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     },
   ];
 
+  const ROLE_LABELS: Record<string, string> = {
+    SUPER_ADMIN: 'Super Admin',
+    ADMIN: 'Administrateur',
+    MANAGER: 'Manager',
+    CAISSE: 'Caisse',
+    SERVEUR: 'Serveur',
+    RECEPTION: 'Réception',
+    CUISINIER: 'Cuisinier',
+    BAR: 'Bar',
+    LIVREUR: 'Livreur',
+    COMPTABLE: 'Comptable',
+    MAGASINIER: 'Magasinier',
+    RH: 'RH',
+    CLIENT: 'Client',
+  };
+
   return (
     <aside
       className={cn(
-        'z-50 flex w-64 shrink-0 flex-col border-r border-slate-700 bg-slate-800',
+        'print:hidden z-50 flex w-64 shrink-0 flex-col border-r border-slate-700 bg-slate-800',
         'fixed inset-y-0 left-0 transition-transform duration-200 ease-out lg:static lg:translate-x-0',
         mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       )}
@@ -165,7 +259,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navigationItems.map((item) => {
           if (!item.visible) return null;
 
@@ -184,13 +278,13 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
                   : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
               )}
             >
-              <Icon className={cn("w-5 h-5", !isActive && "group-hover:text-slate-200")} />
-              <span className="font-medium flex-1">{item.name}</span>
+              <Icon className={cn('w-5 h-5 shrink-0', !isActive && 'group-hover:text-slate-200')} />
+              <span className="font-medium flex-1 truncate">{item.name}</span>
               {(item as any).badge > 0 && (
                 <span className={cn(
-                  "inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-bold leading-none text-white rounded-full min-w-5 h-5",
+                  'inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-bold leading-none text-white rounded-full min-w-5 h-5',
                   (item as any).badgeColor || 'bg-red-500',
-                  !isActive && "animate-pulse"
+                  !isActive && 'animate-pulse'
                 )}>
                   {(item as any).badge > 99 ? '99+' : (item as any).badge}
                 </span>
@@ -208,8 +302,10 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
           </div>
         )}
         <div className="px-4 py-2 bg-slate-700 rounded-lg">
-          <p className="text-xs text-slate-400">Role</p>
-          <p className="text-sm font-medium text-slate-50">{session.role}</p>
+          <p className="text-xs text-slate-400">Rôle</p>
+          <p className="text-sm font-medium text-slate-50">
+            {ROLE_LABELS[role] || role}
+          </p>
         </div>
         <form action={logout}>
           <button

@@ -24,6 +24,7 @@ import { PaymentForm } from '@/components/payment-form';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { PrintOrderButton } from '@/components/print-order-button';
+import { ThermalReceiptPrintButton } from '@/components/thermal-receipt';
 
 interface OrderDetail {
   id: string;
@@ -34,8 +35,20 @@ interface OrderDetail {
   subtotal: number;
   total: number;
   discount_amount: number;
+  tip_amount: number;
   promotion_id: string | null;
   notes: string | null;
+  table_id: string | null;
+  client_id: string | null;
+  clients?: {
+    first_name: string;
+    last_name: string;
+    phone: string;
+  } | null;
+  tables?: {
+    name: string;
+    floor_name: string;
+  } | null;
   created_at: string;
   updated_at: string;
   order_items: Array<{
@@ -263,9 +276,9 @@ export default function OrderDetailPage() {
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
               Commande #{order.id.slice(0, 8)}
             </h1>
-            <div className="flex items-center gap-3">
-               <PrintOrderButton order={order} />
-               <span className="text-xs text-slate-500 hidden md:inline">Imprimer le reçu</span>
+            <div className="flex items-center gap-2">
+              <PrintOrderButton order={order} />
+              <ThermalReceiptPrintButton order={order} />
             </div>
           </div>
           <p className="text-slate-400">Gérez les articles et le statut de la commande</p>
@@ -292,17 +305,34 @@ export default function OrderDetailPage() {
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                       🛏️ Chambre {(order as any).rooms.number}
                     </span>
+                  ) : order.tables ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20">
+                      🍽️ {order.tables.name} ({order.tables.floor_name})
+                    </span>
                   ) : order.table_number ? (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20">
                       🍽️ Table {order.table_number}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-500/10 text-slate-400 border border-slate-500/20">
-                      📦 À emporter
-                    </span>
+                    <span className="text-slate-500">Sur place / Emporter</span>
                   )}
                 </p>
               </div>
+              {order.clients && (
+                <div>
+                  <p className="text-xs text-slate-400">Client</p>
+                  <p className="text-slate-50 font-medium text-sm flex items-center gap-2 mt-1">
+                    👤 {order.clients.first_name} {order.clients.last_name}
+                    <span className="text-xs text-slate-400">({order.clients.phone})</span>
+                  </p>
+                </div>
+              )}
+              {order.notes && (
+                <div>
+                  <p className="text-xs text-slate-400">Notes / Références</p>
+                  <p className="text-slate-50 mt-1">{order.notes}</p>
+                </div>
+              )}
               <div>
                 <p className="text-xs text-slate-400">Statut</p>
                 <div className="flex items-center gap-2 mt-1">

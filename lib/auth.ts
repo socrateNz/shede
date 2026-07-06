@@ -6,10 +6,41 @@ const secretKey = new TextEncoder().encode(
   process.env.AUTH_SECRET || 'default-secret-change-in-production'
 );
 
+/**
+ * Rôles utilisateurs du système.
+ * SUPER_ADMIN : accès global à toutes les structures.
+ * ADMIN       : responsable d'un établissement.
+ * MANAGER     : gestion opérationnelle (sans admin sensible).
+ * CAISSE      : caissier/caissière.
+ * SERVEUR     : prise de commandes en salle.
+ * RECEPTION   : réception hôtel (chambres + réservations).
+ * CUISINIER   : cuisine (Kitchen Display System).
+ * BAR         : bar (Bar Display).
+ * LIVREUR     : livraisons.
+ * COMPTABLE   : comptabilité et rapports financiers.
+ * MAGASINIER  : gestion des stocks.
+ * RH          : ressources humaines.
+ * CLIENT      : espace B2C (catalogue, panier, historique).
+ */
+export type UserRole =
+  | 'SUPER_ADMIN'
+  | 'ADMIN'
+  | 'MANAGER'
+  | 'CAISSE'
+  | 'SERVEUR'
+  | 'RECEPTION'
+  | 'CUISINIER'
+  | 'BAR'
+  | 'LIVREUR'
+  | 'COMPTABLE'
+  | 'MAGASINIER'
+  | 'RH'
+  | 'CLIENT';
+
 export interface SessionPayload {
   userId: string;
   email: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'CAISSE' | 'SERVEUR' | 'RECEPTION' | 'CLIENT';
+  role: UserRole;
   structureId?: string;
   modules?: string[];
   /** Présent pour le staff rattaché à une structure (vérifié à la connexion). */

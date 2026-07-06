@@ -1,14 +1,15 @@
-import { supabase } from '@/lib/supabase';
+import { getAdminSupabase } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
 import ProductList from './ProductList';
 import Link from 'next/link';
 import { getActivePromotionsForClient } from '@/app/actions/promotions';
 import { PromoBanner } from '@/components/promo-banner';
-import { Building2, MapPin, Phone, Star, Clock, Coffee, Bed, UtensilsCrossed, ArrowRight } from 'lucide-react';
+import { Building2, MapPin, Phone, Bed, UtensilsCrossed, ArrowRight, ArrowLeft } from 'lucide-react';
 
 export default async function StructurePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  // Clé anon + RLS : pas d'accès aux établissements sans licence active
+  
+  const supabase = getAdminSupabase();
 
   const { data: structure, error: structError } = await supabase
     .from('structures')
@@ -33,110 +34,99 @@ export default async function StructurePage({ params }: { params: Promise<{ id: 
   const isRestaurant = structure.modules?.includes('RESTAURANT') || structure.type === 'RESTAURANT' || structure.type === 'MIXTE';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-      {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 overflow-hidden">
-        <div className="absolute inset-0 bg-black/20" />
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-slate-50 selection:bg-blue-200">
+      {/* Hero Section Premium */}
+      <div className="relative h-[40vh] min-h-[350px] overflow-hidden bg-slate-900">
+        {structure.logo_url ? (
+          <img 
+            src={structure.logo_url} 
+            alt={structure.name} 
+            className="absolute inset-0 w-full h-full object-cover opacity-60"
+          />
+        ) : (
+          <div className={`absolute inset-0 bg-gradient-to-br ${isHotel ? 'from-purple-900 via-indigo-900 to-blue-900' : 'from-orange-900 via-red-900 to-rose-900'} opacity-80`} />
+        )}
+        
+        {/* Gradients pour la lisibilité */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 via-slate-900/20 to-transparent" />
 
-        <div className="relative max-w-4xl mx-auto px-4 py-8 md:py-12 text-white">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="bg-white/20 backdrop-blur-sm rounded-full p-2">
-              {isHotel ? <Bed className="w-5 h-5" /> : <UtensilsCrossed className="w-5 h-5" />}
+        <div className="relative h-full max-w-7xl mx-auto px-4 flex flex-col justify-end pb-12">
+          
+          <Link 
+            href="/client/structures" 
+            className="absolute top-6 left-4 md:left-8 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md text-white/90 hover:bg-white/20 hover:text-white transition-all text-sm font-medium border border-white/10"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Retour
+          </Link>
+
+          <div className="max-w-3xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-white/10 backdrop-blur-md rounded-xl p-2.5 border border-white/20">
+                {isHotel ? <Bed className="w-6 h-6 text-white" /> : <UtensilsCrossed className="w-6 h-6 text-white" />}
+              </div>
+              <span className="text-sm font-bold tracking-wider uppercase text-white/90 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                {isHotel && isRestaurant ? 'Hôtel & Restaurant' : isHotel ? 'Hôtel' : 'Restaurant'}
+              </span>
             </div>
-            <span className="text-sm font-medium bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
-              {isHotel && isRestaurant ? 'Hôtel & Restaurant' : isHotel ? 'Hôtel' : 'Restaurant'}
-            </span>
-          </div>
 
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3">{structure.name}</h1>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-4 tracking-tight drop-shadow-lg">
+              {structure.name}
+            </h1>
 
-          <div className="flex flex-wrap items-center gap-3 text-blue-100 mb-6">
-            <div className="flex items-center gap-1">
-              <MapPin className="w-4 h-4" />
-              <span className="text-sm">{structure.address} {structure.city && `- ${structure.city}`}</span>
+            <div className="flex flex-wrap items-center gap-4 text-white/80">
+              <div className="flex items-center gap-2 bg-black/20 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/5">
+                <MapPin className="w-4 h-4 text-blue-300" />
+                <span className="font-medium">{structure.address} {structure.city && `- ${structure.city}`}</span>
+              </div>
+              {structure.phone && (
+                <div className="flex items-center gap-2 bg-black/20 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/5">
+                  <Phone className="w-4 h-4 text-blue-300" />
+                  <span className="font-medium">{structure.phone}</span>
+                </div>
+              )}
             </div>
-            {structure.phone && (
-              <div className="flex items-center gap-1">
-                <Phone className="w-4 h-4" />
-                <span className="text-sm">{structure.phone}</span>
+
+            {(isHotel) && (
+              <div className="mt-8">
+                <Link
+                  href={`/client/structure/${id}/book`}
+                  className="inline-flex items-center gap-2 bg-white text-slate-900 px-6 py-3 font-bold text-lg rounded-full shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_rgba(255,255,255,0.5)] hover:-translate-y-1 transition-all duration-300"
+                >
+                  <Bed className="w-5 h-5 text-purple-600" />
+                  Réserver votre séjour
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
               </div>
             )}
           </div>
-
-          {/* <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              ))}
-              <span className="text-sm ml-1">(128 avis)</span>
-            </div>
-            <div className="w-1 h-1 bg-white/30 rounded-full" />
-            <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              <span className="text-sm">Ouvert</span>
-            </div>
-          </div> */}
-
-          {(isHotel) && (
-            <div className="mt-6">
-              <Link
-                href={`/client/structure/${id}/book`}
-                className="inline-flex items-center gap-2 bg-white text-blue-600 px-5 py-2.5 font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
-              >
-                <Bed className="w-4 h-4" />
-                Réserver une chambre
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          )}
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6 md:py-8 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 py-8 md:py-12 space-y-8 -mt-8 relative z-20">
         {/* Promotions */}
         {promotions && promotions.length > 0 && (
-          <div className="animate-slide-down">
+          <div className="animate-slide-down shadow-xl rounded-2xl overflow-hidden">
             <PromoBanner promotions={promotions} />
           </div>
         )}
 
         {/* Menu Section */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-          <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <UtensilsCrossed className="w-5 h-5" />
-              Notre Carte
-            </h2>
-            <p className="text-slate-300 text-sm mt-0.5">Découvrez nos délicieux plats et boissons</p>
+        <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden">
+          <div className="bg-slate-900 px-8 py-6 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-black text-white flex items-center gap-3 tracking-tight">
+                <UtensilsCrossed className="w-6 h-6 text-blue-400" />
+                La Carte
+              </h2>
+              <p className="text-slate-400 font-medium mt-1">Laissez-vous tenter par nos spécialités</p>
+            </div>
           </div>
-          <div className="p-6">
+          <div className="p-6 md:p-8 bg-slate-50/50">
             <ProductList products={products || []} structureId={id} promotions={promotions} />
           </div>
         </div>
-
-        {/* Footer Info */}
-        {/* <div className="bg-gradient-to-r from-slate-100 to-white rounded-xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-100 p-2 rounded-full">
-              <Coffee className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="font-semibold text-slate-700">Heures d'ouverture</p>
-              <p className="text-xs text-slate-500">Lun - Dim: 08:00 - 22:00</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="bg-emerald-100 p-2 rounded-full">
-
-            </div>
-            <div>
-              <p className="font-semibold text-slate-700">Commandez en ligne</p>
-              <p className="text-xs text-slate-500">Livraison rapide et gratuite</p>
-            </div>
-          </div>
-        </div> */}
       </div>
     </div>
   );

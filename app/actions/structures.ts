@@ -188,6 +188,7 @@ async function createStructureWithAdminCore(
         options?.welcomeBody ??
         `Votre structure ${input.structureName} a été enregistrée avec succès.`,
       url: '/dashboard',
+      roles: ['ADMIN', 'MANAGER', 'SUPER_ADMIN'],
     });
 
     if (options?.autoLogin) {
@@ -332,6 +333,7 @@ export async function updateStructureLicense(
       title: 'Mise à jour de licence',
       body: `Le statut de votre licence a été mis à jour par le Super Administrateur (Actif: ${isActive}).`,
       url: '/dashboard',
+      roles: ['ADMIN', 'MANAGER', 'SUPER_ADMIN'],
     });
 
     revalidatePath('/structures');
@@ -384,6 +386,7 @@ export async function updateStructure(
       title: 'Informations de structure modifiées',
       body: `Les détails de l'établissement ${name} ont été mis à jour par le Super Administrateur.`,
       url: '/settings',
+      roles: ['ADMIN', 'MANAGER', 'SUPER_ADMIN'],
     });
 
     revalidatePath('/structures');
@@ -416,5 +419,77 @@ export async function deleteStructure(structureId: string) {
     return { success: true };
   } catch (error) {
     return { success: false, error: 'Failed to delete structure' };
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// updateStructureSettings — mise à jour des paramètres de
+// l'établissement par l'ADMIN ou MANAGER.
+// ─────────────────────────────────────────────────────────
+export async function updateStructureSettings(
+  _prevState: { success: boolean; error: string },
+  formData: FormData
+): Promise<{ success: boolean; error: string }> {
+  const session = await getSession();
+  if (!session || !['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(session.role)) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const structureId = session.structureId;
+  if (!structureId) {
+    return { success: false, error: 'Aucune structure associée à ce compte.' };
+  }
+
+  const name     = String(formData.get('name') || '').trim();
+  const email    = String(formData.get('email') || '').trim().toLowerCase();
+  const phone    = String(formData.get('phone') || '').trim() || null;
+  const address  = String(formData.get('address') || '').trim() || null;
+  const city     = String(formData.get('city') || '').trim() || null;
+  const country  = String(formData.get('country') || '').trim() || null;
+  const currency = String(formData.get('currency') || 'XOF').trim();
+  const timezone = String(formData.get('timezone') || 'Africa/Abidjan').trim();
+  const type     = String(formData.get('type') || 'RESTAURANT').trim();
+  const logo_url = String(formData.get('logo_url') || '').trim() || null;
+  const taxRate  = Number(formData.get('tax_rate') || 0);
+
+  if (!name || !email) {
+    return { success: false, error: 'Le nom et l\'email sont obligatoires.' };
+  }
+
+  if (!['RESTAURANT', 'HOTEL', 'MIXTE'].includes(type)) {
+    return { success: false, error: 'Type d\'établissement invalide.' };
+  }
+
+  try {
+    const admin = getAdminSupabase();
+
+    const { error } = await admin
+      .from('structures')
+      .update({
+        name,
+        email,
+        phone,
+        address,
+        city,
+        country,
+        currency,
+        timezone,
+        type,
+        logo_url,
+        tax_rate: isNaN(taxRate) ? 0 : taxRate,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', structureId);
+
+    if (error) {
+      return { success: false, error: error.message || 'Erreur lors de la mise à jour.' };
+    }
+
+    revalidatePath('/settings');
+    revalidatePath('/dashboard');
+    return { success: true, error: '' };
+  } catch (err: any) {
+    console.error('[updateStructureSettings] error:', err);
+    return { success: false, error: err?.message || 'Erreur serveur.' };
   }
 }

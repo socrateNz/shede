@@ -60,6 +60,7 @@ export async function createOrder(
       title: 'Nouvelle commande',
       body: `Commande ${order.id.slice(0, 8)} creee`,
       url: `/orders/${order.id}`,
+      roles: ['ADMIN', 'CAISSE', 'SERVEUR', 'SUPER_ADMIN'],
     });
 
     return { success: true, orderId: order.id };
@@ -91,6 +92,13 @@ export async function createOrderWithItems(
   const itemsRaw = String(formData.get('items') || '');
   const promoCode = String(formData.get('promoCode') || '').trim();
   const promotionId = String(formData.get('promotionId') || '').trim();
+  
+  // Nouveaux champs Phase 2
+  const clientId = String(formData.get('clientId') || '').trim();
+  const tableId = String(formData.get('tableId') || '').trim();
+  const tipAmount = Number(formData.get('tipAmount')) || 0;
+  const discountAmount = Number(formData.get('discountAmount')) || 0;
+  const discountReason = String(formData.get('discountReason') || '').trim();
 
   type ClientSelectedAccompaniment = { accompanimentId: string; priceCounted: boolean };
   type ClientOrderItem = {
@@ -222,6 +230,11 @@ export async function createOrderWithItems(
         subtotal: 0,
         total: 0,
         promotion_id: verifiedPromo?.promotionId || null,
+        client_id: clientId || null,
+        table_id: tableId || null,
+        tip_amount: tipAmount,
+        discount_amount: discountAmount,
+        discount_reason: discountReason || null,
       })
       .select()
       .single();
@@ -418,6 +431,7 @@ export async function createOrderWithItems(
       title: 'Nouvelle commande',
       body: `Commande ${createdOrderId.slice(0, 8)} creee`,
       url: `/orders/${createdOrderId}`,
+      roles: ['ADMIN', 'CAISSE', 'SERVEUR', 'SUPER_ADMIN'],
     });
 
     return { success: true, orderId: createdOrderId, error: '' };
@@ -757,10 +771,10 @@ export async function updateOrderTotal(orderId: string) {
 
   const subtotal = productSubtotal + accSubtotal;
 
-  // 3. Handle Promotions Logic
+  // 3. Handle Promotions Logic & Tip & Manual Discount
   const { data: order } = await admin
     .from('orders')
-    .select('structure_id, promotion_id')
+    .select('structure_id, promotion_id, tip_amount, discount_amount')
     .eq('id', orderId)
     .single();
 
@@ -834,7 +848,7 @@ export async function updateOrderTotal(orderId: string) {
     runningSubtotal += Math.max(0, itemPriceWithPromo);
   }
 
-  // Add accompaniments to the intermediate subtotal (usually they don't get product-level promos)
+  // Add accompaniments to the intermediate subtotal
   runningSubtotal += accSubtotal;
 
   // 2. Second Pass: Apply ORDER-level promotions to the intermediate subtotal
@@ -849,15 +863,23 @@ export async function updateOrderTotal(orderId: string) {
     }
   }
 
-  const discount_amount = subtotal - runningSubtotal;
-  const total = Math.round(Math.max(0, runningSubtotal));
+  // 3. Appliquer la remise manuelle et le pourboire
+  const manualDiscount = Number(order.discount_amount) || 0;
+  const tipAmount = Number(order.tip_amount) || 0;
+  
+  // Le total de la remise globale est la somme de la remise promo et de la remise manuelle
+  const promoDiscountAmount = subtotal - runningSubtotal;
+  const totalDiscount = promoDiscountAmount + manualDiscount;
+  
+  // Le total final inclut le pourboire
+  const finalTotal = Math.round(Math.max(0, runningSubtotal - manualDiscount)) + tipAmount;
 
   await admin
     .from('orders')
     .update({
       subtotal,
-      discount_amount,
-      total,
+      discount_amount: totalDiscount,
+      total: finalTotal,
     })
     .eq('id', orderId);
 }
@@ -1026,7 +1048,7 @@ export async function getOrder(orderId: string) {
 
     const { data: order } = await admin
       .from('orders')
-      .select('*, structures(name), rooms(number), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))')
+      .select('*, structures(name), rooms(number), tables(name, floor_name), clients(first_name, last_name, phone), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))')
       .eq('id', orderId)
       .eq('structure_id', session.structureId)
       .single();
@@ -1047,7 +1069,7 @@ export async function getOrders(
 
     let query = admin
       .from('orders')
-      .select('*, structures(name), rooms(number), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))')
+      .select('*, structures(name), rooms(number), tables(name, floor_name), clients(first_name, last_name, phone), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))')
       .eq('structure_id', structureId)
       .order('created_at', { ascending: false })
       .limit(limit);

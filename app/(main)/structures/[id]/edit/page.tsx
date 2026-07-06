@@ -38,12 +38,26 @@ export default async function EditStructurePage({
   const selectedModules = Array.isArray(structure.modules) ? structure.modules : [];
 
   const modules = [
-    { value: 'POS', label: '💳 Caisse (POS)', description: 'Gestion des ventes' },
-    { value: 'STOCK', label: '📦 Stock (Inventaire)', description: 'Gestion des stocks et mouvements' },
-    { value: 'HOTEL', label: '🏨 Hôtel (PMS)', description: 'Gestion des chambres et réservations' },
-    { value: 'PROMOTION', label: '🎟️ Promotion (Marketing)', description: 'Gestion des remises et codes promo' },
-    { value: 'CLIENT_APP', label: '📱 Application Client (B2C)', description: 'Visibilité sur l\'app client' }
+    // ── Core ──
+    { value: 'POS',        label: '🖥️ Caisse (POS)',              description: 'Point de vente, commandes, paiements',                category: 'Core' },
+    { value: 'CLIENT_APP', label: '📱 Application Client (B2C)',   description: 'Catalogue public, panier, commandes en ligne',         category: 'Core' },
+
+    // ── Restauration ──
+    { value: 'CUISINE',    label: '🍳 Kitchen Display (KDS)',       description: 'Affichage cuisine en temps réel, gestion commandes',  category: 'Restauration' },
+    { value: 'BAR',        label: '🍺 Bar Display',                description: 'Affichage des commandes bar/boissons',                category: 'Restauration' },
+    { value: 'LIVRAISON',  label: '🛵 Livraison',                  description: 'Gestion des commandes à livrer, suivi livreurs',      category: 'Restauration' },
+    { value: 'TABLES',     label: '🪑 Plan de salle',              description: 'Floor manager interactif pour la gestion des tables', category: 'Restauration' },
+
+    // ── Gestion ──
+    { value: 'HOTEL',      label: '🏨 Hôtel (PMS)',                description: 'Chambres, réservations, check-in/check-out',          category: 'Gestion' },
+    { value: 'STOCK',      label: '📦 Stock (Inventaire)',          description: "Mouvements de stock, seuils d'alerte, recettes",      category: 'Gestion' },
+    { value: 'PROMOTION',  label: '🏷️ Promotions',                description: 'Codes promo, remises automatiques, offres spéciales', category: 'Gestion' },
+    { value: 'RH',         label: '👥 Ressources Humaines',        description: 'Gestion du personnel, planning, congés',              category: 'Gestion' },
+    { value: 'CRM',        label: '🤝 CRM Clients',                description: 'Base de données clients, fiches, historique commandes', category: 'Gestion' },
   ];
+
+  const categories = Array.from(new Set(modules.map(m => m.category)));
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -190,44 +204,55 @@ export default async function EditStructurePage({
                   </div>
                 </div>
 
-                {/* Modules avec Checkboxes - Version corrigée */}
-                <div className="space-y-3">
+                {/* Modules avec Checkboxes — groupés par catégorie */}
+                <div className="space-y-4">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                     <ChevronRight className="w-4 h-4 text-blue-400" />
                     Modules activés
                   </label>
-                  <div className="grid gap-3">
-                    {modules.map((module) => {
-                      const isChecked = selectedModules.includes(module.value);
-                      return (
-                        <label
-                          key={module.value}
-                          className={`flex items-start gap-3 p-4 rounded-lg border transition-all duration-300 cursor-pointer ${isChecked
-                            ? 'bg-blue-500/10 border-blue-500/50'
-                            : 'bg-slate-900/30 border-slate-600 hover:border-slate-500'
-                            }`}
-                        >
-                          <div className="flex-shrink-0 mt-0.5">
-                            <input
-                              type="checkbox"
-                              name="modules"
-                              value={module.value}
-                              defaultChecked={isChecked}
-                              className="w-5 h-5 rounded border-slate-500 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-                            />
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-medium text-slate-200">{module.label}</div>
-                            <div className="text-sm text-slate-400">{module.description}</div>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  <p className="text-xs text-slate-500 mt-2">
+
+                  {categories.map((category) => (
+                    <div key={category}>
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 pl-1">
+                        {category === 'Core' ? '⚡ Essentiels' : category === 'Restauration' ? '🍽️ Restauration' : '🏢 Gestion'}
+                      </p>
+                      <div className="grid gap-2">
+                        {modules.filter(m => m.category === category).map((module) => {
+                          const isChecked = selectedModules.includes(module.value);
+                          return (
+                            <label
+                              key={module.value}
+                              className={`flex items-start gap-3 p-3.5 rounded-lg border transition-all duration-300 cursor-pointer ${
+                                isChecked
+                                  ? 'bg-blue-500/10 border-blue-500/50'
+                                  : 'bg-slate-900/30 border-slate-600/50 hover:border-slate-500'
+                              }`}
+                            >
+                              <div className="flex-shrink-0 mt-0.5">
+                                <input
+                                  type="checkbox"
+                                  name="modules"
+                                  value={module.value}
+                                  defaultChecked={isChecked}
+                                  className="w-5 h-5 rounded border-slate-500 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-slate-200 text-sm">{module.label}</div>
+                                <div className="text-xs text-slate-500 mt-0.5">{module.description}</div>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+
+                  <p className="text-xs text-slate-500 mt-1 pl-1">
                     {selectedModules.length} module(s) activé(s)
                   </p>
                 </div>
+
               </div>
 
               {/* Actions */}

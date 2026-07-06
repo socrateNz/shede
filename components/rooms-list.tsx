@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { BedDouble, Pencil, Trash2, MoreVertical, CheckCircle, XCircle, Home, Hotel, Eye, DollarSign, Tag, Calendar, Info, Sparkles } from 'lucide-react';
+import { ImageUpload } from '@/components/image-upload';
+import { BedDouble, Pencil, Trash2, MoreVertical, CheckCircle, XCircle, Home, Hotel, Eye, DollarSign, Tag, Calendar, Info, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -38,6 +39,10 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
   const [viewingRoom, setViewingRoom] = useState<any>(null);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  
+  const [editImage1, setEditImage1] = useState<string | null>(null);
+  const [editImage2, setEditImage2] = useState<string | null>(null);
+
   const itemsPerPage = 10;
 
   const totalPages = Math.ceil(rooms.length / itemsPerPage);
@@ -219,7 +224,11 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
                           className="w-40 bg-slate-800 border-slate-700 text-slate-200"
                         >
                           <DropdownMenuItem
-                            onClick={() => setEditingRoom(room)}
+                            onClick={() => {
+                              setEditingRoom(room);
+                              setEditImage1(room.images?.[0] || null);
+                              setEditImage2(room.images?.[1] || null);
+                            }}
                             className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700 gap-2"
                           >
                             <Pencil className="w-4 h-4 text-blue-400" />
@@ -442,6 +451,23 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
                 className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300"
                 required
               />
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-blue-400" />
+                Images (Max 2)
+              </label>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <input type="hidden" name="image1" value={editImage1 || ''} />
+                  <ImageUpload value={editImage1} onChange={setEditImage1} disabled={isUpdating} />
+                </div>
+                <div className="flex-1">
+                  <input type="hidden" name="image2" value={editImage2 || ''} />
+                  <ImageUpload value={editImage2} onChange={setEditImage2} disabled={isUpdating} />
+                </div>
+              </div>
             </div>
 
             {updateState.error && (
