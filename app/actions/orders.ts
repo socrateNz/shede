@@ -774,7 +774,7 @@ export async function updateOrderTotal(orderId: string) {
   // 3. Handle Promotions Logic & Tip & Manual Discount
   const { data: order } = await admin
     .from('orders')
-    .select('structure_id, promotion_id, tip_amount, discount_amount')
+    .select('structure_id, promotion_id, tip_amount, discount_amount, takeaway_fee')
     .eq('id', orderId)
     .single();
 
@@ -866,13 +866,14 @@ export async function updateOrderTotal(orderId: string) {
   // 3. Appliquer la remise manuelle et le pourboire
   const manualDiscount = Number(order.discount_amount) || 0;
   const tipAmount = Number(order.tip_amount) || 0;
+  const takeawayFee = Number(order.takeaway_fee) || 0;
   
   // Le total de la remise globale est la somme de la remise promo et de la remise manuelle
   const promoDiscountAmount = subtotal - runningSubtotal;
   const totalDiscount = promoDiscountAmount + manualDiscount;
   
-  // Le total final inclut le pourboire
-  const finalTotal = Math.round(Math.max(0, runningSubtotal - manualDiscount)) + tipAmount;
+  // Le total final inclut le pourboire et les frais d'emballage
+  const finalTotal = Math.round(Math.max(0, runningSubtotal - manualDiscount)) + tipAmount + takeawayFee;
 
   await admin
     .from('orders')
@@ -1048,7 +1049,7 @@ export async function getOrder(orderId: string) {
 
     const { data: order } = await admin
       .from('orders')
-      .select('*, structures(name), rooms(number), tables(name, floor_name), clients(first_name, last_name, phone), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))')
+      .select('*, structures(name), rooms(number), tables(name, floor_name), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))')
       .eq('id', orderId)
       .eq('structure_id', session.structureId)
       .single();
@@ -1069,7 +1070,7 @@ export async function getOrders(
 
     let query = admin
       .from('orders')
-      .select('*, structures(name), rooms(number), tables(name, floor_name), clients(first_name, last_name, phone), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))')
+      .select('*, structures(name), rooms(number), tables(name, floor_name), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))')
       .eq('structure_id', structureId)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -1078,10 +1079,16 @@ export async function getOrders(
       query = query.eq('status', status);
     }
 
-    const { data: orders } = await query;
+    const { data: orders, error } = await query;
+
+    if (error) {
+      console.error('[getOrders] Error:', error);
+      return [];
+    }
 
     return orders || [];
   } catch (error) {
+    console.error('[getOrders] Exception:', error);
     return [];
   }
 }

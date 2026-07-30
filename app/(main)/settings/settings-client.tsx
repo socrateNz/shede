@@ -281,6 +281,17 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
                         className="bg-slate-900/50 border-slate-600 text-slate-100 placeholder:text-slate-600 focus:border-blue-500"
                       />
                     </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="takeaway_fee" className="text-slate-300">Frais d'emballage (À emporter)</Label>
+                      <Input
+                        id="takeaway_fee"
+                        name="takeaway_fee"
+                        type="number"
+                        min={0}
+                        defaultValue={structure.takeaway_fee ?? 0}
+                        className="bg-slate-900/50 border-slate-600 text-slate-100 placeholder:text-slate-600 focus:border-blue-500"
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>

@@ -9,7 +9,7 @@ import { updateOrderTotal } from './orders';
 export async function createClientOrder(
   structureId: string, 
   items: { id: string, productId: string, name: string, quantity: number, price: number, selectedAccompaniments?: any[] }[],
-  options?: { roomId?: string, tableNumber?: string | number, notes?: string, clientId?: string, phone?: string, promoCode?: string }
+  options?: { roomId?: string, tableNumber?: string | number, tableId?: string, consumptionType?: string, takeawayFee?: number, notes?: string, clientId?: string, phone?: string, promoCode?: string }
 ) {
   if (!structureId || items.length === 0) {
     return { success: false, error: 'Structure ID and items are required' };
@@ -42,11 +42,14 @@ export async function createClientOrder(
         source: 'CLIENT',
         room_id: options?.roomId || null,
         table_number: isNaN(tableNum as number) ? null : tableNum,
+        table_id: options?.tableId || null,
         client_id: clientId,
         user_id: clientId, // Also populate user_id for safety
         phone: options?.phone,
         notes: options?.notes || null,
         status: 'PENDING',
+        consumption_type: options?.consumptionType || 'DINE_IN',
+        takeaway_fee: options?.takeawayFee || 0,
         subtotal: 0,
         total: 0,
         promotion_id: verifiedPromo?.promotionId || null,

@@ -451,6 +451,7 @@ export async function updateStructureSettings(
   const type     = String(formData.get('type') || 'RESTAURANT').trim();
   const logo_url = String(formData.get('logo_url') || '').trim() || null;
   const taxRate  = Number(formData.get('tax_rate') || 0);
+  const takeawayFee = Number(formData.get('takeaway_fee') || 0);
 
   if (!name || !email) {
     return { success: false, error: 'Le nom et l\'email sont obligatoires.' };
@@ -477,6 +478,7 @@ export async function updateStructureSettings(
         type,
         logo_url,
         tax_rate: isNaN(taxRate) ? 0 : taxRate,
+        takeaway_fee: isNaN(takeawayFee) ? 0 : takeawayFee,
         updated_at: new Date().toISOString(),
       })
       .eq('id', structureId);

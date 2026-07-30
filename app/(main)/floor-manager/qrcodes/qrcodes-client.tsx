@@ -37,7 +37,7 @@ export function QRCodesClient({
 
       <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 print:grid-cols-3 print:gap-4 print:p-0">
         {tables.map(table => {
-          const tableUrl = `${baseUrl}/client/structure/${structureId}?table=${encodeURIComponent(table.name)}`;
+          const tableUrl = `${baseUrl}/client/structure/${structureId}?tableId=${table.id}&tableName=${encodeURIComponent(table.name)}`;
           
           return (
             <div 

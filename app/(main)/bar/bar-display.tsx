@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Beer, Clock, RefreshCw, Wifi, WifiOff, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getBarOrders, updateOrderStatusFromKitchen } from '@/app/actions/kitchen';
+import { getBarOrders, updateOrderStatusFromBar } from '@/app/actions/kitchen';
 import type { KitchenOrder } from '@/app/actions/kitchen';
 import { cn } from '@/lib/utils';
 
@@ -44,7 +44,7 @@ export function BarDisplay({ initialOrders, structureId }: BarDisplayProps) {
   }, [structureId, refreshOrders]);
 
   const handleReady = async (orderId: string) => {
-    const result = await updateOrderStatusFromKitchen(orderId, 'READY');
+    const result = await updateOrderStatusFromBar(orderId, 'READY');
     if (result.success) {
       toast.success('Commande marquée comme prête !');
       refreshOrders();

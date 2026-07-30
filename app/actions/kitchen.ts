@@ -40,6 +40,7 @@ export async function getKitchenOrders(structureId: string): Promise<KitchenOrde
       room_id,
       phone,
       status,
+      kitchen_status,
       notes,
       created_at,
       order_items(
@@ -50,7 +51,7 @@ export async function getKitchenOrders(structureId: string): Promise<KitchenOrde
       )
     `)
     .eq('structure_id', structureId)
-    .in('status', ['PENDING', 'IN_PROGRESS'])
+    .in('kitchen_status', ['PENDING', 'IN_PROGRESS'])
     .order('created_at', { ascending: true });
 
   if (error) {
@@ -63,7 +64,7 @@ export async function getKitchenOrders(structureId: string): Promise<KitchenOrde
     table_number: o.table_number,
     room_id: o.room_id,
     phone: o.phone,
-    status: o.status,
+    status: o.kitchen_status || 'PENDING',
     notes: o.notes,
     created_at: o.created_at,
     items: (o.order_items || [])
@@ -95,7 +96,7 @@ export async function updateOrderStatusFromKitchen(
   // Vérifier que la commande appartient à la structure
   const { data: order, error: fetchError } = await admin
     .from('orders')
-    .select('id, status, structure_id')
+    .select('id, kitchen_status, bar_status, order_items(products(destination))')
     .eq('id', orderId)
     .eq('structure_id', session.structureId!)
     .single();
@@ -104,24 +105,39 @@ export async function updateOrderStatusFromKitchen(
     return { success: false, error: 'Commande introuvable' };
   }
 
-  // Transitions autorisées
+  const currentStatus = order.kitchen_status || 'PENDING';
   const allowedTransitions: Record<string, string[]> = {
-    PENDING:     ['IN_PROGRESS'],
+    PENDING:     ['IN_PROGRESS', 'READY'],
     IN_PROGRESS: ['READY'],
   };
 
-  if (!allowedTransitions[order.status]?.includes(newStatus)) {
-    return { success: false, error: `Transition ${order.status} → ${newStatus} non autorisée` };
+  if (!allowedTransitions[currentStatus]?.includes(newStatus)) {
+    return { success: false, error: `Transition ${currentStatus} → ${newStatus} non autorisée` };
   }
 
+  // Update kitchen_status
   const { error: updateError } = await admin
     .from('orders')
-    .update({ status: newStatus, updated_at: new Date().toISOString() })
+    .update({ kitchen_status: newStatus, updated_at: new Date().toISOString() })
     .eq('id', orderId)
     .eq('structure_id', session.structureId!);
 
   if (updateError) {
     return { success: false, error: updateError.message };
+  }
+
+  // Calculate if global status should be updated
+  const hasBarItems = order.order_items?.some((i: any) => 
+    i.products?.destination === 'BAR' || i.products?.destination === 'BOISSON'
+  );
+  
+  const barReady = !hasBarItems || order.bar_status === 'READY';
+  
+  if (newStatus === 'READY' && barReady) {
+    await admin.from('orders').update({ status: 'READY' }).eq('id', orderId);
+  } else if (newStatus === 'IN_PROGRESS') {
+    // If kitchen starts working, global status is at least IN_PROGRESS
+    await admin.from('orders').update({ status: 'IN_PROGRESS' }).eq('id', orderId);
   }
 
   revalidatePath('/kitchen');
@@ -146,6 +162,7 @@ export async function getBarOrders(structureId: string): Promise<KitchenOrder[]>
       room_id,
       phone,
       status,
+      bar_status,
       notes,
       created_at,
       order_items(
@@ -156,7 +173,7 @@ export async function getBarOrders(structureId: string): Promise<KitchenOrder[]>
       )
     `)
     .eq('structure_id', structureId)
-    .in('status', ['PENDING', 'IN_PROGRESS'])
+    .in('bar_status', ['PENDING', 'IN_PROGRESS'])
     .order('created_at', { ascending: true });
 
   return (orders || [])
@@ -165,7 +182,7 @@ export async function getBarOrders(structureId: string): Promise<KitchenOrder[]>
       table_number: o.table_number,
       room_id: o.room_id,
       phone: o.phone,
-      status: o.status,
+      status: o.bar_status || 'PENDING',
       notes: o.notes,
       created_at: o.created_at,
       items: (o.order_items || [])
@@ -185,4 +202,67 @@ export async function getBarOrders(structureId: string): Promise<KitchenOrder[]>
         })),
     }))
     .filter((o) => o.items.length > 0);
+}
+
+/**
+ * Met à jour le statut d'une commande depuis le bar.
+ */
+export async function updateOrderStatusFromBar(
+  orderId: string,
+  newStatus: 'IN_PROGRESS' | 'READY'
+) {
+  const session = await getSession();
+  if (!session) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const admin = getAdminSupabase();
+
+  const { data: order, error: fetchError } = await admin
+    .from('orders')
+    .select('id, kitchen_status, bar_status, order_items(products(destination))')
+    .eq('id', orderId)
+    .eq('structure_id', session.structureId!)
+    .single();
+
+  if (fetchError || !order) {
+    return { success: false, error: 'Commande introuvable' };
+  }
+
+  const currentStatus = order.bar_status || 'PENDING';
+  const allowedTransitions: Record<string, string[]> = {
+    PENDING:     ['IN_PROGRESS', 'READY'],
+    IN_PROGRESS: ['READY'],
+  };
+
+  if (!allowedTransitions[currentStatus]?.includes(newStatus)) {
+    return { success: false, error: `Transition ${currentStatus} → ${newStatus} non autorisée` };
+  }
+
+  // Update bar_status
+  const { error: updateError } = await admin
+    .from('orders')
+    .update({ bar_status: newStatus, updated_at: new Date().toISOString() })
+    .eq('id', orderId)
+    .eq('structure_id', session.structureId!);
+
+  if (updateError) {
+    return { success: false, error: updateError.message };
+  }
+
+  // Calculate if global status should be updated
+  const hasKitchenItems = order.order_items?.some((i: any) => 
+    i.products?.destination === 'CUISINE'
+  );
+  
+  const kitchenReady = !hasKitchenItems || order.kitchen_status === 'READY';
+  
+  if (newStatus === 'READY' && kitchenReady) {
+    await admin.from('orders').update({ status: 'READY' }).eq('id', orderId);
+  } else if (newStatus === 'IN_PROGRESS') {
+    await admin.from('orders').update({ status: 'IN_PROGRESS' }).eq('id', orderId);
+  }
+
+  revalidatePath('/bar');
+  return { success: true };
 }

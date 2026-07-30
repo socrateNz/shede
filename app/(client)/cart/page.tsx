@@ -23,14 +23,19 @@ export default function CartPage() {
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoError, setPromoError] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<any>(null);
+  const [takeawayFee, setTakeawayFee] = useState(0);
+  const [tableId, setTableId] = useState('');
   const router = useRouter();
 
   const [autoPromos, setAutoPromos] = useState<any[]>([]);
 
   useEffect(() => {
-    const scannedTable = sessionStorage.getItem('scannedTable');
-    if (scannedTable) {
-      setTableNumber(scannedTable);
+    const scannedTableId = sessionStorage.getItem('scannedTableId');
+    const scannedTableName = sessionStorage.getItem('scannedTableName');
+    
+    if (scannedTableId && scannedTableName) {
+      setTableId(scannedTableId);
+      setTableNumber(scannedTableName);
       setDeliveryMode('TABLE');
       setIsScannedTable(true);
     }
@@ -39,6 +44,9 @@ export default function CartPage() {
       supabase.from('rooms').select('*').eq('structure_id', structureId)
         .order('number', { ascending: true })
         .then(({ data }) => setRooms(data || []));
+
+      supabase.from('structures').select('takeaway_fee').eq('id', structureId).single()
+        .then(({ data }) => setTakeawayFee(Number(data?.takeaway_fee || 0)));
 
       getActivePromotionsForClient(structureId)
         .then((data) => {
@@ -159,6 +167,9 @@ export default function CartPage() {
     const result = await createClientOrder(structureId, items, {
       roomId: deliveryMode === 'ROOM' ? roomId : undefined,
       tableNumber: deliveryMode === 'TABLE' ? tableNumber : undefined,
+      tableId: deliveryMode === 'TABLE' && tableId ? tableId : undefined,
+      consumptionType: deliveryMode === 'TAKEAWAY' ? 'TAKEAWAY' : 'DINE_IN',
+      takeawayFee: deliveryMode === 'TAKEAWAY' ? takeawayFee : 0,
       phone,
       promoCode: appliedPromo ? promoCode : undefined
     });
@@ -173,7 +184,7 @@ export default function CartPage() {
     setLoading(false);
   };
 
-  const finalTotal = Math.max(0, getTotal() - getDiscount());
+  const finalTotal = Math.max(0, getTotal() - getDiscount()) + (deliveryMode === 'TAKEAWAY' ? takeawayFee : 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
@@ -370,6 +381,17 @@ export default function CartPage() {
                 </div>
               </div>
 
+              {/* Frais À emporter */}
+              {deliveryMode === 'TAKEAWAY' && takeawayFee > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-slate-800">
+                    <ShoppingBag className="w-5 h-5 text-blue-500" />
+                    <span className="font-semibold">Frais d'emballage</span>
+                  </div>
+                  <span className="font-bold text-slate-800">+{formatFCFA(takeawayFee)}</span>
+                </div>
+              )}
+
               {/* Mode de livraison */}
               <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-5 space-y-4">
                 <h3 className="font-bold text-slate-800 flex items-center gap-2">
@@ -412,10 +434,10 @@ export default function CartPage() {
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-slate-700">Numéro de table</label>
                         <input
-                          type="number"
+                          type="text"
                           value={tableNumber}
                           onChange={(e) => setTableNumber(e.target.value)}
-                          placeholder="Ex: 12"
+                          placeholder="Ex: T1"
                           className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
                         />
                       </div>

@@ -25,9 +25,14 @@ export default function ProductList({
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const tableParam = searchParams.get('table');
-    if (tableParam) {
-      sessionStorage.setItem('scannedTable', tableParam);
+    const tableIdParam = searchParams.get('tableId');
+    const tableNameParam = searchParams.get('tableName') || searchParams.get('table');
+    
+    if (tableIdParam) {
+      sessionStorage.setItem('scannedTableId', tableIdParam);
+    }
+    if (tableNameParam) {
+      sessionStorage.setItem('scannedTableName', tableNameParam);
     }
   }, [searchParams]);
 
