@@ -9,6 +9,7 @@ import { renameFloor, deleteFloor } from '@/app/actions/floors';
 import { Trash2, Edit2, CheckCircle2, GripHorizontal, Users, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AddFloorDialog } from '@/components/add-floor-dialog';
+import { EditTableDialog } from '@/components/edit-table-dialog';
 import type { Floor } from '@/lib/supabase';
 
 interface Table {
@@ -100,6 +101,10 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
     }
   };
 
+  const handleTableUpdated = (updated: any) => {
+    setTables(prev => prev.map(t => (t.id === updated.id ? { ...t, ...updated } : t)));
+  };
+
   const handleFloorCreated = (floor: Floor) => {
     setFloors(prev => [...prev, floor]);
     setActiveFloorId(floor.id);
@@ -143,8 +148,8 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
   };
 
   // Helper pour savoir si une table est occupée (commande IN_PROGRESS ou PENDING associée)
-  const isTableOccupied = (tableNumber: string) => {
-    return activeOrders.some(order => order.table_number?.toString() === tableNumber || order.table_id === tableNumber);
+  const isTableOccupied = (table: Table) => {
+    return activeOrders.some(order => order.table_id === table.id || order.table_number?.toString() === table.name);
   };
 
   return (
@@ -241,7 +246,7 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
           onPointerLeave={handlePointerUp}
         >
           {floorTables.map(table => {
-            const occupied = isTableOccupied(table.name);
+            const occupied = isTableOccupied(table);
             const isRound = table.shape === 'round';
 
             return (
@@ -277,15 +282,19 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
                 </div>
 
                 {isEditMode && (
-                  <button
-                    className="absolute -top-3 -right-3 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all z-20"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(table.id);
-                    }}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
+                  <>
+                    <EditTableDialog table={table} onUpdated={handleTableUpdated} />
+                    <button
+                      className="absolute -top-3 -right-3 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all z-20"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(table.id);
+                      }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </>
                 )}
               </div>
             );

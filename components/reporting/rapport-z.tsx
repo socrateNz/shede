@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type Ref } from 'react';
 import { getShiftReport } from '@/app/actions/shifts';
 import { formatFCFA } from '@/lib/utils';
 import {
@@ -29,6 +29,7 @@ import {
 
 interface Props {
   shiftId: string;
+  containerRef?: Ref<HTMLDivElement>;
 }
 
 const RESTAURANT_MODULES = ['POS', 'CUISINE', 'BAR', 'TABLES', 'LIVRAISON', 'CLIENT_APP'];
@@ -60,7 +61,7 @@ function getModuleMetric(moduleKey: string, summary: any): { value: string; note
   return null;
 }
 
-export function RapportZ({ shiftId }: Props) {
+export function RapportZ({ shiftId, containerRef }: Props) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -130,6 +131,7 @@ export function RapportZ({ shiftId }: Props) {
 
       <div
         id="print-area"
+        ref={containerRef}
         className="mx-auto bg-white shadow-2xl rounded-none w-full max-w-[210mm] min-h-[297mm] p-[10mm] md:p-[20mm] text-slate-900 border border-slate-200 print:border-0"
       >
         {/* Company Header */}

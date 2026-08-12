@@ -18,7 +18,7 @@ export async function initializeDatabase() {
           city VARCHAR(100),
           country VARCHAR(100),
           type VARCHAR(50) DEFAULT 'RESTAURANT',
-          modules JSONB DEFAULT '["POS"]'::jsonb,
+          modules TEXT[] DEFAULT ARRAY['POS'],
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );

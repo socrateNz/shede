@@ -5,7 +5,8 @@ SELECT tablename, rowsecurity
 FROM pg_tables
 WHERE schemaname = 'public'
   AND tablename IN (
-    'structures', 'users', 'licenses', 'products', 'orders', 'promotions'
+    'structures', 'users', 'licenses', 'products', 'orders', 'promotions',
+    'shifts', 'floors', 'tables'
   )
 ORDER BY tablename;
 

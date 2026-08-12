@@ -118,11 +118,13 @@ export default async function EditStructurePage({
             <form
               action={async (formData) => {
                 'use server';
-                // Récupérer tous les modules sélectionnés
-                const selectedModulesValues = formData.getAll('modules');
-                // Ajouter les modules au formData
-                formData.append('modules', JSON.stringify(selectedModulesValues));
-
+                // `updateStructure` (via parseModulesFromFormData) already reads every
+                // checked "modules" checkbox directly from formData.getAll('modules') —
+                // no extra encoding needed here. A previous version of this handler
+                // re-stringified the selection into a single JSON blob and appended it
+                // as one more "modules" entry; parseModulesFromFormData's comma-split
+                // logic then shredded that blob into malformed fragments (e.g. `["POS"`)
+                // stored alongside the real values.
                 const result = await updateStructure(structureId, { success: false, error: '' }, formData);
                 if (!result.success) {
                   redirect(`/structures/${structureId}/edit?error=${result.error}`);

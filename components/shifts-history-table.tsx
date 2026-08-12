@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Table,
   TableBody,
@@ -28,13 +28,14 @@ interface ShiftsHistoryTableProps {
 export function ShiftsHistoryTable({ shifts }: ShiftsHistoryTableProps) {
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   async function handleDownloadReport() {
-    if (!selectedShiftId) return;
+    if (!selectedShiftId || !reportRef.current) return;
     setDownloadingReport(true);
     try {
-      const { generateShiftReportPdf } = await import('@/lib/pdf-utils');
-      await generateShiftReportPdf(selectedShiftId);
+      const { downloadElementAsPdf } = await import('@/lib/pdf-utils');
+      await downloadElementAsPdf(reportRef.current, `rapport-z_${selectedShiftId.slice(0, 8)}.pdf`);
     } catch (error) {
       console.error('Erreur lors du téléchargement du rapport:', error);
       toast.error('Erreur lors de la génération du PDF.');
@@ -142,7 +143,7 @@ export function ShiftsHistoryTable({ shifts }: ShiftsHistoryTableProps) {
             </DialogTitle>
           </DialogHeader>
           <div className="max-h-[70vh] overflow-y-auto pr-2">
-            {selectedShiftId && <RapportZ shiftId={selectedShiftId} />}
+            {selectedShiftId && <RapportZ shiftId={selectedShiftId} containerRef={reportRef} />}
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={handleDownloadReport} disabled={downloadingReport} className="gap-2">

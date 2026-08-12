@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -29,6 +29,7 @@ export function ShiftStatusIndicator() {
   const [notes, setNotes] = useState('');
   const [lastClosedShift, setLastClosedShift] = useState<any>(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchActiveShift();
@@ -68,11 +69,11 @@ export function ShiftStatusIndicator() {
   }
 
   async function handleDownloadReport() {
-    if (!lastClosedShift) return;
+    if (!lastClosedShift || !reportRef.current) return;
     setDownloadingReport(true);
     try {
-      const { generateShiftReportPdf } = await import('@/lib/pdf-utils');
-      await generateShiftReportPdf(lastClosedShift.id);
+      const { downloadElementAsPdf } = await import('@/lib/pdf-utils');
+      await downloadElementAsPdf(reportRef.current, `rapport-z_${lastClosedShift.id.slice(0, 8)}.pdf`);
     } catch (error) {
       console.error('Erreur lors du téléchargement du rapport:', error);
       toast.error('Erreur lors de la génération du PDF.');
@@ -208,7 +209,7 @@ export function ShiftStatusIndicator() {
             </DialogTitle>
           </DialogHeader>
           <div className="max-h-[70vh] overflow-y-auto pr-2">
-            {lastClosedShift && <RapportZ shiftId={lastClosedShift.id} />}
+            {lastClosedShift && <RapportZ shiftId={lastClosedShift.id} containerRef={reportRef} />}
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={handleDownloadReport} disabled={downloadingReport} className="gap-2">
