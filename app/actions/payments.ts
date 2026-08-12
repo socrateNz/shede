@@ -3,6 +3,7 @@
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { getStructureActiveShift } from './shifts';
+import { processOrderStock } from './stock';
 
 export async function createPayment(
   orderId: string,
@@ -28,7 +29,7 @@ export async function createPayment(
     // Get the order to verify it belongs to the structure
     const { data: order, error: orderError } = await admin
       .from('orders')
-      .select('id, total')
+      .select('id, total, status')
       .eq('id', orderId)
       .eq('structure_id', session.structureId)
       .single();
@@ -65,6 +66,13 @@ export async function createPayment(
       .from('orders')
       .update({ status: 'COMPLETED', paid_at: new Date().toISOString() })
       .eq('id', orderId);
+
+    // Deduct stock (products + accompaniments) now that the order is actually paid.
+    // Guarded so a duplicate/replayed payment on an already-completed order can't
+    // decrement stock twice.
+    if (order.status !== 'COMPLETED') {
+      await processOrderStock(orderId);
+    }
 
     return { success: true, paymentId: payment.id };
   } catch (error) {

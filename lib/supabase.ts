@@ -98,6 +98,14 @@ export interface Client {
   updated_at: string;
 }
 
+export interface Floor {
+  id: string;
+  structure_id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Table {
   id: string;
   structure_id: string;
@@ -109,6 +117,7 @@ export interface Table {
   width: number;
   height: number;
   floor_name?: string;
+  floor_id?: string | null;
   status: 'AVAILABLE' | 'OCCUPIED';
   created_at: string;
   updated_at: string;

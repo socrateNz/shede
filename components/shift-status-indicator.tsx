@@ -13,7 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { openShift, closeShift, getActiveShift } from '@/app/actions/shifts';
-import { Lock, Unlock, AlertCircle, Receipt, Printer, CheckCircle2 } from 'lucide-react';
+import { Lock, Unlock, AlertCircle, Receipt, Download, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatFCFA } from '@/lib/utils';
 import { RapportZ } from './reporting/rapport-z';
@@ -28,6 +28,7 @@ export function ShiftStatusIndicator() {
   const [actualAmount, setActualAmount] = useState('0');
   const [notes, setNotes] = useState('');
   const [lastClosedShift, setLastClosedShift] = useState<any>(null);
+  const [downloadingReport, setDownloadingReport] = useState(false);
 
   useEffect(() => {
     fetchActiveShift();
@@ -64,6 +65,20 @@ export function ShiftStatusIndicator() {
       toast.error(res.error || "Erreur lors de la clôture.");
     }
     setLoading(false);
+  }
+
+  async function handleDownloadReport() {
+    if (!lastClosedShift) return;
+    setDownloadingReport(true);
+    try {
+      const { generateShiftReportPdf } = await import('@/lib/pdf-utils');
+      await generateShiftReportPdf(lastClosedShift.id);
+    } catch (error) {
+      console.error('Erreur lors du téléchargement du rapport:', error);
+      toast.error('Erreur lors de la génération du PDF.');
+    } finally {
+      setDownloadingReport(false);
+    }
   }
 
   return (
@@ -185,7 +200,7 @@ export function ShiftStatusIndicator() {
 
       {/* Report Modal */}
       <Dialog open={isReportModal} onOpenChange={setIsReportModal}>
-        <DialogContent className="max-w-2xl bg-slate-900 border-slate-800 text-slate-50 overflow-hidden">
+        <DialogContent className="max-w-5xl! bg-slate-900 border-slate-800 text-slate-50 overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-green-400" />
@@ -196,9 +211,9 @@ export function ShiftStatusIndicator() {
             {lastClosedShift && <RapportZ shiftId={lastClosedShift.id} />}
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => window.print()} className="gap-2">
-              <Printer className="w-4 h-4" />
-              Imprimer le rapport
+            <Button variant="outline" onClick={handleDownloadReport} disabled={downloadingReport} className="gap-2">
+              {downloadingReport ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              {downloadingReport ? 'Génération...' : 'Télécharger le rapport (PDF)'}
             </Button>
             <Button onClick={() => setIsReportModal(false)}>Fermer</Button>
           </DialogFooter>

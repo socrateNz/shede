@@ -32,13 +32,28 @@ export async function createTable(formData: FormData) {
     const name = formData.get('name') as string;
     const capacity = parseInt(formData.get('capacity') as string) || 2;
     const shape = (formData.get('shape') as string) || 'rectangle';
-    const floor_name = (formData.get('floor_name') as string) || 'Salle principale';
+    const floor_id = formData.get('floor_id') as string;
 
     if (!name) {
       return { success: false, error: 'Le nom de la table est obligatoire' };
     }
+    if (!floor_id) {
+      return { success: false, error: 'La salle est obligatoire' };
+    }
 
     const admin = getAdminSupabase();
+
+    // La salle doit appartenir à la structure de l'appelant (garde anti-IDOR)
+    const { data: floor } = await admin
+      .from('floors')
+      .select('id, name')
+      .eq('id', floor_id)
+      .eq('structure_id', session.structureId!)
+      .single();
+
+    if (!floor) {
+      return { success: false, error: 'Salle introuvable' };
+    }
 
     // Vérifier que le nom de la table est unique pour cette structure
     const { data: existingTable } = await admin
@@ -57,7 +72,8 @@ export async function createTable(formData: FormData) {
       name,
       capacity,
       shape,
-      floor_name,
+      floor_id: floor.id,
+      floor_name: floor.name,
       position_x: 50,
       position_y: 50,
       width: shape === 'rectangle' ? 120 : 80,

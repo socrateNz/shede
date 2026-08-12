@@ -15,11 +15,49 @@ import {
   Hotel,
   AlertCircle,
   Building2,
-  Clock
+  Clock,
+  Smartphone,
+  Beer,
+  Bike,
+  LayoutGrid,
+  Package,
+  Tag,
+  Users,
+  Contact,
+  LucideIcon,
 } from 'lucide-react';
 
 interface Props {
   shiftId: string;
+}
+
+const RESTAURANT_MODULES = ['POS', 'CUISINE', 'BAR', 'TABLES', 'LIVRAISON', 'CLIENT_APP'];
+
+const MODULE_INFO: Record<string, { label: string; icon: LucideIcon }> = {
+  POS: { label: 'Caisse (POS)', icon: Wallet },
+  CLIENT_APP: { label: 'App Client (B2C)', icon: Smartphone },
+  CUISINE: { label: 'Cuisine (KDS)', icon: ChefHat },
+  BAR: { label: 'Bar', icon: Beer },
+  LIVRAISON: { label: 'Livraison', icon: Bike },
+  TABLES: { label: 'Plan de salle', icon: LayoutGrid },
+  HOTEL: { label: 'Hôtel (PMS)', icon: Hotel },
+  STOCK: { label: 'Stock', icon: Package },
+  PROMOTION: { label: 'Promotions', icon: Tag },
+  RH: { label: 'Ressources Humaines', icon: Users },
+  CRM: { label: 'CRM Clients', icon: Contact },
+};
+
+function getModuleMetric(moduleKey: string, summary: any): { value: string; note: string } | null {
+  if (moduleKey === 'POS') {
+    return { value: formatFCFA(summary.orderRevenue), note: `${summary.orderCount} commande(s) encaissée(s)` };
+  }
+  if (moduleKey === 'HOTEL') {
+    return { value: formatFCFA(summary.bookingRevenue), note: `${summary.bookingCount} réservation(s) réglée(s)` };
+  }
+  if (moduleKey === 'PROMOTION') {
+    return { value: `-${formatFCFA(summary.totalDiscounts)}`, note: 'Total des remises accordées' };
+  }
+  return null;
 }
 
 export function RapportZ({ shiftId }: Props) {
@@ -46,11 +84,17 @@ export function RapportZ({ shiftId }: Props) {
 
   if (!data?.shift) return <div>Erreur de chargement du rapport.</div>;
 
-  const { shift, orders, bookings, paymentMethods } = data;
-  const isPositiveEcart = Number(shift.difference) > 0;
-  const isNegativeEcart = Number(shift.difference) < 0;
-  const totalDiscounts = orders.reduce((sum: number, o: any) => sum + Number(o.discount_amount || 0), 0);
-  const grossSales = Number(shift.expected_amount) - Number(shift.opening_balance) + totalDiscounts;
+  const { shift, orders, bookings, paymentMethods, modules, summary } = data;
+  const isPositiveEcart = Number(summary.difference) > 0;
+  const isNegativeEcart = Number(summary.difference) < 0;
+  const showRestaurantSection = modules.some((m: string) => RESTAURANT_MODULES.includes(m));
+  const showHotelSection = modules.includes('HOTEL');
+  // A Rapport Z is a cash reconciliation document — only modules that move money
+  // during the shift belong here. Operational modules (KDS, Bar display, Stock,
+  // RH, CRM...) have nothing to reconcile and are omitted, not just greyed out.
+  const financialModules = modules
+    .map((m: string) => ({ key: m, info: MODULE_INFO[m] || { label: m, icon: Package }, metric: getModuleMetric(m, summary) }))
+    .filter((m: { metric: { value: string; note: string } | null }) => m.metric !== null);
 
   return (
     <div className="bg-slate-100/50 p-4 min-h-screen print:p-0 print:bg-white transition-all duration-300">
@@ -136,23 +180,23 @@ export function RapportZ({ shiftId }: Props) {
             <div className="space-y-2 text-sm">
               <p className="flex justify-between items-center border-b pb-1">
                 <span className="text-slate-500 font-medium whitespace-nowrap mr-4">Fond de caisse :</span>
-                <span className="font-bold text-blue-600">{formatFCFA(shift.opening_balance)}</span>
+                <span className="font-bold text-blue-600">{formatFCFA(summary.openingBalance)}</span>
               </p>
               <p className="flex justify-between items-center border-b pb-1">
                 <span className="text-slate-500 font-medium whitespace-nowrap mr-4">Ventes (Brut) :</span>
-                <span className="font-bold text-slate-700">{formatFCFA(grossSales)}</span>
+                <span className="font-bold text-slate-700">{formatFCFA(summary.grossSales)}</span>
               </p>
               <p className="flex justify-between items-center border-b pb-1">
                 <span className="text-slate-500 font-medium whitespace-nowrap mr-4">Promotions / Remises :</span>
-                <span className="font-bold text-red-500">-{formatFCFA(totalDiscounts)}</span>
+                <span className="font-bold text-red-500">-{formatFCFA(summary.totalDiscounts)}</span>
               </p>
               <p className="flex justify-between items-center border-b pb-1">
                 <span className="text-slate-500 font-medium whitespace-nowrap mr-4">Ventes Net (Payé) :</span>
-                <span className="font-bold text-green-600">{formatFCFA(Number(shift.expected_amount) - Number(shift.opening_balance))}</span>
+                <span className="font-bold text-green-600">{formatFCFA(summary.netSales)}</span>
               </p>
               <p className="flex justify-between items-center border-b pb-1">
                 <span className="text-slate-500 font-medium whitespace-nowrap mr-4">Argent Attendu :</span>
-                <span className="font-bold underline">{formatFCFA(shift.expected_amount)}</span>
+                <span className="font-bold underline">{formatFCFA(summary.expectedAmount)}</span>
               </p>
             </div>
           </div>
@@ -162,17 +206,42 @@ export function RapportZ({ shiftId }: Props) {
         <div className={`p-6 mb-10 rounded-none border-2 border-slate-900 flex justify-between items-center ${isNegativeEcart ? 'bg-red-50' : 'bg-green-50'}`}>
           <div>
             <h2 className="text-sm font-black uppercase tracking-widest text-slate-900">Total Réel Compté en Caisse</h2>
-            <p className="text-4xl font-black text-slate-900 mt-1">{formatFCFA(shift.actual_amount)}</p>
+            <p className="text-4xl font-black text-slate-900 mt-1">{formatFCFA(summary.actualAmount)}</p>
           </div>
           <div className="text-right">
             <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 opacity-60">Écart de Caisse</h2>
             <p className={`text-4xl font-black ${isNegativeEcart ? 'text-red-600' : isPositiveEcart ? 'text-green-600' : 'text-blue-600'}`}>
-              {shift.difference > 0 ? '+' : ''}{formatFCFA(shift.difference)}
+              {summary.difference > 0 ? '+' : ''}{formatFCFA(summary.difference)}
             </p>
           </div>
         </div>
 
+        {/* FINANCIAL BREAKDOWN BY MODULE */}
+        {financialModules.length > 0 && (
+        <div className="mb-10">
+          <h2 className="text-sm font-black uppercase tracking-widest mb-4 bg-slate-100 p-2 border-l-4 border-slate-900 flex items-center gap-2">
+            <Building2 className="w-4 h-4" /> Résumé Financier par Module
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {financialModules.map(({ key, info, metric }: { key: string; info: { label: string; icon: LucideIcon }; metric: { value: string; note: string } }) => {
+              const Icon = info.icon;
+              return (
+                <div key={key} className="bg-slate-50 border border-slate-200 p-3 flex items-start gap-2">
+                  <Icon className="w-4 h-4 mt-0.5 text-slate-500 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase text-slate-500 truncate">{info.label}</p>
+                    <p className="text-sm font-black text-slate-900">{metric.value}</p>
+                    <p className="text-[9px] text-slate-400">{metric.note}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        )}
+
         {/* DETAILED LOGS: RESTAURANT */}
+        {showRestaurantSection && (
         <div className="mb-10">
           <h2 className="text-sm font-black uppercase tracking-widest mb-4 bg-slate-100 p-2 border-l-4 border-orange-500 flex items-center gap-2">
             <ChefHat className="w-4 h-4" /> Ventes Restaurant (Détails)
@@ -224,8 +293,10 @@ export function RapportZ({ shiftId }: Props) {
             )}
           </table>
         </div>
+        )}
 
         {/* DETAILED LOGS: HOTEL */}
+        {showHotelSection && (
         <div className="mb-10">
           <h2 className="text-sm font-black uppercase tracking-widest mb-4 bg-slate-100 p-2 border-l-4 border-blue-500 flex items-center gap-2">
             <Hotel className="w-4 h-4" /> Réservations Hôtel (Détails)
@@ -263,6 +334,7 @@ export function RapportZ({ shiftId }: Props) {
             )}
           </table>
         </div>
+        )}
 
         {/* Payment Methods Breakdown */}
         <div className="mb-12">

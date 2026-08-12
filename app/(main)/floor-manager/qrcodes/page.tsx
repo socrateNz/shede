@@ -1,4 +1,5 @@
 import { getTables } from '@/app/actions/tables';
+import { getFloors } from '@/app/actions/floors';
 import { requireAuth } from '@/app/actions/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import Link from 'next/link';
@@ -8,6 +9,7 @@ import { QRCodesClient } from './qrcodes-client';
 export default async function QRCodesPage() {
   const session = await requireAuth();
   const tables = await getTables();
+  const floors = await getFloors();
 
   const admin = getAdminSupabase();
   const { data: structure } = await admin
@@ -31,7 +33,7 @@ export default async function QRCodesPage() {
         </div>
       </div>
 
-      <QRCodesClient tables={tables} structureId={session.structureId!} structureName={structureName} />
+      <QRCodesClient tables={tables} floors={floors} structureId={session.structureId!} structureName={structureName} />
     </div>
   );
 }

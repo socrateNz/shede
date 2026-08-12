@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Plus } from 'lucide-react';
 import { createTable } from '@/app/actions/tables';
 import { toast } from 'sonner';
+import type { Floor } from '@/lib/supabase';
 
-export function AddTableDialog() {
+export function AddTableDialog({ floors }: { floors: Floor[] }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -55,7 +56,11 @@ export function AddTableDialog() {
           </div>
           <div className="space-y-2">
             <label className="text-sm">Salle / Zone</label>
-            <Input name="floor_name" defaultValue="Salle principale" required className="bg-slate-900 border-slate-600" />
+            <select name="floor_id" required defaultValue={floors[0]?.id} className="w-full bg-slate-900 border border-slate-600 rounded-md p-2">
+              {floors.map((floor) => (
+                <option key={floor.id} value={floor.id}>{floor.name}</option>
+              ))}
+            </select>
           </div>
           <div className="space-y-2">
             <label className="text-sm">Forme</label>

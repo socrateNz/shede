@@ -4,6 +4,41 @@ import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 
+// The `structures.modules` column has drifted schema (TEXT[] vs JSONB) across
+// migrations, and has been seen holding stray stringified-JSON fragments
+// (e.g. '["POS"') alongside clean values. Filter to known keys and dedupe
+// before trusting it anywhere.
+const KNOWN_MODULES = ['POS', 'CLIENT_APP', 'CUISINE', 'BAR', 'LIVRAISON', 'TABLES', 'HOTEL', 'STOCK', 'PROMOTION', 'RH', 'CRM'];
+
+// Shared by closeShift() and getShiftReport() so the "théorique" revenue used to
+// close the till and the figures shown on the printed report can never drift apart.
+async function getShiftTransactions(admin: any, structureId: string, windowStart: string, windowEnd: string) {
+  const { data: allOrders } = await admin
+    .from('orders')
+    .select('id, total, subtotal, discount_amount, status, paid_at, updated_at, table_number, room_id, guest_name, rooms(number), order_items(quantity, products(name))')
+    .eq('structure_id', structureId)
+    .eq('status', 'COMPLETED')
+    .gte('paid_at', windowStart)
+    .lte('paid_at', windowEnd);
+
+  const orders = allOrders || [];
+
+  const { data: allBookings } = await admin
+    .from('bookings')
+    .select('*, rooms(number, type, structure_id)')
+    .eq('is_paid', true)
+    .gte('updated_at', windowStart)
+    .lte('updated_at', windowEnd);
+
+  const bookings = (allBookings || []).filter((b: any) => b.rooms?.structure_id === structureId);
+
+  const orderRevenue = orders.reduce((sum: number, o: any) => sum + (Number(o.total) || 0), 0);
+  const bookingRevenue = bookings.reduce((sum: number, b: any) => sum + (Number(b.total_amount) || 0), 0);
+  const totalDiscounts = orders.reduce((sum: number, o: any) => sum + (Number(o.discount_amount) || 0), 0);
+
+  return { orders, bookings, orderRevenue, bookingRevenue, totalDiscounts };
+}
+
 export async function getActiveShift() {
   const session = await getSession();
   if (!session?.userId) return null;
@@ -88,26 +123,13 @@ export async function closeShift(actualAmount: number, notes: string) {
   const now = new Date().toISOString();
 
   const safetyStartTime = new Date(new Date(activeShift.opened_at).getTime() - 60000).toISOString();
-  
-  // Orders revenue based on orders paid (paid_at) during the shift
-  const { data: paidOrders } = await admin
-    .from('orders')
-    .select('total')
-    .eq('structure_id', session.structureId)
-    .eq('status', 'COMPLETED')
-    .gte('paid_at', safetyStartTime);
 
-  const orderRevenue = paidOrders?.reduce((sum, o) => sum + (Number(o.total) || 0), 0) || 0;
-
-  // Bookings revenue - based on when they were marked as PAID during the shift
-  const { data: bookings } = await admin
-    .from('bookings')
-    .select('total_amount, rooms!inner(structure_id)')
-    .eq('rooms.structure_id', session.structureId)
-    .eq('is_paid', true)
-    .gte('updated_at', safetyStartTime);
-
-  const bookingRevenue = bookings?.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0) || 0;
+  const { orderRevenue, bookingRevenue } = await getShiftTransactions(
+    admin,
+    session.structureId as string,
+    safetyStartTime,
+    now
+  );
 
   const totalRevenueGenerated = orderRevenue + bookingRevenue;
   const expectedAmount = Number(activeShift.opening_balance) + totalRevenueGenerated;
@@ -135,59 +157,72 @@ export async function closeShift(actualAmount: number, notes: string) {
 
 export async function getShiftReport(shiftId: string) {
   const admin = getAdminSupabase();
-  
+
   const { data: shift, error: shiftError } = await admin
     .from('shifts')
-    .select('*, users(first_name, last_name), structures(name, address, phone)')
+    .select('*, users(first_name, last_name), structures(name, address, phone, modules)')
     .eq('id', shiftId)
     .single();
 
   if (shiftError) return null;
 
-  const safetyStartTime = new Date(new Date(shift.opened_at).getTime() - 24 * 60 * 60 * 1000).toISOString();
   const shiftOpening = new Date(shift.opened_at).getTime();
   const shiftClosing = new Date(shift.closed_at || new Date()).getTime() + 60000;
+  const windowStart = new Date(shiftOpening - 60000).toISOString();
+  const windowEnd = new Date(shiftClosing).toISOString();
 
-  // 1. Get ALL orders paid during this shift (using paid_at)
-  const { data: allOrders } = await admin
-    .from('orders')
-    .select('id, total, subtotal, discount_amount, status, paid_at, table_number, room_id, rooms(number), order_items(quantity, products(name))')
-    .eq('structure_id', shift.structure_id)
-    .eq('status', 'COMPLETED')
-    .gte('paid_at', new Date(shiftOpening - 60000).toISOString())
-    .lte('paid_at', new Date(shiftClosing).toISOString());
+  // Same helper used at close-time, so the printed report can never disagree
+  // with the "théorique" amount the till was actually closed against.
+  const { orders, bookings, orderRevenue, bookingRevenue, totalDiscounts } =
+    await getShiftTransactions(admin, shift.structure_id, windowStart, windowEnd);
 
-  const orderIds = Array.from(new Set((allOrders || []).map(o => o.id)));
-  const orders = allOrders || [];
+  const orderIds = Array.from(new Set(orders.map((o: any) => o.id)));
 
-  // 3. Get Bookings marked as paid during the shift
-  const { data: allBookings } = await admin
-    .from('bookings')
-    .select('*, rooms(number, type, structure_id)')
-    .eq('is_paid', true)
-    .gte('updated_at', new Date(shiftOpening - 60000).toISOString())
-    .lte('updated_at', new Date(shiftClosing).toISOString());
-
-  const bookings = (allBookings || []).filter(b => b.rooms?.structure_id === shift.structure_id);
-
-  // 4. Breakdown by payment method (from payments table, linked to orders in shift)
-  const { data: shiftPayments } = await admin
-    .from('payments')
-    .select('amount, payment_method, order_id')
-    .in('order_id', orderIds)
-    .eq('status', 'COMPLETED');
+  // Breakdown by payment method (from payments table, linked to orders in shift)
+  const { data: shiftPayments } = orderIds.length > 0
+    ? await admin
+        .from('payments')
+        .select('amount, payment_method, order_id')
+        .in('order_id', orderIds)
+        .eq('status', 'COMPLETED')
+    : { data: [] };
 
   const paymentMethods: Record<string, number> = {};
-  shiftPayments?.forEach(p => {
+  shiftPayments?.forEach((p: any) => {
     const method = p.payment_method || 'AUTRE';
-    paymentMethods[method] = (paymentMethods[method] || 0) + p.amount;
+    paymentMethods[method] = (paymentMethods[method] || 0) + Number(p.amount);
   });
+
+  const openingBalance = Number(shift.opening_balance) || 0;
+  const netSales = orderRevenue + bookingRevenue;
+  const grossSales = netSales + totalDiscounts;
+  const expectedAmount = openingBalance + netSales;
+  const actualAmount = shift.actual_amount !== null ? Number(shift.actual_amount) : null;
+  const difference = actualAmount !== null ? actualAmount - expectedAmount : null;
+
+  const rawModules: string[] = Array.isArray(shift.structures?.modules) ? shift.structures.modules : [];
+  const cleanModules = Array.from(new Set(rawModules.filter((m) => KNOWN_MODULES.includes(m))));
+  const modules = cleanModules.length > 0 ? cleanModules : ['POS'];
 
   return {
     shift,
     orders,
     bookings,
     paymentMethods,
+    modules,
+    summary: {
+      openingBalance,
+      orderRevenue,
+      orderCount: orders.length,
+      bookingRevenue,
+      bookingCount: bookings.length,
+      totalDiscounts,
+      grossSales,
+      netSales,
+      expectedAmount,
+      actualAmount,
+      difference,
+    },
   };
 }
 

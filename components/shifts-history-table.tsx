@@ -17,7 +17,8 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { formatFCFA } from '@/lib/utils';
-import { Receipt, Eye, Calendar, User, ArrowRightLeft, Printer } from 'lucide-react';
+import { Receipt, Eye, Calendar, User, ArrowRightLeft, Download, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { RapportZ } from './reporting/rapport-z';
 
 interface ShiftsHistoryTableProps {
@@ -26,6 +27,21 @@ interface ShiftsHistoryTableProps {
 
 export function ShiftsHistoryTable({ shifts }: ShiftsHistoryTableProps) {
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
+  const [downloadingReport, setDownloadingReport] = useState(false);
+
+  async function handleDownloadReport() {
+    if (!selectedShiftId) return;
+    setDownloadingReport(true);
+    try {
+      const { generateShiftReportPdf } = await import('@/lib/pdf-utils');
+      await generateShiftReportPdf(selectedShiftId);
+    } catch (error) {
+      console.error('Erreur lors du téléchargement du rapport:', error);
+      toast.error('Erreur lors de la génération du PDF.');
+    } finally {
+      setDownloadingReport(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -129,9 +145,9 @@ export function ShiftsHistoryTable({ shifts }: ShiftsHistoryTableProps) {
             {selectedShiftId && <RapportZ shiftId={selectedShiftId} />}
           </div>
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => window.print()} className="gap-2">
-              <Printer className="w-4 h-4" />
-              Imprimer
+            <Button variant="outline" onClick={handleDownloadReport} disabled={downloadingReport} className="gap-2">
+              {downloadingReport ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              {downloadingReport ? 'Génération...' : 'Télécharger (PDF)'}
             </Button>
             <Button onClick={() => setSelectedShiftId(null)}>Fermer</Button>
           </div>

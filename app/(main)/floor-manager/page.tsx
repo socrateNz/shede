@@ -1,5 +1,6 @@
 import { requireRole } from '@/app/actions/auth';
 import { getTables, createTable } from '@/app/actions/tables';
+import { getFloors } from '@/app/actions/floors';
 import { getAdminSupabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,7 @@ export default async function FloorManagerPage() {
   const session = await requireRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SERVEUR', 'CAISSE');
 
   const tables = await getTables();
+  const floors = await getFloors();
   const activeOrders = await getActiveOrders(session.structureId!);
 
   return (
@@ -58,12 +60,12 @@ export default async function FloorManagerPage() {
                 Imprimer QR Codes
               </Button>
             </Link>
-            <AddTableDialog />
+            <AddTableDialog floors={floors} />
           </div>
         </div>
 
         {/* Client Component */}
-        <FloorManagerClient initialTables={tables} activeOrders={activeOrders} />
+        <FloorManagerClient initialTables={tables} activeOrders={activeOrders} floors={floors} />
       </div>
     </div>
   );
