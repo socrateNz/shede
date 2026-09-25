@@ -3,7 +3,9 @@
 import { getAdminSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
-import { notifyStructureStaff, notifyUser } from '@/app/actions/push';
+import { notifyStructureStaff, notifyUser } from '@/lib/notifications';
+import { priceBooking, saveBookingTax } from '@/lib/fiscal';
+import { te } from '@/lib/i18n/server';
 
 export async function updateClientBooking(
   bookingId: string,
@@ -12,7 +14,7 @@ export async function updateClientBooking(
   action: 'UPDATE' | 'CANCEL'
 ) {
   const session = await getSession();
-  if (!session) return { success: false, error: 'Unauthorized' };
+  if (!session) return { success: false, error: await te('errors.unauthorized') };
 
   const admin = getAdminSupabase();
 
@@ -24,10 +26,10 @@ export async function updateClientBooking(
     .eq('client_id', session.userId)
     .single();
 
-  if (!booking) return { success: false, error: 'Booking not found' };
+  if (!booking) return { success: false, error: await te('errors.bookingNotFound') };
   
   if (booking.status !== 'PENDING') {
-    return { success: false, error: 'Only pending bookings can be modified' };
+    return { success: false, error: await te('errors.onlyPendingBookingsModify') };
   }
 
   if (action === 'CANCEL') {
@@ -36,7 +38,7 @@ export async function updateClientBooking(
       .update({ status: 'CANCELLED' })
       .eq('id', bookingId);
       
-    if (error) return { success: false, error: 'Failed to cancel booking' };
+    if (error) return { success: false, error: await te('errors.bookingCancelFailed') };
     
     // Notify staff
     const roomsObj: any = booking.rooms;
@@ -44,8 +46,10 @@ export async function updateClientBooking(
     if (structureId) {
       await notifyStructureStaff({
         structureId,
-        title: 'Réservation annulée',
-        body: `Le client a annulé la réservation ${bookingId.slice(0, 8)}.`,
+        message: ({ t }) => ({
+          title: t('notify.bookingCancelled.title'),
+          body: t('notify.bookingCancelled.body', { ref: bookingId.slice(0, 8) }),
+        }),
         url: '/bookings',
         roles: ['ADMIN', 'RECEPTION', 'SUPER_ADMIN'],
       });
@@ -56,7 +60,7 @@ export async function updateClientBooking(
   }
 
   // Action is UPDATE
-  if (!checkIn || !checkOut) return { success: false, error: 'Dates required' };
+  if (!checkIn || !checkOut) return { success: false, error: await te('errors.datesRequired') };
 
   const parsedCheckIn = new Date(checkIn).toISOString();
   const parsedCheckOut = new Date(checkOut).toISOString();
@@ -72,32 +76,35 @@ export async function updateClientBooking(
     .gt('check_out', parsedCheckIn);
 
   if (overlapError || (overlappingBookings && overlappingBookings.length > 0)) {
-    return { success: false, error: 'Dates non disponibles / Erreur vérification' };
+    return { success: false, error: await te('errors.datesUnavailable') };
   }
 
   // Recalculate price
   const nights = Math.max(1, Math.ceil((new Date(parsedCheckOut).getTime() - new Date(parsedCheckIn).getTime()) / (1000 * 60 * 60 * 24)));
-  const { data: roomInfo } = await admin.from('rooms').select('price').eq('id', booking.room_id).single();
-  const totalAmount = nights * (roomInfo?.price || 0);
+  const { data: roomInfo } = await admin.from('rooms').select('price, structure_id').eq('id', booking.room_id).single();
+  const pricing = await priceBooking(roomInfo?.structure_id ?? '', nights, roomInfo?.price || 0);
 
   const { error } = await admin
     .from('bookings')
     .update({
       check_in: parsedCheckIn,
       check_out: parsedCheckOut,
-      total_amount: totalAmount
+      total_amount: pricing.total
     })
     .eq('id', bookingId);
 
-  if (error) return { success: false, error: 'Failed to update booking dates' };
+  if (error) return { success: false, error: await te('errors.bookingDatesUpdateFailed') };
+  await saveBookingTax(bookingId, pricing.tax, pricing.settings);
 
   const roomsObj2: any = booking.rooms;
   const structureId2 = Array.isArray(roomsObj2) ? roomsObj2[0]?.structure_id : roomsObj2?.structure_id;
   if (structureId2) {
     await notifyStructureStaff({
       structureId: structureId2,
-      title: 'Réservation modifiée',
-      body: `Le client a modifié les dates de la réservation ${bookingId.slice(0, 8)}.`,
+      message: ({ t }) => ({
+        title: t('notify.bookingDatesChanged.title'),
+        body: t('notify.bookingDatesChanged.body', { ref: bookingId.slice(0, 8) }),
+      }),
       url: '/bookings',
       roles: ['ADMIN', 'RECEPTION', 'SUPER_ADMIN'],
     });
@@ -109,7 +116,7 @@ export async function updateClientBooking(
 
 export async function cancelClientOrder(orderId: string) {
   const session = await getSession();
-  if (!session) return { success: false, error: 'Unauthorized' };
+  if (!session) return { success: false, error: await te('errors.unauthorized') };
 
   const admin = getAdminSupabase();
 
@@ -121,10 +128,10 @@ export async function cancelClientOrder(orderId: string) {
     .or(`client_id.eq.${session.userId},user_id.eq.${session.userId}`)
     .single();
 
-  if (!order) return { success: false, error: 'Order not found' };
+  if (!order) return { success: false, error: await te('errors.orderNotFound') };
 
   if (order.status !== 'PENDING') {
-    return { success: false, error: 'Only PENDING orders can be cancelled' };
+    return { success: false, error: await te('errors.onlyPendingOrdersCancel') };
   }
 
   const { error } = await admin
@@ -132,12 +139,14 @@ export async function cancelClientOrder(orderId: string) {
     .update({ status: 'CANCELLED' })
     .eq('id', orderId);
 
-  if (error) return { success: false, error: 'Failed to cancel order' };
+  if (error) return { success: false, error: await te('errors.orderCancelFailed') };
 
   await notifyStructureStaff({
     structureId: order.structure_id,
-    title: 'Commande annulée',
-    body: `Le client a annulé la commande ${order.id.slice(0, 8)}.`,
+    message: ({ t }) => ({
+      title: t('notify.orderCancelled.title'),
+      body: t('notify.orderCancelled.body', { ref: order.id.slice(0, 8) }),
+    }),
     url: `/orders/${order.id}`,
     roles: ['ADMIN', 'CAISSE', 'SERVEUR', 'SUPER_ADMIN'],
   });

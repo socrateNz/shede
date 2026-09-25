@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
-import { formatFCFA } from '@/lib/utils';
+import { useT } from '@/lib/i18n/client';
 import { Receipt, Eye, Calendar, User, ArrowRightLeft, Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { RapportZ } from './reporting/rapport-z';
@@ -32,6 +32,7 @@ export function ShiftsHistoryTable({ shifts, showPoint = false }: ShiftsHistoryT
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
+  const { t, format } = useT();
 
   async function handleDownloadReport() {
     if (!selectedShiftId || !reportRef.current) return;
@@ -40,8 +41,8 @@ export function ShiftsHistoryTable({ shifts, showPoint = false }: ShiftsHistoryT
       const { downloadElementAsPdf } = await import('@/lib/pdf-utils');
       await downloadElementAsPdf(reportRef.current, `rapport-z_${selectedShiftId.slice(0, 8)}.pdf`);
     } catch (error) {
-      console.error('Erreur lors du téléchargement du rapport:', error);
-      toast.error('Erreur lors de la génération du PDF.');
+      console.error('[ShiftsHistoryTable] PDF error:', error);
+      toast.error(t('analytics.shifts.pdfError'));
     } finally {
       setDownloadingReport(false);
     }
@@ -53,20 +54,20 @@ export function ShiftsHistoryTable({ shifts, showPoint = false }: ShiftsHistoryT
         <Table>
           <TableHeader>
             <TableRow className="border-slate-700 hover:bg-transparent">
-              {showPoint && <TableHead className="text-slate-300">Point</TableHead>}
-              <TableHead className="text-slate-300">Caissier</TableHead>
-              <TableHead className="text-slate-300">Période</TableHead>
-              <TableHead className="text-slate-300 text-right">Attendu</TableHead>
-              <TableHead className="text-slate-300 text-right">Réel</TableHead>
-              <TableHead className="text-slate-300 text-right">Écart</TableHead>
-              <TableHead className="text-slate-300 text-center">Actions</TableHead>
+              {showPoint && <TableHead className="text-slate-300">{t('analytics.shifts.colPoint')}</TableHead>}
+              <TableHead className="text-slate-300">{t('analytics.shifts.colCashier')}</TableHead>
+              <TableHead className="text-slate-300">{t('analytics.shifts.colPeriod')}</TableHead>
+              <TableHead className="text-slate-300 text-right">{t('analytics.shifts.colExpected')}</TableHead>
+              <TableHead className="text-slate-300 text-right">{t('analytics.shifts.colActual')}</TableHead>
+              <TableHead className="text-slate-300 text-right">{t('analytics.shifts.colDifference')}</TableHead>
+              <TableHead className="text-slate-300 text-center">{t('analytics.shifts.colActions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {shifts.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columnCount} className="text-center py-12 text-slate-500 italic">
-                  Aucune session de caisse enregistrée.
+                  {t('analytics.shifts.empty')}
                 </TableCell>
               </TableRow>
             ) : (
@@ -92,21 +93,21 @@ export function ShiftsHistoryTable({ shifts, showPoint = false }: ShiftsHistoryT
                       <div className="text-xs space-y-1">
                         <div className="flex items-center gap-1.5">
                           <Calendar className="w-3 h-3 text-slate-500" />
-                          <span>Du {new Date(shift.opened_at).toLocaleString('fr-FR')}</span>
+                          <span>{t('analytics.shifts.from', { date: format.dateTime(shift.opened_at) })}</span>
                         </div>
                         {shift.closed_at && (
                           <div className="flex items-center gap-1.5 opacity-60">
                             <ArrowRightLeft className="w-3 h-3" />
-                            <span>Au {new Date(shift.closed_at).toLocaleString('fr-FR')}</span>
+                            <span>{t('analytics.shifts.to', { date: format.dateTime(shift.closed_at) })}</span>
                           </div>
                         )}
                       </div>
                     </TableCell>
                     <TableCell className="text-right text-slate-300 font-mono">
-                      {formatFCFA(shift.expected_amount)}
+                      {format.money(shift.expected_amount)}
                     </TableCell>
                     <TableCell className="text-right text-slate-100 font-bold font-mono">
-                      {shift.status === 'CLOSED' ? formatFCFA(shift.actual_amount) : '---'}
+                      {shift.status === 'CLOSED' ? format.money(shift.actual_amount) : '---'}
                     </TableCell>
                     <TableCell className="text-right">
                       {shift.status === 'CLOSED' ? (
@@ -114,11 +115,11 @@ export function ShiftsHistoryTable({ shifts, showPoint = false }: ShiftsHistoryT
                           "px-2 py-0.5 rounded text-[11px] font-bold",
                           diff < 0 ? "bg-red-500/10 text-red-400" : diff > 0 ? "bg-green-500/10 text-green-400" : "bg-blue-500/10 text-blue-400"
                         )}>
-                          {diff > 0 ? '+' : ''}{formatFCFA(diff)}
+                          {diff > 0 ? '+' : ''}{format.money(diff)}
                         </span>
                       ) : (
                         <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-yellow-500/10 text-yellow-400">
-                          EN COURS
+                          {t('analytics.shifts.inProgress')}
                         </span>
                       )}
                     </TableCell>
@@ -146,7 +147,7 @@ export function ShiftsHistoryTable({ shifts, showPoint = false }: ShiftsHistoryT
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Receipt className="w-5 h-5 text-blue-400" />
-              Archives - Rapport Z
+              {t('analytics.shifts.archiveTitle')}
             </DialogTitle>
           </DialogHeader>
           <div className="max-h-[70vh] overflow-y-auto pr-2">
@@ -155,9 +156,9 @@ export function ShiftsHistoryTable({ shifts, showPoint = false }: ShiftsHistoryT
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={handleDownloadReport} disabled={downloadingReport} className="gap-2">
               {downloadingReport ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              {downloadingReport ? 'Génération...' : 'Télécharger (PDF)'}
+              {downloadingReport ? t('analytics.shifts.generating') : t('analytics.shifts.download')}
             </Button>
-            <Button onClick={() => setSelectedShiftId(null)}>Fermer</Button>
+            <Button onClick={() => setSelectedShiftId(null)}>{t('common.close')}</Button>
           </div>
         </DialogContent>
       </Dialog>

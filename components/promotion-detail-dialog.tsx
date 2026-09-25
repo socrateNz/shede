@@ -18,7 +18,7 @@ import {
   CheckCircle2,
   XCircle
 } from 'lucide-react';
-import { formatFCFA } from '@/lib/utils';
+import { useT } from '@/lib/i18n/client';
 
 interface Promotion {
   id: string;
@@ -50,10 +50,11 @@ export function PromotionDetailDialog({
   open: boolean, 
   onOpenChange: (open: boolean) => void 
 }) {
+  const { t, format } = useT();
   if (!promotion) return null;
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('fr-FR', {
+    return format.dateTime(dateString, {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -78,7 +79,7 @@ export function PromotionDetailDialog({
             </div>
             <div>
               <UIDialogTitle className="text-xl font-bold">{promotion.name}</UIDialogTitle>
-              <p className="text-xs text-slate-500 font-mono">ID: {promotion.id}</p>
+              <p className="text-xs text-slate-500 font-mono">{t('promotions.detail.id', { id: promotion.id })}</p>
             </div>
           </div>
         </UIDialogHeader>
@@ -87,7 +88,7 @@ export function PromotionDetailDialog({
           {/* Status Badge */}
           <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-400 font-medium">Statut actuel</span>
+              <span className="text-sm text-slate-400 font-medium">{t('promotions.detail.currentStatus')}</span>
             </div>
             <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border ${
               promotion.is_active 
@@ -95,30 +96,30 @@ export function PromotionDetailDialog({
                 : 'bg-red-500/10 text-red-400 border-red-500/20'
             }`}>
               {promotion.is_active ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-              {promotion.is_active ? 'ACTIF' : 'INACTIF'}
+              {promotion.is_active ? t('promotions.list.active') : t('promotions.list.inactive')}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             {/* Mode specific info */}
             <div className="space-y-1">
-              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Type d'offre</p>
+              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">{t('promotions.detail.offerType')}</p>
               <p className="text-sm font-semibold flex items-center gap-2">
-                {promotion.promo_mode === 'STANDARD' ? 'Automatique' :
-                 promotion.promo_mode === 'CODE' ? `Code: ${promotion.code_name}` :
-                 'Cadeau (Buy X Get Y)'}
+                {promotion.promo_mode === 'STANDARD' ? t('promotions.detail.automatic') :
+                 promotion.promo_mode === 'CODE' ? t('promotions.detail.code', { code: promotion.code_name ?? '' }) :
+                 t('promotions.detail.gift')}
               </p>
             </div>
 
             <div className="space-y-1 text-right">
-              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Valeur</p>
+              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">{t('promotions.detail.value')}</p>
               <div className="text-sm font-bold text-blue-400 flex items-center justify-end gap-1">
                 {promotion.promo_mode === 'BUY_X_GET_Y' ? (
-                  <span>{promotion.required_qty} + {promotion.free_qty} offerts</span>
+                  <span>{t('promotions.list.free', { required: promotion.required_qty ?? 0, free: promotion.free_qty ?? 0 })}</span>
                 ) : (
                   <>
                     {promotion.type === 'PERCENTAGE' ? <Percent className="w-3 h-3" /> : <Banknote className="w-3 h-3" />}
-                    {promotion.value} {promotion.type === 'PERCENTAGE' ? '%' : 'FCFA'}
+                    {promotion.type === 'PERCENTAGE' ? `${format.number(promotion.value)} %` : format.money(promotion.value)}
                   </>
                 )}
               </div>
@@ -129,10 +130,10 @@ export function PromotionDetailDialog({
              <div className="flex items-start gap-3">
                 <ShoppingBag className="w-4 h-4 text-slate-500 mt-0.5" />
                 <div>
-                   <p className="text-xs font-semibold text-slate-300">Portée et Restriction</p>
+                   <p className="text-xs font-semibold text-slate-300">{t('promotions.detail.scope')}</p>
                    <p className="text-sm text-slate-400">
-                      {promotion.scope === 'ORDER' ? 'Toute la commande' : `Uniquement sur : ${promotion.products?.name || 'Produit spécifique'}`}
-                      {promotion.min_order_amount > 0 && ` (Min: ${formatFCFA(promotion.min_order_amount)})`}
+                      {promotion.scope === 'ORDER' ? t('promotions.detail.wholeOrder') : t('promotions.detail.onlyOn', { product: promotion.products?.name || t('promotions.detail.specificProduct') })}
+                      {promotion.min_order_amount > 0 && t('promotions.detail.minimum', { amount: format.money(promotion.min_order_amount) })}
                    </p>
                 </div>
              </div>
@@ -141,11 +142,11 @@ export function PromotionDetailDialog({
                 <Clock className="w-4 h-4 text-slate-500 mt-0.5" />
                 <div className="grid grid-cols-1 gap-2">
                    <div>
-                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Début</p>
+                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t('promotions.detail.start')}</p>
                      <p className="text-sm text-slate-300">{formatDate(promotion.start_date)}</p>
                    </div>
                    <div>
-                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Fin</p>
+                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t('promotions.detail.end')}</p>
                      <p className="text-sm text-slate-300">{formatDate(promotion.end_date)}</p>
                    </div>
                 </div>
@@ -154,7 +155,7 @@ export function PromotionDetailDialog({
              {promotion.promo_mode === 'CODE' && (
                 <div className="flex items-center justify-between p-3 bg-blue-500/5 rounded-xl border border-blue-500/10 italic">
                    <div className="text-xs text-blue-400">
-                      Utilisations : <span className="font-bold">{promotion.used_count || 0}</span> / {promotion.usage_limit || '∞'}
+                      {t('promotions.detail.usage')} <span className="font-bold">{promotion.used_count || 0}</span> / {promotion.usage_limit || '∞'}
                    </div>
                 </div>
              )}

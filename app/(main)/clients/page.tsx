@@ -4,20 +4,25 @@ import { Button } from '@/components/ui/button';
 import { Plus, Users } from 'lucide-react';
 import Link from 'next/link';
 import { ClientsList } from '@/components/clients-list';
+import { getT } from '@/lib/i18n/server';
 
-export const metadata = {
-  title: 'Clients — Shede',
-  description: 'Gestion de vos clients (CRM)',
-};
+export async function generateMetadata() {
+  const { t } = await getT();
+  return { title: t('crm.meta.listTitle'), description: t('crm.meta.listDescription') };
+}
 
 export default async function ClientsPage() {
   await requireRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CAISSE');
+  const { t } = await getT();
   const clients = await getClients();
 
   const totalClients = clients.length;
   // Clients créés ce mois-ci
-  const thisMonth = new Date().getMonth();
-  const newClientsThisMonth = clients.filter(c => new Date(c.created_at).getMonth() === thisMonth).length;
+  const now = new Date();
+  const newClientsThisMonth = clients.filter(c => {
+    const created = new Date(c.created_at);
+    return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+  }).length;
 
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -33,17 +38,17 @@ export default async function ClientsPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-pink-500/10 to-rose-500/10 border border-pink-500/20 mb-4 backdrop-blur-sm">
               <Users className="w-4 h-4 text-pink-400" />
-              <span className="text-sm text-pink-400 font-medium">CRM Clients</span>
+              <span className="text-sm text-pink-400 font-medium">{t('crm.list.badge')}</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
-              Clients
+              {t('crm.list.title')}
             </h1>
-            <p className="text-slate-400">Gérez votre base de données clients et leur historique</p>
+            <p className="text-slate-400">{t('crm.list.subtitle')}</p>
           </div>
           <Button asChild className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <Link href="/clients/new">
               <Plus className="w-4 h-4 mr-2" />
-              Nouveau client
+              {t('crm.list.newClient')}
             </Link>
           </Button>
         </div>
@@ -54,7 +59,7 @@ export default async function ClientsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl font-bold text-white">{totalClients}</div>
-                <div className="text-sm text-slate-400">Total clients</div>
+                <div className="text-sm text-slate-400">{t('crm.list.statTotal')}</div>
               </div>
               <div className="p-3 bg-pink-500/10 rounded-xl group-hover:scale-110 transition-transform duration-300">
                 <Users className="w-6 h-6 text-pink-400" />
@@ -66,7 +71,7 @@ export default async function ClientsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl font-bold text-rose-400">+{newClientsThisMonth}</div>
-                <div className="text-sm text-slate-400">Nouveaux ce mois-ci</div>
+                <div className="text-sm text-slate-400">{t('crm.list.statNew')}</div>
               </div>
               <div className="p-3 bg-rose-500/10 rounded-xl group-hover:scale-110 transition-transform duration-300">
                 <Plus className="w-6 h-6 text-rose-400" />

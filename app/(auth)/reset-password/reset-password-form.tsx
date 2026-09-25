@@ -6,11 +6,13 @@ import { Lock } from 'lucide-react';
 import { resetPassword } from '@/app/actions/password';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useT } from '@/lib/i18n/client';
 
 const inputClass = 'bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-500';
 
 export function ResetPasswordForm({ token }: { token: string }) {
   const router = useRouter();
+  const { t } = useT();
   const [state, formAction, isPending] = useActionState(resetPassword, { success: false, error: '' });
 
   useEffect(() => {
@@ -24,15 +26,15 @@ export function ResetPasswordForm({ token }: { token: string }) {
       <div className="space-y-2">
         <label htmlFor="password" className="text-sm font-medium text-slate-200 flex items-center gap-2">
           <Lock className="w-4 h-4 text-slate-400" />
-          Nouveau mot de passe
+          {t('auth.reset.newPassword')}
         </label>
-        <Input id="password" type="password" name="password" minLength={8} placeholder="8 caractères minimum" className={inputClass} required />
+        <Input id="password" type="password" name="password" minLength={8} placeholder={t('auth.reset.newPasswordPlaceholder')} className={inputClass} required />
       </div>
 
       <div className="space-y-2">
         <label htmlFor="confirm" className="text-sm font-medium text-slate-200 flex items-center gap-2">
           <Lock className="w-4 h-4 text-slate-400" />
-          Confirmer le mot de passe
+          {t('auth.reset.confirm')}
         </label>
         <Input id="confirm" type="password" name="confirm" minLength={8} placeholder="••••••••" className={inputClass} required />
       </div>
@@ -48,7 +50,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
         disabled={isPending}
         className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-5 rounded-xl disabled:opacity-50"
       >
-        {isPending ? 'Enregistrement…' : 'Enregistrer mon mot de passe'}
+        {isPending ? t('auth.reset.submitting') : t('auth.reset.submit')}
       </Button>
     </form>
   );

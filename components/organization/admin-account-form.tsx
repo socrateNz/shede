@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useT } from '@/lib/i18n/client';
 
 type ActionState = { success: boolean; error: string };
 
@@ -19,6 +20,7 @@ const inputClass =
 /** Crée un compte administrateur (champs adminFirstName, adminLastName, adminEmail, adminPassword). */
 export function AdminAccountForm({ action, submitLabel }: AdminAccountFormProps) {
   const router = useRouter();
+  const { t } = useT();
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, isPending] = useActionState(action, { success: false, error: '' });
 
@@ -32,17 +34,17 @@ export function AdminAccountForm({ action, submitLabel }: AdminAccountFormProps)
   return (
     <form ref={formRef} action={formAction} className="space-y-4">
       <div className="grid sm:grid-cols-2 gap-3">
-        <Input name="adminFirstName" placeholder="Prénom" aria-label="Prénom" className={inputClass} required />
-        <Input name="adminLastName" placeholder="Nom" aria-label="Nom" className={inputClass} required />
-        <Input name="adminEmail" type="email" placeholder="Email de connexion" aria-label="Email de connexion" className={inputClass} required />
-        <Input name="adminPassword" type="password" placeholder="Mot de passe (8 caractères min.)" aria-label="Mot de passe" minLength={8} className={inputClass} required />
+        <Input name="adminFirstName" placeholder={t('org.adminForm.firstName')} aria-label={t('org.adminForm.firstName')} className={inputClass} required />
+        <Input name="adminLastName" placeholder={t('org.adminForm.lastName')} aria-label={t('org.adminForm.lastName')} className={inputClass} required />
+        <Input name="adminEmail" type="email" placeholder={t('org.adminForm.email')} aria-label={t('org.adminForm.email')} className={inputClass} required />
+        <Input name="adminPassword" type="password" placeholder={t('org.adminForm.password')} aria-label={t('org.adminForm.password')} minLength={8} className={inputClass} required />
       </div>
 
       {state.error && (
         <p role="alert" className="text-sm text-red-400">{state.error}</p>
       )}
       {state.success && (
-        <p role="status" className="text-sm text-green-400">Compte créé.</p>
+        <p role="status" className="text-sm text-green-400">{t('org.adminForm.created')}</p>
       )}
 
       <Button
@@ -52,7 +54,7 @@ export function AdminAccountForm({ action, submitLabel }: AdminAccountFormProps)
         className="bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
       >
         <UserPlus className="w-4 h-4 mr-2" />
-        {isPending ? 'Création…' : submitLabel}
+        {isPending ? t('org.adminForm.creating') : submitLabel}
       </Button>
     </form>
   );

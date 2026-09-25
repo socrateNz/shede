@@ -14,6 +14,8 @@ import {
   YAxis,
   CartesianGrid,
 } from 'recharts';
+import { useT } from '@/lib/i18n/client';
+import type { TranslationKey } from '@/lib/i18n/translate';
 
 interface AnalyticsChartsProps {
   paymentsByMethod: Record<string, number>;
@@ -25,13 +27,9 @@ interface AnalyticsChartsProps {
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
-const bookingStatusLabels: Record<string, string> = {
-  PENDING: 'En attente',
-  CONFIRMED: 'Confirmée',
-  IN_PROGRESS: 'En cours',
-  COMPLETED: 'Terminée',
-  CANCELLED: 'Annulée',
-};
+const ORDER_STATUSES = ['PENDING', 'IN_PROGRESS', 'READY', 'SERVED', 'COMPLETED', 'CANCELLED'];
+const BOOKING_STATUSES = ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+const PAYMENT_METHODS = ['CASH', 'CARD', 'CHEQUE', 'TRANSFER', 'MOBILE', 'AUTRE'];
 
 export function AnalyticsCharts({ 
   paymentsByMethod, 
@@ -40,24 +38,27 @@ export function AnalyticsCharts({
   orderRevenue = 0,
   hotelRevenue = 0
 }: AnalyticsChartsProps) {
+  const { t, format } = useT();
+  const labelFor = (prefix: string, known: string[], value: string) =>
+    known.includes(value) ? t(`${prefix}.${value}` as TranslationKey) : value;
   const paymentData = Object.entries(paymentsByMethod).map(([method, amount]) => ({
-    name: method,
+    name: labelFor('common.paymentMethods', PAYMENT_METHODS, method),
     value: parseFloat(amount.toFixed(2)),
   }));
 
   const orderData = Object.entries(ordersByStatus).map(([status, count]) => ({
-    name: status,
+    name: labelFor('orders.status', ORDER_STATUSES, status),
     count,
   }));
 
   const bookingData = Object.entries(bookingsByStatus).map(([status, count]) => ({
-    name: bookingStatusLabels[status] || status,
+    name: labelFor('hotel.bookingStatus', BOOKING_STATUSES, status),
     count,
   }));
 
   const moduleData = [
-    { name: 'Restaurant', value: orderRevenue },
-    { name: 'Hôtel', value: hotelRevenue },
+    { name: t('analytics.charts.restaurant'), value: orderRevenue },
+    { name: t('analytics.charts.hotel'), value: hotelRevenue },
   ].filter(d => d.value > 0);
 
   return (
@@ -66,12 +67,12 @@ export function AnalyticsCharts({
         {/* Module Breakdown */}
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
-            <CardTitle className="text-slate-50">Répartition par Module</CardTitle>
+            <CardTitle className="text-slate-50">{t('analytics.charts.byModule')}</CardTitle>
           </CardHeader>
           <CardContent>
             {moduleData.length === 0 ? (
               <div className="h-80 flex items-center justify-center text-slate-400">
-                Aucune donnée par module
+                {t('analytics.charts.noModuleData')}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
@@ -81,7 +82,7 @@ export function AnalyticsCharts({
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, value }) => `${name}: ${value.toLocaleString()} FCFA`}
+                    label={({ name, value }) => `${name}: ${format.money(value)}`}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
@@ -91,7 +92,7 @@ export function AnalyticsCharts({
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value) => `${Number(value).toLocaleString()} FCFA`}
+                    formatter={(value) => format.money(Number(value))}
                     contentStyle={{
                       backgroundColor: '#1e293b',
                       border: '1px solid #475569',
@@ -108,12 +109,12 @@ export function AnalyticsCharts({
         {/* Payments by Method */}
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
-            <CardTitle className="text-slate-50">Revenu par Mode de Paiement</CardTitle>
+            <CardTitle className="text-slate-50">{t('analytics.charts.byPaymentMethod')}</CardTitle>
           </CardHeader>
           <CardContent>
             {paymentData.length === 0 ? (
               <div className="h-80 flex items-center justify-center text-slate-400">
-                Aucune donnée de paiement
+                {t('analytics.charts.noPaymentData')}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
@@ -123,7 +124,7 @@ export function AnalyticsCharts({
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, value }) => `${name}: ${value.toLocaleString()} FCFA`}
+                    label={({ name, value }) => `${name}: ${format.money(value)}`}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
@@ -133,7 +134,7 @@ export function AnalyticsCharts({
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value) => `${Number(value).toLocaleString()} FCFA`}
+                    formatter={(value) => format.money(Number(value))}
                     contentStyle={{
                       backgroundColor: '#1e293b',
                       border: '1px solid #475569',
@@ -152,12 +153,12 @@ export function AnalyticsCharts({
         {/* Orders by Status */}
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
-            <CardTitle className="text-slate-50">Commandes par Statut</CardTitle>
+            <CardTitle className="text-slate-50">{t('analytics.charts.ordersByStatus')}</CardTitle>
           </CardHeader>
           <CardContent>
             {orderData.length === 0 ? (
               <div className="h-80 flex items-center justify-center text-slate-400">
-                Aucune donnée de commande
+                {t('analytics.charts.noOrderData')}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
@@ -172,7 +173,7 @@ export function AnalyticsCharts({
                       borderRadius: '6px',
                     }}
                   />
-                  <Bar dataKey="count" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="count" name={t('analytics.charts.count')} fill="#3b82f6" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -182,12 +183,12 @@ export function AnalyticsCharts({
         {/* Bookings by Status */}
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
-            <CardTitle className="text-slate-50">Réservations par Statut</CardTitle>
+            <CardTitle className="text-slate-50">{t('analytics.charts.bookingsByStatus')}</CardTitle>
           </CardHeader>
           <CardContent>
             {bookingData.length === 0 ? (
               <div className="h-80 flex items-center justify-center text-slate-400">
-                Aucune donnée de réservation
+                {t('analytics.charts.noBookingData')}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
@@ -202,7 +203,7 @@ export function AnalyticsCharts({
                       borderRadius: '6px',
                     }}
                   />
-                  <Bar dataKey="count" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="count" name={t('analytics.charts.count')} fill="#8b5cf6" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}

@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useT } from '@/lib/i18n/client';
 
 // Radix Select interdit une valeur vide : sentinelle pour « tous les points ».
 const ALL_POINTS = 'all';
@@ -31,6 +32,7 @@ export function PointSelect({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const { t } = useT();
 
   function handleChange(next: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -46,15 +48,15 @@ export function PointSelect({
     <div className="flex items-center gap-2">
       <label htmlFor="point-select" className="flex items-center gap-1.5 text-sm text-slate-400">
         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Store className="h-4 w-4" />}
-        Point de vente
+        {t('org.pointSelect.label')}
       </label>
       <Select value={value ?? ALL_POINTS} onValueChange={handleChange}>
         <SelectTrigger id="point-select" className="w-64 border-slate-600 bg-slate-900/50 text-slate-100">
-          <SelectValue placeholder="Tous les points" />
+          <SelectValue placeholder={t('org.pointSelect.all')} />
         </SelectTrigger>
         <SelectContent className="border-slate-700 bg-slate-800 text-slate-200">
           <SelectItem value={ALL_POINTS} className="focus:bg-blue-600 focus:text-white">
-            Tous les points
+            {t('org.pointSelect.all')}
           </SelectItem>
           {points.map((p) => (
             <SelectItem key={p.id} value={p.id} className="focus:bg-blue-600 focus:text-white">

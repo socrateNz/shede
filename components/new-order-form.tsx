@@ -8,6 +8,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useActionState, useEffect, useMemo, useState } from 'react';
+import { useT } from '@/lib/i18n/client';
 
 interface OrderProduct {
   id: string;
@@ -42,6 +43,7 @@ export function NewOrderForm({
   promotions = [],
   clients = [],
   tables = [],
+  deliveryZones = [],
 }: {
   products: OrderProduct[];
   accompanimentsByProductId: Record<string, AccompanimentOption[]>;
@@ -49,7 +51,11 @@ export function NewOrderForm({
   promotions?: any[];
   clients?: any[];
   tables?: any[];
+  /** Zones de livraison actives (module LIVRAISON) ; vide = pas de livraison. */
+  deliveryZones?: { id: string; name: string; fee: number }[];
 }) {
+  const [isDelivery, setIsDelivery] = useState(false);
+  const { t, format } = useT();
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(createOrderWithItems, {
     success: false,
@@ -193,38 +199,38 @@ export function NewOrderForm({
   return (
     <Card className="bg-slate-800 border-slate-700 w-full">
       <CardHeader>
-        <CardTitle className="text-slate-50">Create New Order</CardTitle>
+        <CardTitle className="text-slate-50">{t('orders.create.title')}</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Client (CRM)</label>
+              <label className="text-sm font-medium text-slate-200">{t('orders.create.crmClient')}</label>
               <select
                 name="clientId"
                 className="w-full bg-slate-700 border border-slate-600 text-slate-50 rounded-md py-2 px-3 h-10"
               >
-                <option value="">Sélectionner un client...</option>
+                <option value="">{t('orders.create.selectClient')}</option>
                 {clients.map(c => (
                   <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
                 ))}
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Phone</label>
+              <label className="text-sm font-medium text-slate-200">{t('orders.create.phone')}</label>
               <Input
                 type="tel"
                 name="phone"
-                placeholder="Client phone"
+                placeholder={t('orders.create.phonePlaceholder')}
                 className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Notes</label>
+              <label className="text-sm font-medium text-slate-200">{t('orders.create.notes')}</label>
               <Input
                 type="text"
                 name="notes"
-                placeholder="Special instructions"
+                placeholder={t('orders.create.notesPlaceholder')}
                 className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
               />
             </div>
@@ -232,43 +238,98 @@ export function NewOrderForm({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Room Number</label>
+              <label className="text-sm font-medium text-slate-200">{t('orders.create.room')}</label>
               <select
                 name="roomId"
                 className="w-full bg-slate-700 border border-slate-600 text-slate-50 placeholder:text-slate-500 rounded-md py-2 px-3 h-10"
               >
-                <option value="">Sélectionner une chambre</option>
+                <option value="">{t('orders.create.selectRoom')}</option>
                 {rooms.map(room => (
-                  <option key={room.id} value={room.id}>Chambre {room.number}</option>
+                  <option key={room.id} value={room.id}>{t('orders.create.roomOption', { number: room.number })}</option>
                 ))}
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Table (Floor Manager)</label>
+              <label className="text-sm font-medium text-slate-200">{t('orders.create.table')}</label>
               <select
                 name="tableId"
                 className="w-full bg-slate-700 border border-slate-600 text-slate-50 rounded-md py-2 px-3 h-10"
               >
-                <option value="">Sélectionner une table...</option>
-                {tables.map(t => (
-                  <option key={t.id} value={t.id}>{t.name} ({t.floor_name})</option>
+                <option value="">{t('orders.create.selectTable')}</option>
+                {tables.map((table) => (
+                  <option key={table.id} value={table.id}>{table.name} ({table.floor_name})</option>
                 ))}
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Ou Table (Numéro libre)</label>
+              <label className="text-sm font-medium text-slate-200">{t('orders.create.freeTable')}</label>
               <Input
                 type="number"
                 name="tableNumber"
-                placeholder="e.g. 5"
+                placeholder={t('orders.create.freeTablePlaceholder')}
                 className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
               />
             </div>
           </div>
 
+          {deliveryZones.length > 0 && (
+            <div className="rounded-lg border border-slate-600 p-4 space-y-4">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-200">
+                <input
+                  type="checkbox"
+                  name="isDelivery"
+                  value="true"
+                  checked={isDelivery}
+                  onChange={(e) => setIsDelivery(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                {t('orders.create.isDelivery')}
+              </label>
+              {isDelivery && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label htmlFor="deliveryZoneId" className="text-sm font-medium text-slate-200">{t('orders.create.zone')}</label>
+                    <select
+                      id="deliveryZoneId"
+                      name="deliveryZoneId"
+                      required
+                      className="w-full bg-slate-700 border border-slate-600 text-slate-50 rounded-md py-2 px-3 h-10"
+                    >
+                      <option value="">{t('orders.create.selectZone')}</option>
+                      {deliveryZones.map((z) => (
+                        <option key={z.id} value={z.id}>
+                          {z.name} — {format.money(z.fee)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="deliveryDistrict" className="text-sm font-medium text-slate-200">{t('orders.create.district')}</label>
+                    <Input
+                      id="deliveryDistrict"
+                      name="deliveryDistrict"
+                      placeholder={t('orders.create.districtPlaceholder')}
+                      className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="deliveryLandmark" className="text-sm font-medium text-slate-200">{t('orders.create.landmark')}</label>
+                    <Input
+                      id="deliveryLandmark"
+                      name="deliveryLandmark"
+                      required
+                      placeholder={t('orders.create.landmarkPlaceholder')}
+                      className="bg-slate-700 border-slate-600 text-slate-50 placeholder:text-slate-500"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-200">Promotion Manuelle (Optionnel)</label>
+                <label className="text-sm font-medium text-slate-200">{t('orders.create.manualPromo')}</label>
                 <select
                   className="w-full bg-slate-700 border border-slate-600 text-slate-50 rounded-md py-2 px-3 h-10"
                   value={selectedPromotionId}
@@ -278,18 +339,18 @@ export function NewOrderForm({
                   }}
                   name="promotionId"
                 >
-                  <option value="">Aucune promotion</option>
+                  <option value="">{t('orders.create.noPromo')}</option>
                   {promotions.map((p: any) => (
                     <option key={p.id} value={p.id}>
-                      {p.name} ({p.value}{p.type === 'PERCENTAGE' ? '%' : ' FCFA'})
+                      {p.name} ({p.type === 'PERCENTAGE' ? `${p.value} %` : format.money(p.value)})
                     </option>
                   ))}
                 </select>
              </div>
              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-200">Ou Code Promo</label>
+                <label className="text-sm font-medium text-slate-200">{t('orders.create.promoCode')}</label>
                 <Input 
-                   placeholder="Ex: SUMMER24"
+                   placeholder={t('orders.create.promoCodePlaceholder')}
                    value={promoCode}
                    onChange={(e) => {
                      setPromoCode(e.target.value.toUpperCase());
@@ -303,7 +364,7 @@ export function NewOrderForm({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-700 pt-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-amber-400">Pourboire (Tips)</label>
+              <label className="text-sm font-medium text-amber-400">{t('orders.create.tip')}</label>
               <Input
                 type="number"
                 name="tipAmount"
@@ -313,7 +374,7 @@ export function NewOrderForm({
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-red-400">Remise Manuelle</label>
+              <label className="text-sm font-medium text-red-400">{t('orders.create.manualDiscount')}</label>
               <Input
                 type="number"
                 name="discountAmount"
@@ -323,18 +384,18 @@ export function NewOrderForm({
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-red-400">Raison de la remise</label>
+              <label className="text-sm font-medium text-red-400">{t('orders.create.discountReason')}</label>
               <Input
                 type="text"
                 name="discountReason"
-                placeholder="Ex: Geste commercial"
+                placeholder={t('orders.create.discountReasonPlaceholder')}
                 className="bg-slate-700 border-red-500/50 text-slate-50 focus:border-red-400"
               />
             </div>
           </div>
 
           <div className="rounded-lg border border-slate-700 p-4 space-y-4 bg-slate-800/50">
-            <p className="text-slate-100 font-medium">Catalogue des Produits</p>
+            <p className="text-slate-100 font-medium">{t('orders.create.catalogue')}</p>
             
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-slate-600">
               {products.map((product) => (
@@ -353,7 +414,7 @@ export function NewOrderForm({
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-slate-500">
                         <Plus className="w-6 h-6 mb-1 opacity-50" />
-                        <span className="text-[10px] uppercase tracking-wider">{product.category || 'Produit'}</span>
+                        <span className="text-[10px] uppercase tracking-wider">{product.category || t('orders.create.product')}</span>
                       </div>
                     )}
                   </div>
@@ -362,7 +423,7 @@ export function NewOrderForm({
                       {product.name}
                     </p>
                     <p className="text-xs text-blue-400 font-medium mt-1">
-                      {product.price.toLocaleString()} FCFA
+                      {format.money(product.price)}
                     </p>
                   </div>
                 </div>
@@ -372,7 +433,7 @@ export function NewOrderForm({
 
           <div className="space-y-2">
             {items.length === 0 ? (
-              <p className="text-slate-400 text-sm">No products selected yet.</p>
+              <p className="text-slate-400 text-sm">{t('orders.create.noItems')}</p>
             ) : (
               items.map((item) => {
                 const product = productsById.get(item.productId);
@@ -387,7 +448,7 @@ export function NewOrderForm({
                     <div>
                       <p className="text-slate-50 font-medium">{product.name}</p>
                       <p className="text-slate-400 text-sm">
-                        {item.quantity} x {product.price.toFixed(2)} = {lineTotal.toFixed(2)}
+                        {item.quantity} x {format.money(product.price)} = {format.money(lineTotal)}
                       </p>
 
                       {possibleAccs.length > 0 && (
@@ -405,7 +466,7 @@ export function NewOrderForm({
                                     onChange={(e) => toggleAccompanimentIncluded(item.productId, acc.accompanimentId, e.target.checked)}
                                   />
                                   <span>
-                                    {acc.name} ({acc.unitPrice.toFixed(2)}) x {acc.quantityMultiplier}
+                                    {acc.name} ({format.money(acc.unitPrice)}) x {acc.quantityMultiplier}
                                   </span>
                                 </label>
 
@@ -425,7 +486,7 @@ export function NewOrderForm({
                                       )
                                     }
                                   />
-                                  <span>Prix compté</span>
+                                  <span>{t('orders.create.priceCounted')}</span>
                                 </label>
                               </div>
                             );
@@ -447,11 +508,11 @@ export function NewOrderForm({
           </div>
 
           <div className="rounded-lg border border-slate-700 p-4 space-y-1">
-            <p className="text-slate-300 text-sm">Subtotal: {subtotal.toFixed(2)}</p>
+            <p className="text-slate-300 text-sm">{t('orders.create.subtotal', { amount: format.money(subtotal) })}</p>
             {discount > 0 && (
-               <p className="text-green-500 text-sm italic">Discount: -{discount.toFixed(2)}</p>
+               <p className="text-green-500 text-sm italic">{t('orders.create.discount', { amount: format.money(discount) })}</p>
             )}
-            <p className="text-slate-50 font-bold">Total: {total.toFixed(2)}</p>
+            <p className="text-slate-50 font-bold">{t('orders.create.total', { amount: format.money(total) })}</p>
           </div>
 
           <input type="hidden" name="items" value={JSON.stringify(items)} />
@@ -468,11 +529,11 @@ export function NewOrderForm({
               disabled={isPending || items.length === 0}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              {isPending ? 'Creating...' : 'Create Order'}
+              {isPending ? t('orders.create.submitting') : t('orders.create.submit')}
             </Button>
             <Link href="/orders">
               <Button type="button" variant="outline" className="border-slate-600 text-slate-200 hover:bg-slate-700">
-                Cancel
+                {t('common.cancel')}
               </Button>
             </Link>
           </div>

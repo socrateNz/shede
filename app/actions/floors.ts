@@ -3,6 +3,7 @@
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireAuth, requireModule } from './auth';
 import { revalidatePath } from 'next/cache';
+import { te } from '@/lib/i18n/server';
 
 export async function getFloors() {
   const session = await requireAuth();
@@ -27,7 +28,7 @@ export async function getFloors() {
   // Auto-guérison : toute structure avec le module TABLES doit avoir au moins une salle.
   const { data: seeded, error: seedError } = await admin
     .from('floors')
-    .insert({ structure_id: session.structureId!, name: 'Salle principale' })
+    .insert({ structure_id: session.structureId!, name: await te('errors.defaultFloorName') })
     .select()
     .single();
 
@@ -52,7 +53,7 @@ export async function createFloor(name: string) {
 
     const trimmedName = name.trim();
     if (!trimmedName) {
-      return { success: false, error: 'Le nom de la salle est obligatoire' };
+      return { success: false, error: await te('errors.floorNameRequired') };
     }
 
     const admin = getAdminSupabase();
@@ -65,7 +66,7 @@ export async function createFloor(name: string) {
       .single();
 
     if (existing) {
-      return { success: false, error: `Une salle nommée "${trimmedName}" existe déjà.` };
+      return { success: false, error: await te('errors.floorExists', { name: trimmedName }) };
     }
 
     const { data, error } = await admin
@@ -76,7 +77,7 @@ export async function createFloor(name: string) {
 
     if (error) {
       if (error.code === '23505') {
-        return { success: false, error: `Une salle nommée "${trimmedName}" existe déjà.` };
+        return { success: false, error: await te('errors.floorExists', { name: trimmedName }) };
       }
       throw error;
     }
@@ -85,7 +86,7 @@ export async function createFloor(name: string) {
     return { success: true, floor: data };
   } catch (error: any) {
     console.error('Error creating floor:', error);
-    return { success: false, error: error.message || 'Erreur lors de la création de la salle' };
+    return { success: false, error: await te('errors.floorCreateFailed') };
   }
 }
 
@@ -96,7 +97,7 @@ export async function renameFloor(id: string, name: string) {
 
     const trimmedName = name.trim();
     if (!trimmedName) {
-      return { success: false, error: 'Le nom de la salle est obligatoire' };
+      return { success: false, error: await te('errors.floorNameRequired') };
     }
 
     const admin = getAdminSupabase();
@@ -110,7 +111,7 @@ export async function renameFloor(id: string, name: string) {
       .single();
 
     if (existing) {
-      return { success: false, error: `Une salle nommée "${trimmedName}" existe déjà.` };
+      return { success: false, error: await te('errors.floorExists', { name: trimmedName }) };
     }
 
     const { data, error } = await admin
@@ -123,7 +124,7 @@ export async function renameFloor(id: string, name: string) {
 
     if (error) {
       if (error.code === '23505') {
-        return { success: false, error: `Une salle nommée "${trimmedName}" existe déjà.` };
+        return { success: false, error: await te('errors.floorExists', { name: trimmedName }) };
       }
       throw error;
     }
@@ -140,7 +141,7 @@ export async function renameFloor(id: string, name: string) {
     return { success: true, floor: data };
   } catch (error: any) {
     console.error('Error renaming floor:', error);
-    return { success: false, error: error.message || 'Erreur lors du renommage de la salle' };
+    return { success: false, error: await te('errors.floorRenameFailed') };
   }
 }
 
@@ -149,7 +150,7 @@ export async function deleteFloor(id: string) {
     const session = await requireAuth();
     await requireModule('TABLES');
     if (!['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(session.role)) {
-      return { success: false, error: 'Non autorisé à supprimer une salle' };
+      return { success: false, error: await te('errors.floorDeleteForbidden') };
     }
 
     const admin = getAdminSupabase();
@@ -163,7 +164,7 @@ export async function deleteFloor(id: string) {
     if (count && count > 0) {
       return {
         success: false,
-        error: `Déplacez ou supprimez les ${count} table(s) de cette salle avant de la supprimer.`,
+        error: await te('errors.floorHasTables', { count: count ?? 0 }),
       };
     }
 
@@ -179,6 +180,6 @@ export async function deleteFloor(id: string) {
     return { success: true, error: '' };
   } catch (error: any) {
     console.error('Error deleting floor:', error);
-    return { success: false, error: error.message || 'Erreur lors de la suppression de la salle' };
+    return { success: false, error: await te('errors.floorDeleteFailed') };
   }
 }

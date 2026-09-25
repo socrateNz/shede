@@ -25,9 +25,12 @@ import {
   Store as StoreIcon,
 } from 'lucide-react';
 import LogoCarousel from '@/app/components/LogoCarousel';
+import { LanguageSwitcher } from '@/components/language-switcher';
+import { getT } from '@/lib/i18n/server';
 
 export default async function HomePage() {
   const session = await getSession();
+  const { t } = await getT();
 
   return (
     <main className="min-h-screen bg-[#fdfdff]">
@@ -42,25 +45,26 @@ export default async function HomePage() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            <Link href="#product" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Produit</Link>
-            <Link href="#features" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Fonctionnalités</Link>
-            <Link href="#solutions" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Solutions</Link>
-            <Link href="#team" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Équipe</Link>
-            <Link href="#contact" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Contact</Link>
+            <Link href="#product" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">{t('landing.nav.product')}</Link>
+            <Link href="#features" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">{t('landing.nav.features')}</Link>
+            <Link href="#solutions" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">{t('landing.nav.solutions')}</Link>
+            <Link href="#team" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">{t('landing.nav.team')}</Link>
+            <Link href="#contact" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">{t('landing.nav.contact')}</Link>
           </div>
 
           <div className="flex items-center gap-4">
+            <LanguageSwitcher tone="light" />
             {session ? (
               <Link href={session.role === 'CLIENT' ? '/client' : '/dashboard'} className="px-5 py-2.5 rounded-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold shadow-md transition">
-                Mon Espace
+                {t('landing.nav.mySpace')}
               </Link>
             ) : (
               <>
                 <Link href="/login" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
-                  Se connecter
+                  {t('landing.nav.login')}
                 </Link>
                 <Link href="/register-client" className="hidden sm:inline-flex px-6 py-2.5 rounded-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold shadow-lg shadow-purple-500/20 transition hover:-translate-y-0.5">
-                  Commencer
+                  {t('landing.nav.start')}
                 </Link>
               </>
             )}
@@ -76,18 +80,18 @@ export default async function HomePage() {
         <div className="mx-auto max-w-7xl px-6 grid lg:grid-cols-2 gap-16 items-center">
           <div className="relative z-10 text-left">
             <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.1] mb-8">
-              Managez <span className="text-purple-600">intelligemment</span> vos opérations.
-              <span className="block mt-4 text-purple-900 italic font-serif font-light tracking-normal">Propulser votre croissance.</span>
+              {t('landing.hero.titleBefore')} <span className="text-purple-600">{t('landing.hero.titleHighlight')}</span> {t('landing.hero.titleAfter')}
+              <span className="block mt-4 text-purple-900 italic font-serif font-light tracking-normal">{t('landing.hero.tagline')}</span>
             </h1>
             <p className="text-lg text-slate-500 mb-10 leading-relaxed max-w-lg">
-              Débloquez des opérations fluides avec un système conçu pour améliorer la productivité, ravir les clients et garder votre équipe motivée.
+              {t('landing.hero.text')}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
                 href="tel:+237656954474"
                 className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl shadow-xl shadow-purple-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
-                Parlons-en avec un expert
+                {t('landing.hero.cta')}
               </Link>
             </div>
           </div>
@@ -99,7 +103,7 @@ export default async function HomePage() {
                 <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/20">
                   <img
                     src="/hero-mockup.png"
-                    alt="Shede Dashboard Mockup"
+                    alt={t('landing.hero.mockupAlt')}
                     className="w-full h-auto object-cover transform transition-transform duration-700 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent pointer-events-none" />
@@ -120,10 +124,10 @@ export default async function HomePage() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-4">
-              Pour les <span className="text-purple-600">clients</span> et les <span className="text-purple-600">professionnels</span>
+              {t('landing.solutions.titleBefore')} <span className="text-purple-600">{t('landing.solutions.clients')}</span> {t('landing.solutions.and')} <span className="text-purple-600">{t('landing.solutions.professionals')}</span>
             </h2>
             <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-              Une plateforme unifiée qui connecte les établissements avec leurs clients pour une expérience fluide et efficace.
+              {t('landing.solutions.text')}
             </p>
           </div>
 
@@ -133,16 +137,16 @@ export default async function HomePage() {
               <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
                 <Users className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-3">Expérience Client Premium</h3>
+              <h3 className="text-2xl font-bold text-slate-900 mb-3">{t('landing.solutions.clientTitle')}</h3>
               <p className="text-slate-600 mb-6">
-                Une application intuitive pour découvrir, réserver et profiter des meilleurs établissements sans complication.
+                {t('landing.solutions.clientText')}
               </p>
               <div className="space-y-3 mb-8">
                 {[
-                  "Réservations instantanées sans commission",
-                  "Programme de fidélité intégré",
-                  "Scan & Order - Plus d'attente",
-                  "Offres exclusives et cashback"
+                  t('landing.solutions.client1'),
+                  t('landing.solutions.client2'),
+                  t('landing.solutions.client3'),
+                  t('landing.solutions.client4')
                 ].map((item, idx) => (
                   <div key={idx} className="flex items-center gap-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
@@ -154,7 +158,7 @@ export default async function HomePage() {
                 href="/register-client"
                 className="inline-flex items-center justify-between w-full bg-purple-600 hover:bg-purple-700 text-white py-3.5 px-6 rounded-xl font-semibold transition-all group-hover:shadow-lg"
               >
-                <span>Je suis client</span>
+                <span>{t('landing.solutions.clientCta')}</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
@@ -164,16 +168,16 @@ export default async function HomePage() {
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
                 <LayoutDashboard className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3">Solution Professionnelle</h3>
+              <h3 className="text-2xl font-bold text-white mb-3">{t('landing.solutions.proTitle')}</h3>
               <p className="text-slate-400 mb-6">
-                Une plateforme tout-en-un pour gérer vos opérations, maximiser votre rentabilité et fidéliser vos clients.
+                {t('landing.solutions.proText')}
               </p>
               <div className="space-y-3 mb-8">
                 {[
-                  "POS intelligent + gestion des stocks",
-                  "PMS complet pour hôtels",
-                  "Analytics avancés en temps réel",
-                  "Application menu digital personnalisable"
+                  t('landing.solutions.pro1'),
+                  t('landing.solutions.pro2'),
+                  t('landing.solutions.pro3'),
+                  t('landing.solutions.pro4')
                 ].map((item, idx) => (
                   <div key={idx} className="flex items-center gap-3">
                     <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0" />
@@ -185,7 +189,7 @@ export default async function HomePage() {
                 href="/register-business"
                 className="inline-flex items-center justify-between w-full bg-blue-600 hover:bg-blue-500 text-white py-3.5 px-6 rounded-xl font-semibold transition-all group-hover:shadow-lg"
               >
-                <span>Je suis professionnel</span>
+                <span>{t('landing.solutions.proCta')}</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
@@ -198,21 +202,21 @@ export default async function HomePage() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-4">
-              Des fonctionnalités <span className="text-purple-600">puissantes</span>
+              {t('landing.features.titleBefore')} <span className="text-purple-600">{t('landing.features.highlight')}</span>
             </h2>
             <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-              Tout ce dont vous avez besoin pour gérer votre établissement efficacement
+              {t('landing.features.text')}
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
-              { icon: UtensilsCrossed, title: "Gestion Restaurant (POS)", desc: "Prise de commande intuitive, suivi en temps réel et intégration cuisine", color: "from-orange-500 to-orange-600" },
-              { icon: Bed, title: "Gestion Hôtelière (PMS)", desc: "Planning des réservations, gestion des chambres et facturation centralisée", color: "from-purple-500 to-purple-600" },
-              { icon: Package, title: "Gestion des Stocks", desc: "Contrôle en temps réel, alertes de rupture et optimisation des commandes", color: "from-emerald-500 to-emerald-600" },
-              { icon: QrCode, title: "Scan & Order", desc: "QR code à table pour commander sans attente, paiement mobile intégré", color: "from-blue-500 to-blue-600" },
-              { icon: TrendingUp, title: "Analytics Avancés", desc: "Tableaux de bord personnalisables et rapports détaillés en temps réel", color: "from-cyan-500 to-cyan-600" },
-              { icon: Shield, title: "Sécurité Maximale", desc: "Données cryptées, conformité RGPD et backups automatiques", color: "from-indigo-500 to-indigo-600" }
+              { icon: UtensilsCrossed, title: t('landing.features.posTitle'), desc: t('landing.features.posText'), color: "from-orange-500 to-orange-600" },
+              { icon: Bed, title: t('landing.features.pmsTitle'), desc: t('landing.features.pmsText'), color: "from-purple-500 to-purple-600" },
+              { icon: Package, title: t('landing.features.stockTitle'), desc: t('landing.features.stockText'), color: "from-emerald-500 to-emerald-600" },
+              { icon: QrCode, title: t('landing.features.qrTitle'), desc: t('landing.features.qrText'), color: "from-blue-500 to-blue-600" },
+              { icon: TrendingUp, title: t('landing.features.analyticsTitle'), desc: t('landing.features.analyticsText'), color: "from-cyan-500 to-cyan-600" },
+              { icon: Shield, title: t('landing.features.securityTitle'), desc: t('landing.features.securityText'), color: "from-indigo-500 to-indigo-600" }
             ].map((feature, idx) => (
               <div key={idx} className="group bg-white rounded-2xl p-6 border border-slate-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                 <div className={`w-12 h-12 bg-gradient-to-r ${feature.color} rounded-xl flex items-center justify-center mb-4 shadow-md`}>
@@ -232,16 +236,16 @@ export default async function HomePage() {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
               <h2 className="text-4xl font-bold text-slate-900 mb-6">
-                Une plateforme qui <span className="text-purple-600">évolue avec vous</span>
+                {t('landing.benefits.titleBefore')} <span className="text-purple-600">{t('landing.benefits.highlight')}</span>
               </h2>
               <p className="text-slate-600 mb-8">
-                Que vous soyez un petit établissement ou une chaîne hôtelière, notre solution s'adapte à vos besoins et grandit avec votre activité.
+                {t('landing.benefits.text')}
               </p>
               <div className="space-y-4">
                 {[
-                  { icon: Zap, title: "Prise en main rapide", desc: "Interface intuitive et formation incluse" },
-                  { icon: CreditCard, title: "Paiements intégrés", desc: "Multiple moyens de paiement acceptés" },
-                  { icon: Heart, title: "Support dédié 24/7", desc: "Une équipe à votre écoute en permanence" }
+                  { icon: Zap, title: t('landing.benefits.fastTitle'), desc: t('landing.benefits.fastText') },
+                  { icon: CreditCard, title: t('landing.benefits.paymentsTitle'), desc: t('landing.benefits.paymentsText') },
+                  { icon: Heart, title: t('landing.benefits.supportTitle'), desc: t('landing.benefits.supportText') }
                 ].map((item, idx) => (
                   <div key={idx} className="flex gap-4 p-4 rounded-xl bg-slate-50 hover:bg-purple-50 transition-colors">
                     <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -260,14 +264,14 @@ export default async function HomePage() {
               <div className="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-8 border border-slate-700">
                 <div className="text-center mb-6">
                   <div className="text-4xl font-bold text-white mb-2">+98%</div>
-                  <div className="text-slate-400">de satisfaction client</div>
+                  <div className="text-slate-400">{t('landing.benefits.satisfaction')}</div>
                 </div>
                 <div className="h-px bg-slate-700 my-6" />
                 <div className="space-y-4">
                   {[
-                    { value: "50k+", label: "Clients actifs" },
-                    { value: "500+", label: "Établissements" },
-                    { value: "99.9%", label: "Disponibilité" }
+                    { value: "50k+", label: t('landing.benefits.activeClients') },
+                    { value: "500+", label: t('landing.benefits.establishments') },
+                    { value: "99.9%", label: t('landing.benefits.uptime') }
                   ].map((stat, idx) => (
                     <div key={idx} className="flex justify-between items-center">
                       <span className="text-slate-400">{stat.label}</span>
@@ -286,17 +290,17 @@ export default async function HomePage() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-4">
-              Ce qu'ils <span className="text-purple-600">disent de nous</span>
+              {t('landing.testimonials.titleBefore')} <span className="text-purple-600">{t('landing.testimonials.highlight')}</span>
             </h2>
             <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-              Découvrez les retours d'expérience de nos utilisateurs
+              {t('landing.testimonials.text')}
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { name: "Sophie Martin", role: "Restauratrice", content: "Shede a transformé la gestion de mon restaurant. Le POS est incroyablement intuitif et mes clients adorent le système de commande par QR code." },
-              { name: "Thomas Dubois", role: "Directeur d'hôtel", content: "La gestion des réservations et des chambres n'a jamais été aussi simple. Un gain de temps considérable pour mon équipe." },
-              { name: "Marie Lambert", role: "Chef d'entreprise", content: "Plateforme multi-tenant parfaite pour gérer mes différents établissements. Je recommande vivement !" }
+              { name: "Sophie Martin", role: t('landing.testimonials.role1'), content: t('landing.testimonials.quote1') },
+              { name: "Thomas Dubois", role: t('landing.testimonials.role2'), content: t('landing.testimonials.quote2') },
+              { name: "Marie Lambert", role: t('landing.testimonials.role3'), content: t('landing.testimonials.quote3') }
             ].map((testimonial, idx) => (
               <div key={idx} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-lg hover:shadow-xl transition-all">
                 <div className="flex gap-1 mb-4">
@@ -319,10 +323,10 @@ export default async function HomePage() {
       <div className="py-24 bg-gradient-to-r from-slate-800 to-slate-900">
         <div className="mx-auto max-w-4xl px-6 text-center">
           <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
-            Prêt à <span className="text-purple-400">transformer</span> votre activité ?
+            {t('landing.cta.titleBefore')} <span className="text-purple-400">{t('landing.cta.highlight')}</span> {t('landing.cta.titleAfter')}
           </h2>
           <p className="text-lg text-slate-300 mb-10">
-            Rejoignez les centaines d'établissements qui nous font confiance et découvrez la différence Shede.
+            {t('landing.cta.text')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
@@ -330,14 +334,14 @@ export default async function HomePage() {
               className="inline-flex items-center gap-2 px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all hover:scale-105"
             >
               <Store className="w-5 h-5" />
-              Commencer maintenant
+              {t('landing.cta.start')}
             </Link>
             <Link
               href="/contact"
               className="inline-flex items-center gap-2 px-8 py-4 border-2 border-purple-500 text-purple-400 font-semibold rounded-xl hover:bg-purple-600/10 transition-all"
             >
               <CalendarCheck className="w-5 h-5" />
-              Planifier une démo
+              {t('landing.cta.demo')}
             </Link>
           </div>
         </div>
@@ -353,25 +357,25 @@ export default async function HomePage() {
                 <span className="text-white font-bold text-xl">Shede</span>
               </div>
               <p className="text-slate-400 text-sm">
-                La plateforme qui révolutionne la gestion des établissements.
+                {t('landing.footer.tagline')}
               </p>
             </div>
             <div>
-              <h4 className="text-white font-semibold mb-4">Produit</h4>
+              <h4 className="text-white font-semibold mb-4">{t('landing.footer.product')}</h4>
               <ul className="space-y-2 text-sm text-slate-400">
-                <li><Link href="#features" className="hover:text-purple-400 transition">Fonctionnalités</Link></li>
-                <li><Link href="#solutions" className="hover:text-purple-400 transition">Solutions</Link></li>
-                <li><Link href="tel:+237656954474" className="hover:text-purple-400 transition">Tarifs</Link></li>
+                <li><Link href="#features" className="hover:text-purple-400 transition">{t('landing.footer.features')}</Link></li>
+                <li><Link href="#solutions" className="hover:text-purple-400 transition">{t('landing.footer.solutions')}</Link></li>
+                <li><Link href="tel:+237656954474" className="hover:text-purple-400 transition">{t('landing.footer.pricing')}</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-white font-semibold mb-4">Ressources</h4>
+              <h4 className="text-white font-semibold mb-4">{t('landing.footer.resources')}</h4>
               <ul className="space-y-2 text-sm text-slate-400">
-                <li><Link href="/docs" className="hover:text-purple-400 transition">Documentation</Link></li>
+                <li><Link href="/docs" className="hover:text-purple-400 transition">{t('landing.footer.docs')}</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-white font-semibold mb-4">Contact</h4>
+              <h4 className="text-white font-semibold mb-4">{t('landing.footer.contact')}</h4>
               <ul className="space-y-2 text-sm text-slate-400">
                 <li><Link href="tel:+237656954474" className="hover:text-purple-400 transition">+237 656 954 474</Link></li>
                 <li><Link href="https://portfolio-socrate.vercel.app/" className="hover:text-purple-400 transition">Etarcos Dev</Link></li>
@@ -379,9 +383,9 @@ export default async function HomePage() {
             </div>
           </div>
           <div className="border-t border-slate-800 pt-8 text-center">
-            <p className="text-slate-500 text-sm">© 2026 Shede Tech. Tous droits réservés.</p>
+            <p className="text-slate-500 text-sm">{t('landing.footer.rights', { year: new Date().getFullYear() })}</p>
             <p className="text-slate-500 text-sm mt-2">
-              Design by <Link href="https://portfolio-socrate.vercel.app/" className="text-purple-400 hover:text-purple-300 transition">Etarcos Dev</Link>
+              {t('landing.footer.designBy')} <Link href="https://portfolio-socrate.vercel.app/" className="text-purple-400 hover:text-purple-300 transition">Etarcos Dev</Link>
             </p>
           </div>
         </div>

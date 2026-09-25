@@ -3,18 +3,20 @@
 import { createSession, getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
-import { notifyStructureStaff } from '@/app/actions/push';
+import { notifyStructureStaff, type NotificationMessage } from '@/lib/notifications';
 import { insertUserAccount, isUserEmailTaken, parseAccountFormData, type AccountInput } from '@/lib/accounts';
 import { sanitizeModules } from '@/lib/modules';
 import { getBusinessTrialEndDate } from '@/lib/trial';
 import {
   buildAccountCreatedMail,
   buildBusinessWelcomeMail,
-  buildLicenseChangedMail,
-  buildModulesChangedMail,
-  getOrganizationAdminEmails,
+  buildLicenseChangedMails,
+  buildModulesChangedMails,
+  getOrganizationAdminRecipients,
   queueMail,
 } from '@/lib/emails';
+import { getLocale, getT } from '@/lib/i18n/server';
+import type { Translator } from '@/lib/i18n/translate';
 
 // ─────────────────────────────────────────────────────────
 // Organisations (Super Admin + inscription publique)
@@ -57,17 +59,18 @@ type OrganizationRegistrationInput = {
 };
 
 function parseOrganizationRegistrationFormData(
-  formData: FormData
+  formData: FormData,
+  t: Translator
 ): { data: OrganizationRegistrationInput } | { error: string } {
   const organizationName = String(formData.get('organizationName') || '').trim();
   const organizationEmail = String(formData.get('organizationEmail') || '').trim().toLowerCase();
   const city = String(formData.get('city') || '').trim();
 
   if (!organizationName || !organizationEmail || !city) {
-    return { error: 'Tous les champs obligatoires doivent être remplis.' };
+    return { error: t('business.errors.missingFields') };
   }
 
-  const account = parseAccountFormData(formData, 'admin');
+  const account = parseAccountFormData(formData, 'admin', t);
   if ('error' in account) return account;
 
   return {
@@ -98,6 +101,7 @@ async function createOrganizationWithAdminCore(
   redirect?: string;
   trialEndsAt?: string;
 }> {
+  const { t } = await getT();
   try {
     const admin = getAdminSupabase();
 
@@ -108,11 +112,11 @@ async function createOrganizationWithAdminCore(
       .maybeSingle();
 
     if (existingOrganization) {
-      return { success: false, error: 'Une organisation utilise déjà cet email professionnel.' };
+      return { success: false, error: t('business.errors.organizationEmailTaken') };
     }
 
     if (await isUserEmailTaken(input.admin.email)) {
-      return { success: false, error: 'Un compte existe déjà avec cet email administrateur.' };
+      return { success: false, error: t('business.errors.adminEmailTaken') };
     }
 
     const { data: organization, error: organizationError } = await admin
@@ -127,7 +131,7 @@ async function createOrganizationWithAdminCore(
       .single();
 
     if (organizationError || !organization) {
-      return { success: false, error: "Échec de la création de l'organisation." };
+      return { success: false, error: t('business.errors.createFailed') };
     }
 
     const { error: licenseError } = await admin.from('licenses').insert({
@@ -141,7 +145,7 @@ async function createOrganizationWithAdminCore(
     });
 
     const created = licenseError
-      ? { error: 'Échec de la création de la licence.' }
+      ? { error: t('business.errors.licenseCreateFailed') }
       : await insertUserAccount(input.admin, {
           role: 'ORG_ADMIN',
           organizationId: organization.id,
@@ -154,6 +158,8 @@ async function createOrganizationWithAdminCore(
     }
 
     const adminUser = created.user;
+    // Langue de la personne qui crée le compte (le nouveau compte n'en a pas encore).
+    const locale = await getLocale();
     if (options?.autoLogin) {
       // Inscription publique : l'administrateur connaît son mot de passe.
       queueMail(async () =>
@@ -162,6 +168,7 @@ async function createOrganizationWithAdminCore(
           firstName: input.admin.firstName,
           organizationName: input.organizationName,
           trialEndsAt: input.license.expiresAt,
+          locale,
         })
       );
     } else {
@@ -173,6 +180,7 @@ async function createOrganizationWithAdminCore(
           firstName: input.admin.firstName,
           role: 'ORG_ADMIN',
           scopeName: input.organizationName,
+          locale,
         })
       );
     }
@@ -196,7 +204,7 @@ async function createOrganizationWithAdminCore(
       trialEndsAt: input.license.expiresAt ?? undefined,
     };
   } catch {
-    return { success: false, error: "Échec de la création de l'organisation." };
+    return { success: false, error: t('business.errors.createFailed') };
   }
 }
 
@@ -208,7 +216,7 @@ async function requireSuperAdmin() {
 /** Notifie les responsables de chaque point d'une organisation. */
 async function notifyOrganizationPoints(
   organizationId: string,
-  notification: { title: string; body: string; url?: string }
+  notification: { message: NotificationMessage; url?: string }
 ) {
   const admin = getAdminSupabase();
   const { data: points } = await admin
@@ -260,11 +268,12 @@ export async function createOrganizationWithAdmin(
   _prevState: { success: boolean; error: string; organizationId?: string },
   formData: FormData
 ) {
+  const { t } = await getT();
   if (!(await requireSuperAdmin())) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: t('business.errors.unauthorized') };
   }
 
-  const parsed = parseOrganizationRegistrationFormData(formData);
+  const parsed = parseOrganizationRegistrationFormData(formData, t);
   if ('error' in parsed) {
     return { success: false, error: parsed.error };
   }
@@ -283,7 +292,8 @@ export async function registerBusiness(
   },
   formData: FormData
 ) {
-  const parsed = parseOrganizationRegistrationFormData(formData);
+  const { t } = await getT();
+  const parsed = parseOrganizationRegistrationFormData(formData, t);
   if ('error' in parsed) {
     return { success: false, error: parsed.error };
   }
@@ -321,8 +331,9 @@ export async function updateOrganizationLicense(
   _prevState: { success: boolean; error: string },
   formData: FormData
 ) {
+  const { t } = await getT();
   if (!(await requireSuperAdmin())) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: t('business.errors.unauthorized') };
   }
 
   const isActive = String(formData.get('isActive') || 'false') === 'true';
@@ -345,18 +356,17 @@ export async function updateOrganizationLicense(
       );
 
     if (error) {
-      return { success: false, error: 'Failed to update license' };
+      return { success: false, error: t('business.errors.licenseUpdateFailed') };
     }
 
     queueMail(async () => {
-      const [{ data: organization }, to] = await Promise.all([
+      const [{ data: organization }, recipients] = await Promise.all([
         getAdminSupabase().from('organizations').select('name').eq('id', organizationId).maybeSingle(),
-        getOrganizationAdminEmails(organizationId),
+        getOrganizationAdminRecipients(organizationId),
       ]);
-      if (!to.length) return null;
-      return buildLicenseChangedMail({
-        to,
-        organizationName: organization?.name ?? 'votre organisation',
+      return buildLicenseChangedMails({
+        recipients,
+        organizationName: organization?.name,
         isActive,
         expiresAt,
         maxPoints,
@@ -364,15 +374,17 @@ export async function updateOrganizationLicense(
     });
 
     await notifyOrganizationPoints(organizationId, {
-      title: 'Mise à jour de licence',
-      body: `Le statut de la licence de votre organisation a été mis à jour par le Super Administrateur (Actif: ${isActive}).`,
+      message: ({ t }) => ({
+        title: t('notify.licenseStatus.title'),
+        body: isActive ? t('notify.licenseStatus.activated') : t('notify.licenseStatus.suspended'),
+      }),
       url: '/dashboard',
     });
 
     revalidatePath('/structures');
     return { success: true, error: '' };
   } catch {
-    return { success: false, error: 'Failed to update license' };
+    return { success: false, error: t('business.errors.licenseUpdateFailed') };
   }
 }
 
@@ -385,8 +397,9 @@ export async function updateOrganization(
   _prevState: { success: boolean; error: string },
   formData: FormData
 ) {
+  const { t } = await getT();
   if (!(await requireSuperAdmin())) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: t('business.errors.unauthorized') };
   }
 
   const name = String(formData.get('organizationName') || '').trim();
@@ -395,7 +408,7 @@ export async function updateOrganization(
   const modules = parseModulesFromFormData(formData);
 
   if (!name || !email) {
-    return { success: false, error: 'Name and email are required' };
+    return { success: false, error: t('business.errors.nameEmailRequired') };
   }
 
   try {
@@ -420,7 +433,7 @@ export async function updateOrganization(
 
     if (error) {
       console.error('Organization Update Error:', error);
-      return { success: false, error: error.message || 'Failed to update organization' };
+      return { success: false, error: t('business.errors.updateFailed') };
     }
 
     const { error: syncError } = await admin
@@ -430,21 +443,27 @@ export async function updateOrganization(
 
     if (syncError) {
       console.error('Organization modules sync error:', syncError);
-      return { success: false, error: 'Modules non propagés aux points.' };
+      return { success: false, error: t('business.errors.modulesNotPropagated') };
     }
 
     const added = modules.filter((m) => !previousModules.includes(m));
     const removed = previousModules.filter((m) => !modules.includes(m));
     if (added.length || removed.length) {
-      queueMail(async () => {
-        const to = await getOrganizationAdminEmails(organizationId);
-        return to.length ? buildModulesChangedMail({ to, organizationName: name, added, removed }) : null;
-      });
+      queueMail(async () =>
+        buildModulesChangedMails({
+          recipients: await getOrganizationAdminRecipients(organizationId),
+          organizationName: name,
+          added,
+          removed,
+        })
+      );
     }
 
     await notifyOrganizationPoints(organizationId, {
-      title: 'Licence modifiée',
-      body: `Les modules de l'organisation ${name} ont été mis à jour. Reconnectez-vous pour en profiter.`,
+      message: ({ t }) => ({
+        title: t('notify.licenseModules.title'),
+        body: t('notify.licenseModules.body', { name }),
+      }),
       url: '/settings',
     });
 
@@ -452,7 +471,7 @@ export async function updateOrganization(
     return { success: true, error: '' };
   } catch (error: any) {
     console.error('Organization Update Catch Error:', error);
-    return { success: false, error: error.message || 'Failed to update organization' };
+    return { success: false, error: t('business.errors.updateFailed') };
   }
 }
 
@@ -462,11 +481,12 @@ export async function createOrganizationAdmin(
   _prevState: { success: boolean; error: string },
   formData: FormData
 ) {
+  const { t } = await getT();
   if (!(await requireSuperAdmin())) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: t('business.errors.unauthorized') };
   }
 
-  const account = parseAccountFormData(formData, 'admin');
+  const account = parseAccountFormData(formData, 'admin', t);
   if ('error' in account) return { success: false, error: account.error };
 
   const created = await insertUserAccount(account.data, {
@@ -475,6 +495,7 @@ export async function createOrganizationAdmin(
   });
   if ('error' in created) return { success: false, error: created.error };
 
+  const locale = await getLocale();
   queueMail(async () => {
     const { data: organization } = await getAdminSupabase()
       .from('organizations')
@@ -486,7 +507,8 @@ export async function createOrganizationAdmin(
       email: created.user.email,
       firstName: account.data.firstName,
       role: 'ORG_ADMIN',
-      scopeName: organization?.name ?? 'votre organisation',
+      scopeName: organization?.name,
+      locale,
     });
   });
 
@@ -495,8 +517,9 @@ export async function createOrganizationAdmin(
 }
 
 export async function deleteOrganization(organizationId: string) {
+  const { t } = await getT();
   if (!(await requireSuperAdmin())) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: t('business.errors.unauthorized') };
   }
 
   try {
@@ -505,13 +528,13 @@ export async function deleteOrganization(organizationId: string) {
     const { error } = await admin.from('organizations').delete().eq('id', organizationId);
 
     if (error) {
-      return { success: false, error: 'Failed to delete organization' };
+      return { success: false, error: t('business.errors.deleteFailed') };
     }
 
     revalidatePath('/structures');
     return { success: true };
   } catch {
-    return { success: false, error: 'Failed to delete organization' };
+    return { success: false, error: t('business.errors.deleteFailed') };
   }
 }
 
@@ -523,14 +546,15 @@ export async function updateStructureSettings(
   _prevState: { success: boolean; error: string },
   formData: FormData
 ): Promise<{ success: boolean; error: string }> {
+  const { t } = await getT();
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: t('common.unauthorized') };
   }
 
   const structureId = session.structureId;
   if (!structureId) {
-    return { success: false, error: 'Aucune structure associée à ce compte.' };
+    return { success: false, error: t('settings.errors.noStructure') };
   }
 
   const name     = String(formData.get('name') || '').trim();
@@ -539,19 +563,19 @@ export async function updateStructureSettings(
   const address  = String(formData.get('address') || '').trim() || null;
   const city     = String(formData.get('city') || '').trim() || null;
   const country  = String(formData.get('country') || '').trim() || null;
-  const currency = String(formData.get('currency') || 'XOF').trim();
-  const timezone = String(formData.get('timezone') || 'Africa/Abidjan').trim();
+  const currency = String(formData.get('currency') || 'XAF').trim();
+  const timezone = String(formData.get('timezone') || 'Africa/Douala').trim();
   const type     = String(formData.get('type') || 'RESTAURANT').trim();
   const logo_url = String(formData.get('logo_url') || '').trim() || null;
   const taxRate  = Number(formData.get('tax_rate') || 0);
   const takeawayFee = Number(formData.get('takeaway_fee') || 0);
 
   if (!name || !email) {
-    return { success: false, error: 'Le nom et l\'email sont obligatoires.' };
+    return { success: false, error: t('settings.errors.nameEmailRequired') };
   }
 
   if (!['RESTAURANT', 'HOTEL', 'MIXTE'].includes(type)) {
-    return { success: false, error: 'Type d\'établissement invalide.' };
+    return { success: false, error: t('settings.errors.invalidType') };
   }
 
   try {
@@ -577,7 +601,27 @@ export async function updateStructureSettings(
       .eq('id', structureId);
 
     if (error) {
-      return { success: false, error: error.message || 'Erreur lors de la mise à jour.' };
+      console.error('[updateStructureSettings] update error:', error.message);
+      return { success: false, error: t('settings.errors.updateFailed') };
+    }
+
+    // Identité fiscale et régime de TVA (colonnes de docs/phase9-fiscal.sql),
+    // enregistrés à part pour ne pas bloquer le reste si la migration manque.
+    const { error: fiscalError } = await admin
+      .from('structures')
+      .update({
+        niu: String(formData.get('niu') || '').trim().toUpperCase() || null,
+        rccm: String(formData.get('rccm') || '').trim().toUpperCase() || null,
+        prices_include_tax: String(formData.get('prices_include_tax') ?? 'true') !== 'false',
+      })
+      .eq('id', structureId);
+
+    if (fiscalError) {
+      console.error('[updateStructureSettings] fiscal error:', fiscalError.message);
+      return {
+        success: false,
+        error: t('settings.errors.fiscalMigration'),
+      };
     }
 
     revalidatePath('/settings');
@@ -585,6 +629,6 @@ export async function updateStructureSettings(
     return { success: true, error: '' };
   } catch (err: any) {
     console.error('[updateStructureSettings] error:', err);
-    return { success: false, error: err?.message || 'Erreur serveur.' };
+    return { success: false, error: t('common.genericError') };
   }
 }

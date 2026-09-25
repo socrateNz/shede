@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { PromotionsList } from '@/components/promotions-list';
+import { getT } from '@/lib/i18n/server';
 
 async function getPromotionsStats(promotions: any[]) {
   const total = promotions.length;
@@ -27,6 +28,7 @@ async function getPromotionsStats(promotions: any[]) {
 
 export default async function PromotionsPage() {
   const session = await requireRole('ADMIN', 'SUPER_ADMIN');
+  const { t } = await getT();
   const promotions = await getPromotions();
   const stats = await getPromotionsStats(promotions);
 
@@ -51,19 +53,19 @@ export default async function PromotionsPage() {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
               <ShieldCheck className="w-4 h-4 text-blue-400" />
               <span className="text-sm text-blue-400 font-medium lowercase tracking-wide">
-                Module PROMOTION {session.role === 'ADMIN' ? 'Actif' : 'Super Admin'}
+                {t('promotions.page.badge', { role: session.role === 'ADMIN' ? t('roles.ADMIN') : t('roles.SUPER_ADMIN') })}
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
-              Gestion des Promotions
+              {t('promotions.page.title')}
             </h1>
-            <p className="text-slate-400">Créez des offres, gérez vos codes promo et boostez vos ventes</p>
+            <p className="text-slate-400">{t('promotions.page.subtitle')}</p>
           </div>
 
           <Link href="/promotions/new">
             <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-300 transform hover:scale-105 border-none">
               <Plus className="w-4 h-4 mr-2" />
-              Nouvelle Promotion
+              {t('promotions.page.newPromotion')}
             </Button>
           </Link>
         </div>
@@ -74,7 +76,7 @@ export default async function PromotionsPage() {
           <div className="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-5 hover:bg-slate-800/60 transition-all group">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-400 mb-1 uppercase tracking-wider">Total Offres</p>
+                <p className="text-sm font-medium text-slate-400 mb-1 uppercase tracking-wider">{t('promotions.page.statTotal')}</p>
                 <h3 className="text-3xl font-bold text-white tracking-tight">{stats.total}</h3>
               </div>
               <div className="p-3 bg-blue-500/10 rounded-xl group-hover:scale-110 transition-transform">
@@ -87,7 +89,7 @@ export default async function PromotionsPage() {
           <div className="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-5 hover:bg-slate-800/60 transition-all group">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-400 mb-1 uppercase tracking-wider">Actives</p>
+                <p className="text-sm font-medium text-slate-400 mb-1 uppercase tracking-wider">{t('promotions.page.statActive')}</p>
                 <h3 className="text-3xl font-bold text-green-400 tracking-tight">{stats.active}</h3>
               </div>
               <div className="p-3 bg-green-500/10 rounded-xl group-hover:scale-110 transition-transform">
@@ -100,7 +102,7 @@ export default async function PromotionsPage() {
           <div className="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-5 hover:bg-slate-800/60 transition-all group">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-400 mb-1 uppercase tracking-wider">Pourcentage</p>
+                <p className="text-sm font-medium text-slate-400 mb-1 uppercase tracking-wider">{t('promotions.page.statPercentage')}</p>
                 <h3 className="text-3xl font-bold text-purple-400 tracking-tight">{stats.percentage}</h3>
               </div>
               <div className="p-3 bg-purple-500/10 rounded-xl group-hover:scale-110 transition-transform">
@@ -113,7 +115,7 @@ export default async function PromotionsPage() {
           <div className="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-5 hover:bg-slate-800/60 transition-all group">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-400 mb-1 uppercase tracking-wider">Montant Fixe</p>
+                <p className="text-sm font-medium text-slate-400 mb-1 uppercase tracking-wider">{t('promotions.page.statFixed')}</p>
                 <h3 className="text-3xl font-bold text-emerald-400 tracking-tight">{stats.fixed}</h3>
               </div>
               <div className="p-3 bg-emerald-500/10 rounded-xl group-hover:scale-110 transition-transform">
@@ -129,10 +131,10 @@ export default async function PromotionsPage() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-slate-50 flex items-center gap-3 text-xl font-semibold tracking-tight">
                 <LayoutDashboard className="w-5 h-5 text-indigo-400" />
-                Liste des Promotions
+                {t('promotions.page.listTitle')}
               </CardTitle>
               <div className="text-xs text-slate-500 font-mono italic">
-                {promotions.length} offre(s) configurée(s)
+                {t('promotions.page.configured', { count: promotions.length })}
               </div>
             </div>
           </CardHeader>
@@ -143,14 +145,14 @@ export default async function PromotionsPage() {
                 <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-slate-700/30 flex items-center justify-center border border-slate-700/50">
                   <Tag className="w-12 h-12 opacity-20" />
                 </div>
-                <h3 className="text-xl font-semibold text-slate-200 mb-2">Aucune promotion</h3>
+                <h3 className="text-xl font-semibold text-slate-200 mb-2">{t('promotions.page.emptyTitle')}</h3>
                 <p className="text-sm max-w-xs mx-auto mb-8 text-slate-500 italic">
-                  Attirez plus de clients en créant votre première offre de réduction.
+                  {t('promotions.page.emptyText')}
                 </p>
                 <Link href="/promotions/new">
                   <Button variant="outline" className="border-slate-700 text-blue-400 hover:bg-slate-800 hover:border-blue-500/50 transition-all px-8 rounded-full">
                     <Plus className="w-4 h-4 mr-2" />
-                    Créer une promotion
+                    {t('promotions.page.create')}
                   </Button>
                 </Link>
               </div>
@@ -164,9 +166,8 @@ export default async function PromotionsPage() {
         <div className="bg-blue-500/5 border border-blue-500/10 rounded-2xl p-4 flex gap-4 items-start mb-8 backdrop-blur-sm">
           <AlertCircle className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
           <div className="text-sm text-slate-400 leading-relaxed">
-            <strong className="text-blue-300 block mb-1">Comment ça marche ?</strong>
-            Créez une promotion (e.g. -10% sur tout l'hôtel), puis générez un ou plusieurs <Link href="/promo-codes" className="text-blue-400 underline hover:text-blue-300">codes promo</Link> liés à cette offre. 
-            Les réductions sont calculées automatiquement lors du passage en caisse ou de la réservation.
+            <strong className="text-blue-300 block mb-1">{t('promotions.page.howTitle')}</strong>
+            {t('promotions.page.howBefore')} <Link href="/promo-codes" className="text-blue-400 underline hover:text-blue-300">{t('promotions.page.howLink')}</Link> {t('promotions.page.howAfter')}
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 import { requireRole } from '@/app/actions/auth';
 import { getOrders } from '@/app/actions/orders';
 import { getStructureActiveShift } from '@/app/actions/shifts';
+import { getT } from '@/lib/i18n/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, ShoppingCart, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
@@ -30,6 +31,7 @@ async function getOrdersStats(orders: any[]) {
 
 export default async function OrdersPage() {
   const session = await requireRole('ADMIN', 'CAISSE', 'SERVEUR');
+  const { t } = await getT();
   const orders = await getOrders(session.structureId!, undefined, 100);
   const activeShift = await getStructureActiveShift(session.structureId!);
   const stats = await getOrdersStats(orders);
@@ -49,24 +51,24 @@ export default async function OrdersPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
               <ShoppingCart className="w-4 h-4 text-blue-400" />
-              <span className="text-sm text-blue-400 font-medium">Gestion des commandes</span>
+              <span className="text-sm text-blue-400 font-medium">{t('orders.list.badge')}</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
-              Commandes
+              {t('orders.list.title')}
             </h1>
-            <p className="text-slate-400">Gérez les commandes de votre établissement</p>
+            <p className="text-slate-400">{t('orders.list.subtitle')}</p>
           </div>
           {activeShift ? (
             <Link href="/orders/new">
               <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
                 <Plus className="w-4 h-4 mr-2" />
-                Nouvelle commande
+                {t('orders.list.newOrder')}
               </Button>
             </Link>
           ) : (
             <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-sm">
               <AlertTriangle className="w-4 h-4" />
-              Caisse fermée
+              {t('orders.list.tillClosed')}
             </div>
           )}
         </div>
@@ -75,11 +77,11 @@ export default async function OrdersPage() {
           <div className="mb-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-amber-500 font-semibold text-sm">Attention : Caisse fermée</h3>
+              <h3 className="text-amber-500 font-semibold text-sm">{t('orders.list.tillClosedTitle')}</h3>
               <p className="text-amber-500/70 text-xs mt-1">
-                La prise de commande et les paiements sont désactivés tant qu'aucune session de caisse n'est ouverte.
+                {t('orders.list.tillClosedText')}
                 {(session.role === 'ADMIN' || session.role === 'CAISSE') && (
-                  <Link href="/shifts" className="underline ml-1 font-bold">Ouvrir la caisse</Link>
+                  <Link href="/shifts" className="underline ml-1 font-bold">{t('orders.list.openTill')}</Link>
                 )}
               </p>
             </div>
@@ -91,7 +93,7 @@ export default async function OrdersPage() {
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300 group">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm text-slate-400 mb-1">Total commandes</div>
+                <div className="text-sm text-slate-400 mb-1">{t('orders.list.statTotal')}</div>
                 <div className="text-2xl font-bold text-white">{stats.total.count}</div>
                 <div className="text-xs font-semibold text-blue-400 mt-1">{stats.total.revenue.toLocaleString()} FCFA</div>
               </div>
@@ -104,7 +106,7 @@ export default async function OrdersPage() {
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300 group">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm text-slate-400 mb-1">En attente</div>
+                <div className="text-sm text-slate-400 mb-1">{t('orders.list.statPending')}</div>
                 <div className="text-2xl font-bold text-yellow-400">{stats.pending.count}</div>
                 <div className="text-xs font-semibold text-yellow-500/80 mt-1">{stats.pending.revenue.toLocaleString()} FCFA</div>
               </div>
@@ -117,7 +119,7 @@ export default async function OrdersPage() {
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300 group">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm text-slate-400 mb-1">En cours</div>
+                <div className="text-sm text-slate-400 mb-1">{t('orders.list.statInProgress')}</div>
                 <div className="text-2xl font-bold text-purple-400">{stats.inProgress.count}</div>
                 <div className="text-xs font-semibold text-purple-500/80 mt-1">{stats.inProgress.revenue.toLocaleString()} FCFA</div>
               </div>
@@ -129,7 +131,7 @@ export default async function OrdersPage() {
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300 group">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm text-slate-400 mb-1">Payées</div>
+                <div className="text-sm text-slate-400 mb-1">{t('orders.list.statPaid')}</div>
                 <div className="text-2xl font-bold text-green-400">{stats.completed.count}</div>
                 <div className="text-xs font-semibold text-green-500 mt-1">{stats.completed.revenue.toLocaleString()} FCFA</div>
               </div>
@@ -146,7 +148,7 @@ export default async function OrdersPage() {
           <CardHeader className="border-b border-slate-700/50">
             <CardTitle className="text-slate-50 flex items-center gap-2">
               <ShoppingCart className="w-5 h-5 text-blue-400" />
-              Commandes récentes
+              {t('orders.list.recent')}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -155,12 +157,12 @@ export default async function OrdersPage() {
                 <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-700/50 flex items-center justify-center">
                   <ShoppingCart className="w-10 h-10 opacity-30" />
                 </div>
-                <p className="text-lg">Aucune commande</p>
-                <p className="text-sm mt-2 mb-6">Commencez par créer votre première commande</p>
+                <p className="text-lg">{t('orders.list.emptyTitle')}</p>
+                <p className="text-sm mt-2 mb-6">{t('orders.list.emptyText')}</p>
                 <Link href="/orders/new">
                   <Button variant="outline" className="border-slate-600 text-blue-400 hover:bg-slate-700 hover:text-blue-300">
                     <Plus className="w-4 h-4 mr-2" />
-                    Créer une commande
+                    {t('orders.list.create')}
                   </Button>
                 </Link>
               </div>
@@ -177,7 +179,7 @@ export default async function OrdersPage() {
         {/* Footer */}
         <div className="mt-6 text-center">
           <p className="text-xs text-slate-500">
-            Les commandes sont mises à jour automatiquement en temps réel
+            {t('orders.list.realtime')}
           </p>
         </div>
       </div>

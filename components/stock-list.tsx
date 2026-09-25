@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useT } from '@/lib/i18n/client';
 import { TablePagination } from './table-pagination';
 import { Package, Coffee } from 'lucide-react';
 
@@ -23,6 +24,7 @@ function cn(...classes: any[]) {
 
 export function StockList({ stocks }: StockListProps) {
   const [currentPage, setCurrentPage] = useState(1);
+  const { t } = useT();
   const [filter, setFilter] = useState<'all' | 'product' | 'accompaniment'>('all');
   const itemsPerPage = 10;
 
@@ -42,9 +44,9 @@ export function StockList({ stocks }: StockListProps) {
       {/* Filtres */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700/50 bg-slate-800/30">
         {([
-          { key: 'all', label: 'Tous', icon: undefined },
-          { key: 'product', label: 'Produits', icon: Package },
-          { key: 'accompaniment', label: 'Accompagnements', icon: Coffee },
+          { key: 'all', label: t('stock.list.filterAll'), icon: undefined },
+          { key: 'product', label: t('stock.list.filterProducts'), icon: Package },
+          { key: 'accompaniment', label: t('stock.list.filterAccompaniments'), icon: Coffee },
         ] as const).map(({ key, label, icon: Icon }) => (
           <button
             key={key}
@@ -74,12 +76,12 @@ export function StockList({ stocks }: StockListProps) {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-slate-700 bg-slate-800/80">
-              <th className="p-4 text-sm font-semibold text-slate-300">Nom</th>
-              <th className="p-4 text-sm font-semibold text-slate-300">Type</th>
-              <th className="p-4 text-sm font-semibold text-slate-300">Catégorie</th>
-              <th className="p-4 text-sm font-semibold text-slate-300 text-center">Quantité</th>
-              <th className="p-4 text-sm font-semibold text-slate-300 text-center">Seuil</th>
-              <th className="p-4 text-sm font-semibold text-slate-300 text-right">Statut</th>
+              <th className="p-4 text-sm font-semibold text-slate-300">{t('stock.list.colName')}</th>
+              <th className="p-4 text-sm font-semibold text-slate-300">{t('stock.list.colType')}</th>
+              <th className="p-4 text-sm font-semibold text-slate-300">{t('stock.list.colCategory')}</th>
+              <th className="p-4 text-sm font-semibold text-slate-300 text-center">{t('stock.list.colQuantity')}</th>
+              <th className="p-4 text-sm font-semibold text-slate-300 text-center">{t('stock.list.colThreshold')}</th>
+              <th className="p-4 text-sm font-semibold text-slate-300 text-right">{t('stock.list.colStatus')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-700/50">
@@ -92,18 +94,18 @@ export function StockList({ stocks }: StockListProps) {
                   {item.type === 'product' ? (
                     <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
                       <Package className="w-3 h-3" />
-                      Produit
+                      {t('stock.itemType.product')}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">
                       <Coffee className="w-3 h-3" />
-                      Accompagnement
+                      {t('stock.itemType.accompaniment')}
                     </span>
                   )}
                 </td>
                 <td className="p-4">
                   <span className="text-sm text-slate-400">
-                    {item.type === 'accompaniment' ? '—' : (item.category || 'N/A')}
+                    {item.type === 'accompaniment' ? '—' : (item.category || t('stock.list.notApplicable'))}
                   </span>
                 </td>
                 <td className="p-4 text-center">
@@ -120,15 +122,15 @@ export function StockList({ stocks }: StockListProps) {
                 <td className="p-4 text-right">
                   {item.quantity <= 0 ? (
                     <span className="px-2 py-1 rounded-full bg-red-500/10 text-red-500 text-xs font-medium border border-red-500/20">
-                      Rupture
+                      {t('stock.list.outOfStock')}
                     </span>
                   ) : item.quantity <= item.threshold ? (
                     <span className="px-2 py-1 rounded-full bg-amber-500/10 text-amber-500 text-xs font-medium border border-amber-500/20">
-                      Bas
+                      {t('stock.list.low')}
                     </span>
                   ) : (
                     <span className="px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-medium border border-emerald-500/20">
-                      OK
+                      {t('stock.list.ok')}
                     </span>
                   )}
                 </td>
@@ -137,7 +139,7 @@ export function StockList({ stocks }: StockListProps) {
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={6} className="p-8 text-center text-slate-500">
-                  Aucun article trouvé.
+                  {t('stock.list.empty')}
                 </td>
               </tr>
             )}

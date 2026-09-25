@@ -71,6 +71,14 @@ export interface Structure {
   logo_url?: string;
   /** Taux de TVA en % (ex: 18) */
   tax_rate?: number;
+  /** true : prix saisis TTC ; false : prix HT (la TVA s'ajoute). */
+  prices_include_tax?: boolean;
+  /** Numéro d'Identifiant Unique (DGI). */
+  niu?: string | null;
+  /** Registre du Commerce et du Crédit Mobilier. */
+  rccm?: string | null;
+  /** Frais d'emballage appliqués aux commandes à emporter. */
+  takeaway_fee?: number;
   created_at: string;
   updated_at: string;
 }

@@ -11,9 +11,13 @@ import { useRouter } from 'next/navigation';
 import { getRooms } from '@/app/actions/rooms';
 import { useAppStore } from '@/lib/store';
 import { toast } from 'sonner';
+import { useT } from '@/lib/i18n/client';
+
+const ROOM_TYPES = ['Standard', 'Double', 'Studio', 'Suite', 'Familiale', 'Autre'] as const;
 
 export default function NewBookingPage() {
   const router = useRouter();
+  const { t } = useT();
   const [rooms, setRooms] = useState<any[]>([]);
   const structure = useAppStore(s => s.activeStructure);
 
@@ -38,26 +42,26 @@ export default function NewBookingPage() {
     <div className="p-8">
       <Link href="/bookings" className="flex items-center gap-2 text-blue-400 hover:text-blue-300 mb-8">
         <ArrowLeft className="w-4 h-4" />
-        Back to Bookings
+        {t('hotel.bookingForm.back')}
       </Link>
 
       <Card className="bg-slate-800 border-slate-700 w-full">
         <CardHeader>
-          <CardTitle className="text-slate-50">Create Reservation</CardTitle>
+          <CardTitle className="text-slate-50">{t('hotel.bookingForm.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <form action={formAction} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Room *</label>
+              <label className="text-sm font-medium text-slate-200">{t('hotel.bookingForm.room')}</label>
               <select
                 name="roomId"
                 className="w-full bg-slate-700 border border-slate-600 text-slate-50 rounded-md px-3 py-2"
                 required
               >
-                 <option value="">Select an available room</option>
+                 <option value="">{t('hotel.bookingForm.selectRoom')}</option>
                  {rooms.map(room => (
                    <option key={room.id} value={room.id}>
-                     {room.number} - {room.type}
+                     {room.number} - {ROOM_TYPES.includes(room.type) ? t(`hotel.roomTypes.${room.type as (typeof ROOM_TYPES)[number]}.label`) : room.type}
                    </option>
                  ))}
               </select>
@@ -65,20 +69,20 @@ export default function NewBookingPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-200">Client Name</label>
+                <label className="text-sm font-medium text-slate-200">{t('hotel.bookingForm.clientName')}</label>
                 <Input
                   type="text"
                   name="clientName"
-                  placeholder="Walk-in Client (Optional)"
+                  placeholder={t('hotel.bookingForm.clientNamePlaceholder')}
                   className="bg-slate-700 border-slate-600 text-slate-50"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-200">Phone *</label>
+                <label className="text-sm font-medium text-slate-200">{t('hotel.bookingForm.phone')}</label>
                 <Input
                   type="tel"
                   name="phone"
-                  placeholder="Client Phone"
+                  placeholder={t('hotel.bookingForm.phonePlaceholder')}
                   className="bg-slate-700 border-slate-600 text-slate-50"
                   required
                 />
@@ -87,7 +91,7 @@ export default function NewBookingPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-200">Check In Date *</label>
+                <label className="text-sm font-medium text-slate-200">{t('hotel.bookingForm.checkIn')}</label>
                 <Input
                   type="date"
                   name="checkIn"
@@ -96,7 +100,7 @@ export default function NewBookingPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-200">Check Out Date *</label>
+                <label className="text-sm font-medium text-slate-200">{t('hotel.bookingForm.checkOut')}</label>
                 <Input
                   type="date"
                   name="checkOut"
@@ -118,7 +122,7 @@ export default function NewBookingPage() {
                 disabled={isPending}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
-                {isPending ? 'Saving...' : 'Book Room'}
+                {isPending ? t('hotel.bookingForm.saving') : t('hotel.bookingForm.submit')}
               </Button>
             </div>
           </form>

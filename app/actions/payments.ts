@@ -4,6 +4,8 @@ import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { getStructureActiveShift } from './shifts';
 import { processOrderStock } from './stock';
+import { assignInvoiceNumber } from '@/lib/fiscal';
+import { te } from '@/lib/i18n/server';
 
 export async function createPayment(
   orderId: string,
@@ -14,13 +16,13 @@ export async function createPayment(
 ) {
   const session = await getSession();
   if (!session || !['ADMIN', 'CAISSE', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   // Check if shift is open for structure
   const activeShift = await getStructureActiveShift(session.structureId as string);
   if (!activeShift) {
-    return { success: false, error: 'La caisse doit être ouverte pour encaisser un paiement.' };
+    return { success: false, error: await te('errors.registerClosedPayment') };
   }
 
   try {
@@ -35,12 +37,12 @@ export async function createPayment(
       .single();
 
     if (orderError || !order) {
-      return { success: false, error: 'Order not found' };
+      return { success: false, error: await te('errors.orderNotFound') };
     }
 
     // Verify amount matches order total
     if (amount > order.total) {
-      return { success: false, error: 'Payment amount cannot exceed order total' };
+      return { success: false, error: await te('errors.paymentExceedsTotal') };
     }
 
     // Create payment
@@ -58,7 +60,7 @@ export async function createPayment(
       .single();
 
     if (error || !payment) {
-      return { success: false, error: 'Failed to create payment' };
+      return { success: false, error: await te('errors.paymentFailed') };
     }
 
     // Update order status to COMPLETED and record paid_at
@@ -74,10 +76,13 @@ export async function createPayment(
       await processOrderStock(orderId);
     }
 
+    // Numéro de facture continu du point (idempotent : conservé si déjà attribué).
+    await assignInvoiceNumber('ORDER', orderId);
+
     return { success: true, paymentId: payment.id };
   } catch (error) {
     console.error('Create payment error:', error);
-    return { success: false, error: 'Failed to create payment' };
+    return { success: false, error: await te('errors.paymentFailed') };
   }
 }
 

@@ -5,6 +5,7 @@ export { getSession }; // Allow client components to import this server-side fun
 import { getAdminSupabase } from '@/lib/supabase';
 import { isLicenseValid, isStructureVisible, STRUCTURE_LICENSE_SELECT } from '@/lib/license';
 import { redirect } from 'next/navigation';
+import { getT } from '@/lib/i18n/server';
 
 type AccessCheck = { ok: true } | { ok: false; reason: 'license_expired' | 'point_inactive' };
 
@@ -49,10 +50,10 @@ async function checkAccountAccess(
   return { ok: true };
 }
 
-const ACCESS_ERRORS: Record<'license_expired' | 'point_inactive', string> = {
-  license_expired: 'Votre licence a expiré, veuillez contacter le support.',
-  point_inactive: "Ce point a été désactivé par l'administrateur de l'organisation.",
-};
+const ACCESS_ERROR_KEYS = {
+  license_expired: 'auth.errors.licenseExpired',
+  point_inactive: 'auth.errors.pointInactive',
+} as const;
 
 function getHomeForRole(role: string) {
   if (role === 'SUPER_ADMIN') return '/structures';
@@ -65,12 +66,13 @@ export async function login(
   _prevState: { success: boolean; error: string; redirect?: string },
   formData: FormData
 ) {
+  const { t } = await getT();
   try {
     const email = String(formData.get('email') || '').trim();
     const password = String(formData.get('password') || '');
 
     if (!email || !password) {
-      return { success: false, error: 'Email and password are required' };
+      return { success: false, error: t('auth.errors.missingCredentials') };
     }
 
     const admin = getAdminSupabase();
@@ -83,18 +85,18 @@ export async function login(
       .single();
 
     if (error || !users) {
-      return { success: false, error: 'Invalid credentials' };
+      return { success: false, error: t('auth.errors.invalidCredentials') };
     }
 
     // Verify password
     const isValid = await verifyPassword(password, users.password_hash);
     if (!isValid) {
-      return { success: false, error: 'Invalid credentials' };
+      return { success: false, error: t('auth.errors.invalidCredentials') };
     }
 
     // Check if user is active
     if (!users.is_active) {
-      return { success: false, error: 'User account is inactive' };
+      return { success: false, error: t('auth.errors.accountInactive') };
     }
 
     const organizationId: string | null =
@@ -102,7 +104,7 @@ export async function login(
 
     const access = await checkAccountAccess(users.structure_id, organizationId);
     if (!access.ok) {
-      return { success: false, error: ACCESS_ERRORS[access.reason] };
+      return { success: false, error: t(ACCESS_ERROR_KEYS[access.reason]) };
     }
 
     // Les modules viennent de la licence de l'organisation ; structures.modules
@@ -127,7 +129,7 @@ export async function login(
     };
   } catch (error) {
     console.error('Login error:', error);
-    return { success: false, error: 'Login failed' };
+    return { success: false, error: t('auth.errors.loginFailed') };
   }
 }
 

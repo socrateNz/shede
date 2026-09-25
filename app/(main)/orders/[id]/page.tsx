@@ -1,5 +1,8 @@
 'use client';
 
+import { useT } from '@/lib/i18n/client';
+import type { TranslationKey } from '@/lib/i18n/translate';
+
 import {
   getOrder,
   addOrderItem,
@@ -79,13 +82,13 @@ type ParentAccompanimentChoices = {
   possibleAccompaniments: AccompanimentChoice[];
 };
 
-const statusConfig: Record<string, { label: string; icon: any; color: string; bg: string }> = {
-  PENDING: { label: 'En attente', icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
-  IN_PROGRESS: { label: 'En préparation', icon: Package, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-  READY: { label: 'Prête', icon: CheckCircle, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-  SERVED: { label: 'Servie', icon: CheckCircle, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-  COMPLETED: { label: 'Payée', icon: CreditCard, color: 'text-green-400', bg: 'bg-green-500/10' },
-  CANCELLED: { label: 'Annulée', icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
+const statusStyles: Record<string, { icon: any; color: string; bg: string }> = {
+  PENDING: { icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
+  IN_PROGRESS: { icon: Package, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+  READY: { icon: CheckCircle, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+  SERVED: { icon: CheckCircle, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+  COMPLETED: { icon: CreditCard, color: 'text-green-400', bg: 'bg-green-500/10' },
+  CANCELLED: { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
 };
 
 const getValidNextStatuses = (currentStatus: string) => {
@@ -109,6 +112,10 @@ export default function OrderDetailPage() {
   const params = useParams();
   const router = useRouter();
   const orderId = params.id as string;
+  const { t, format } = useT();
+  const statusConfig = Object.fromEntries(
+    Object.entries(statusStyles).map(([value, style]) => [value, { ...style, label: t(`orders.status.${value}` as TranslationKey) }])
+  ) as Record<string, { label: string; icon: any; color: string; bg: string }>;
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,7 +142,7 @@ export default function OrderDetailPage() {
         setUserRole(session?.role || null);
       } catch (error) {
         console.error('Erreur lors du chargement de la commande:', error);
-        toast.error('Erreur lors du chargement de la commande');
+        toast.error(t('orders.detail.loadError'));
       } finally {
         setLoading(false);
       }
@@ -162,22 +169,22 @@ export default function OrderDetailPage() {
     const result = await addOrderItem(orderId, selectedProduct, quantity, product.price);
 
     if (result.success) {
-      toast.success('Article ajouté avec succès');
+      toast.success(t('orders.detail.itemAdded'));
       setSelectedProduct('');
       setQuantity(1);
       await refreshOrderAndAccomp();
     } else {
-      toast.error(result.error || 'Erreur lors de l\'ajout');
+      toast.error(result.error || t('orders.detail.addError'));
     }
   };
 
   const handleRemoveItem = async (itemId: string) => {
     const result = await removeOrderItem(itemId);
     if (result.success) {
-      toast.success('Article supprimé');
+      toast.success(t('orders.detail.itemRemoved'));
       await refreshOrderAndAccomp();
     } else {
-      toast.error('Erreur lors de la suppression');
+      toast.error(t('orders.detail.removeError'));
     }
   };
 
@@ -185,10 +192,10 @@ export default function OrderDetailPage() {
     setUpdatingStatus(true);
     const result = await updateOrderStatus(orderId, newStatus);
     if (result.success) {
-      toast.success(`Statut mis à jour : ${statusConfig[newStatus]?.label || newStatus}`);
+      toast.success(t('orders.detail.statusUpdated', { status: statusConfig[newStatus]?.label || newStatus }));
       await refreshOrderAndAccomp();
     } else {
-      toast.error('Erreur lors du changement de statut');
+      toast.error(t('orders.detail.statusError'));
     }
     setUpdatingStatus(false);
   };
@@ -198,7 +205,7 @@ export default function OrderDetailPage() {
       if (!choice.existingOrderItemId) return;
       const res = await removeOrderAccompaniment(choice.existingOrderItemId);
       if (res.success) {
-        toast.success('Accompagnement retiré');
+        toast.success(t('orders.detail.accompanimentRemoved'));
         await refreshOrderAndAccomp();
       }
       return;
@@ -208,7 +215,7 @@ export default function OrderDetailPage() {
     const priceCounted = choice.defaultPriceIncluded;
     const res = await addOrderAccompaniment(orderId, parentOrderItemId, choice.accompanimentProductId, priceCounted);
     if (res.success) {
-      toast.success('Accompagnement ajouté');
+      toast.success(t('orders.detail.accompanimentAdded'));
       await refreshOrderAndAccomp();
     }
   };
@@ -217,7 +224,7 @@ export default function OrderDetailPage() {
     if (!choice.existingOrderItemId) return;
     const res = await setOrderItemPriceCounted(choice.existingOrderItemId, counted);
     if (res.success) {
-      toast.success(counted ? 'Prix pris en compte' : 'Prix non pris en compte');
+      toast.success(counted ? t('orders.detail.priceCounted') : t('orders.detail.priceNotCounted'));
       await refreshOrderAndAccomp();
     }
   };
@@ -227,7 +234,7 @@ export default function OrderDetailPage() {
       <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
-          <p className="text-slate-400">Chargement de la commande...</p>
+          <p className="text-slate-400">{t('orders.detail.loading')}</p>
         </div>
       </div>
     );
@@ -238,7 +245,7 @@ export default function OrderDetailPage() {
       <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8">
         <div className="w-full">
           <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-red-400">
-            Commande non trouvée
+            {t('orders.detail.notFound')}
           </div>
         </div>
       </div>
@@ -263,25 +270,25 @@ export default function OrderDetailPage() {
         {/* Back Button */}
         <Link href="/orders" className="inline-flex items-center gap-2 text-slate-400 hover:text-blue-400 mb-6 transition-all duration-300 group">
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span>Retour aux commandes</span>
+          <span>{t('orders.detail.back')}</span>
         </Link>
 
         {/* Header */}
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
             <ShoppingCart className="w-4 h-4 text-blue-400" />
-            <span className="text-sm text-blue-400 font-medium">Détails de la commande</span>
+            <span className="text-sm text-blue-400 font-medium">{t('orders.detail.badge')}</span>
           </div>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-              Commande #{order.id.slice(0, 8)}
+              {t('orders.detail.title', { number: order.id.slice(0, 8) })}
             </h1>
             <div className="flex items-center gap-2">
               <PrintOrderButton order={order} />
               <ThermalReceiptPrintButton order={order} />
             </div>
           </div>
-          <p className="text-slate-400">Gérez les articles et le statut de la commande</p>
+          <p className="text-slate-400">{t('orders.detail.subtitle')}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -290,20 +297,20 @@ export default function OrderDetailPage() {
             <CardHeader className="border-b border-slate-700/50 pb-3">
               <CardTitle className="text-slate-50 flex items-center gap-2 text-sm">
                 <Package className="w-4 h-4 text-blue-400" />
-                Informations
+                {t('orders.detail.info')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
               <div>
-                <p className="text-xs text-slate-400">N° commande</p>
+                <p className="text-xs text-slate-400">{t('orders.detail.number')}</p>
                 <p className="text-slate-50 font-mono text-sm">{order.id.slice(0, 8)}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-400">Livraison</p>
+                <p className="text-xs text-slate-400">{t('orders.detail.service')}</p>
                 <p className="text-slate-50 mt-1">
                   {(order as any).rooms?.number ? (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                      🛏️ Chambre {(order as any).rooms.number}
+                      {t('orders.detail.roomBadge', { number: (order as any).rooms.number })}
                     </span>
                   ) : order.tables ? (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20">
@@ -311,16 +318,22 @@ export default function OrderDetailPage() {
                     </span>
                   ) : order.table_number ? (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20">
-                      🍽️ Table {order.table_number}
+                      {t('orders.detail.tableBadge', { number: order.table_number })}
+                    </span>
+                  ) : (order as any).consumption_type === 'DELIVERY' ? (
+                    <span className="text-slate-300 text-sm">
+                      {t('orders.detail.deliveryTo', {
+                        address: [(order as any).delivery_district, (order as any).delivery_landmark].filter(Boolean).join(' — '),
+                      })}
                     </span>
                   ) : (
-                    <span className="text-slate-500">Sur place / Emporter</span>
+                    <span className="text-slate-500">{t('orders.detail.onSite')}</span>
                   )}
                 </p>
               </div>
               {order.clients && (
                 <div>
-                  <p className="text-xs text-slate-400">Client</p>
+                  <p className="text-xs text-slate-400">{t('orders.detail.client')}</p>
                   <p className="text-slate-50 font-medium text-sm flex items-center gap-2 mt-1">
                     👤 {order.clients.first_name} {order.clients.last_name}
                     <span className="text-xs text-slate-400">({order.clients.phone})</span>
@@ -329,12 +342,12 @@ export default function OrderDetailPage() {
               )}
               {order.notes && (
                 <div>
-                  <p className="text-xs text-slate-400">Notes / Références</p>
+                  <p className="text-xs text-slate-400">{t('orders.detail.notes')}</p>
                   <p className="text-slate-50 mt-1">{order.notes}</p>
                 </div>
               )}
               <div>
-                <p className="text-xs text-slate-400">Statut</p>
+                <p className="text-xs text-slate-400">{t('orders.detail.status')}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${currentStatus.bg} ${currentStatus.color}`}>
                     <StatusIcon className="w-3 h-3" />
@@ -356,9 +369,9 @@ export default function OrderDetailPage() {
                 </div>
               </div>
               <div>
-                <p className="text-xs text-slate-400">Date</p>
+                <p className="text-xs text-slate-400">{t('orders.detail.date')}</p>
                 <p className="text-slate-50 text-sm">
-                  {new Date(order.created_at).toLocaleDateString('fr-FR')} à {new Date(order.created_at).toLocaleTimeString('fr-FR')}
+                  {t('orders.detail.dateTime', { date: format.date(order.created_at), time: format.time(order.created_at) })}
                 </p>
               </div>
             </CardContent>
@@ -369,21 +382,21 @@ export default function OrderDetailPage() {
             <CardHeader className="border-b border-slate-700/50 pb-3">
               <CardTitle className="text-slate-50 flex items-center gap-2 text-sm">
                 <CreditCard className="w-4 h-4 text-green-400" />
-                Totaux
+                {t('orders.detail.totals')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 pt-4">
               <div className="flex justify-between items-center">
-                <p className="text-xs text-slate-400">Sous-total</p>
-                <p className="text-slate-50 font-medium">{order.subtotal.toLocaleString()} FCFA</p>
+                <p className="text-xs text-slate-400">{t('orders.detail.subtotal')}</p>
+                <p className="text-slate-50 font-medium">{format.money(order.subtotal)}</p>
               </div>
               <div className="border-t border-slate-700 pt-3 flex justify-between items-center">
-                <p className="text-sm text-slate-400">Total</p>
+                <p className="text-sm text-slate-400">{t('orders.detail.total')}</p>
                 <div className="flex flex-col items-end">
-                  <p className="text-slate-50 font-bold text-xl">{order.total.toLocaleString()} FCFA</p>
+                  <p className="text-slate-50 font-bold text-xl">{format.money(order.total)}</p>
                   {(order as any).discount_amount > 0 && (
                     <span className="text-[10px] text-pink-400 font-bold bg-pink-500/10 px-2 py-0.5 rounded shadow-sm border border-pink-500/20 mt-1 inline-flex items-center gap-1">
-                      <Tag className="w-3 h-3" /> PROMO APPLIQUÉE
+                      <Tag className="w-3 h-3" /> {t('orders.detail.promoApplied')}
                     </span>
                   )}
                 </div>
@@ -397,14 +410,14 @@ export default function OrderDetailPage() {
               <CardHeader className="border-b border-slate-700/50 pb-3">
                 <CardTitle className="text-slate-50 flex items-center gap-2 text-sm">
                   <CheckCircle className="w-4 h-4 text-green-400" />
-                  Commande terminée
+                  {t('orders.detail.completedTitle')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
-                <p className="text-sm text-green-400 mb-4">Paiement complété</p>
+                <p className="text-sm text-green-400 mb-4">{t('orders.detail.completedText')}</p>
                 <Link href="/orders">
                   <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
-                    Retour aux commandes
+                    {t('orders.detail.back')}
                   </Button>
                 </Link>
               </CardContent>
@@ -414,7 +427,7 @@ export default function OrderDetailPage() {
               <CardHeader className="border-b border-slate-700/50 pb-3">
                 <CardTitle className="text-slate-50 flex items-center gap-2 text-sm">
                   <CreditCard className="w-4 h-4 text-green-400" />
-                  Paiement
+                  {t('orders.detail.payment')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
@@ -432,7 +445,7 @@ export default function OrderDetailPage() {
                   variant="outline"
                   className="w-full mt-3 border-slate-600 text-slate-300 hover:bg-slate-700"
                 >
-                  Annuler
+                  {t('common.cancel')}
                 </Button>
               </CardContent>
             </Card>
@@ -441,7 +454,7 @@ export default function OrderDetailPage() {
               <CardHeader className="border-b border-slate-700/50 pb-3">
                 <CardTitle className="text-slate-50 flex items-center gap-2 text-sm">
                   <Plus className="w-4 h-4 text-blue-400" />
-                  Ajouter un article
+                  {t('orders.detail.addItem')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
@@ -451,10 +464,10 @@ export default function OrderDetailPage() {
                     onChange={(e) => setSelectedProduct(e.target.value)}
                     className="w-full bg-slate-900/50 border border-slate-600 text-slate-50 rounded-lg px-3 py-2 text-sm focus:border-blue-500"
                   >
-                    <option value="">Sélectionner un produit...</option>
+                    <option value="">{t('orders.detail.selectProduct')}</option>
                     {products.map((product) => (
                       <option key={product.id} value={product.id}>
-                        {product.name} - {product.price.toLocaleString()} FCFA
+                        {product.name} - {format.money(product.price)}
                       </option>
                     ))}
                   </select>
@@ -471,7 +484,7 @@ export default function OrderDetailPage() {
                     className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Ajouter
+                    {t('orders.detail.add')}
                   </Button>
                   {order.order_items.length > 0 && userRole !== 'SERVEUR' && (
                     <Button
@@ -480,7 +493,7 @@ export default function OrderDetailPage() {
                       className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
                     >
                       <CreditCard className="w-4 h-4 mr-2" />
-                      Finaliser la commande
+                      {t('orders.detail.checkout')}
                     </Button>
                   )}
                 </form>
@@ -494,15 +507,15 @@ export default function OrderDetailPage() {
           <CardHeader className="border-b border-slate-700/50">
             <CardTitle className="text-slate-50 flex items-center gap-2">
               <Package className="w-5 h-5 text-blue-400" />
-              Articles de la commande
+              {t('orders.detail.items')}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {order.order_items.length === 0 ? (
               <div className="text-center py-12 text-slate-400">
                 <ShoppingCart className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                <p className="text-lg">Aucun article</p>
-                <p className="text-sm mt-2">Ajoutez des produits à cette commande</p>
+                <p className="text-lg">{t('orders.detail.noItems')}</p>
+                <p className="text-sm mt-2">{t('orders.detail.noItemsText')}</p>
               </div>
             ) : (
               <div className="divide-y divide-slate-700">
@@ -518,13 +531,13 @@ export default function OrderDetailPage() {
                           <div className="flex-1">
                             <p className="text-slate-50 font-medium text-lg">{parent.products.name}</p>
                             <p className="text-slate-400 text-sm mt-1">
-                              {parent.quantity} x {parent.unit_price.toLocaleString()} FCFA = {parent.total_price.toLocaleString()} FCFA
+                              {parent.quantity} x {format.money(parent.unit_price)} = {format.money(parent.total_price)}
                             </p>
                           </div>
                           <button
                             onClick={() => handleRemoveItem(parent.id)}
                             className="text-red-400 hover:text-red-300 transition-colors p-1"
-                            aria-label="Supprimer"
+                            aria-label={t('orders.detail.remove')}
                           >
                             <Trash2 className="w-5 h-5" />
                           </button>
@@ -532,7 +545,7 @@ export default function OrderDetailPage() {
 
                         {possible.length > 0 && (
                           <div className="mt-4 pl-4 border-l-2 border-purple-500/30">
-                            <p className="text-xs text-slate-400 mb-2">Accompagnements possibles</p>
+                            <p className="text-xs text-slate-400 mb-2">{t('orders.detail.possibleAccompaniments')}</p>
                             <div className="space-y-3">
                               {possible.map((choice) => {
                                 const included = Boolean(choice.existingOrderItemId);
@@ -552,10 +565,10 @@ export default function OrderDetailPage() {
                                         <span className="text-slate-200 text-sm">{choice.name}</span>
                                       </label>
                                       <p className="text-slate-500 text-xs mt-0.5">
-                                        {computedQty} x {choice.unitPrice.toLocaleString()} FCFA = {lineTotal.toLocaleString()} FCFA
+                                        {computedQty} x {format.money(choice.unitPrice)} = {format.money(lineTotal)}
                                       </p>
                                       {included && choice.existingIsPriceCounted === false && (
-                                        <p className="text-amber-400 text-xs mt-0.5">⚠️ Prix non pris en compte</p>
+                                        <p className="text-amber-400 text-xs mt-0.5">{t('orders.detail.priceNotCountedWarning')}</p>
                                       )}
                                     </div>
                                     <label className={`flex items-center gap-2 text-xs ${included ? 'text-slate-300' : 'text-slate-600'}`}>
@@ -566,7 +579,7 @@ export default function OrderDetailPage() {
                                         onChange={(e) => handleToggleAccompanimentPrice(choice, e.target.checked)}
                                         className="w-3.5 h-3.5"
                                       />
-                                      Prix compté
+                                      {t('orders.create.priceCounted')}
                                     </label>
                                   </div>
                                 );

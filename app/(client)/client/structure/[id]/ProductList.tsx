@@ -3,11 +3,11 @@
 import { useCartStore } from '@/lib/cart-store';
 import { ShoppingCart, Plus, Minus, Flame, Star, Clock, Coffee, Utensils } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatFCFA } from '@/lib/utils';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useT } from '@/lib/i18n/client';
 
 export default function ProductList({
   products,
@@ -19,6 +19,7 @@ export default function ProductList({
   promotions?: any[]
 }) {
   const addItem = useCartStore((state) => state.addItem);
+  const { t, format } = useT();
 
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [accompanimentSelections, setAccompanimentSelections] = useState<Record<string, number>>({});
@@ -46,8 +47,8 @@ export default function ProductList({
         <div className="bg-slate-100 rounded-full p-6 mb-4">
           <UtensilsCrossed className="w-10 h-10 text-slate-300" />
         </div>
-        <p className="text-lg text-slate-600 font-bold">Aucun produit disponible</p>
-        <p className="text-slate-500 mt-1">Revenez bientôt pour découvrir notre carte.</p>
+        <p className="text-lg text-slate-600 font-bold">{t('client.products.noneTitle')}</p>
+        <p className="text-slate-500 mt-1">{t('client.products.noneText')}</p>
       </div>
     );
   }
@@ -73,7 +74,7 @@ export default function ProductList({
         image_url: product.image_url,
         selectedAccompaniments: []
       }, structureId);
-      toast.success(`${product.name} ajouté au panier`);
+      toast.success(t('client.products.added', { name: product.name }));
     }
   };
 
@@ -121,7 +122,7 @@ export default function ProductList({
       selectedAccompaniments: selectedAccs
     }, structureId);
 
-    toast.success(`${selectedProduct.name} ajouté au panier`);
+    toast.success(t('client.products.added', { name: selectedProduct.name }));
     setSelectedProduct(null);
   };
 
@@ -163,7 +164,7 @@ export default function ProductList({
                 {promo && (
                   <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs font-black tracking-wide px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1">
                     <Flame className="w-3.5 h-3.5" />
-                    {promo.type === 'PERCENTAGE' ? `-${promo.value}%` : `-${formatFCFA(promo.value)}`}
+                    {promo.type === 'PERCENTAGE' ? `-${promo.value}%` : `-${format.money(promo.value)}`}
                   </div>
                 )}
               </div>
@@ -178,7 +179,7 @@ export default function ProductList({
                     {product.is_popular && (
                       <div className="flex items-center gap-1 mt-1.5">
                         <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                        <span className="text-xs font-bold text-amber-500 uppercase tracking-wider">Populaire</span>
+                        <span className="text-xs font-bold text-amber-500 uppercase tracking-wider">{t('client.products.popular')}</span>
                       </div>
                     )}
                   </div>
@@ -194,15 +195,16 @@ export default function ProductList({
                   <div>
                     {promo && (
                       <span className="text-xs font-bold text-slate-400 line-through block mb-0.5">
-                        {formatFCFA(product.price)}
+                        {format.money(product.price)}
                       </span>
                     )}
                     <span className="text-xl font-black text-slate-900 group-hover:text-blue-600 transition-colors">
-                      {formatFCFA(discountedPrice)}
+                      {format.money(discountedPrice)}
                     </span>
                   </div>
                   <button
                     onClick={() => handleProductClick(product)}
+                    aria-label={t('client.products.addAria', { name: product.name })}
                     className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-blue-600 hover:scale-110 active:scale-95 transition-all duration-300 shadow-md hover:shadow-blue-200"
                   >
                     <Plus className="w-5 h-5" />
@@ -238,7 +240,7 @@ export default function ProductList({
                     {selectedProduct.name}
                   </DialogTitle>
                   <DialogDescription className="text-white/80 font-medium">
-                    Personnalisez votre commande
+                    {t('client.products.customize')}
                   </DialogDescription>
                 </div>
               </div>
@@ -248,7 +250,7 @@ export default function ProductList({
                 return promo ? (
                   <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2.5 text-center text-sm font-bold tracking-wide flex items-center justify-center gap-2">
                     <Flame className="w-4 h-4" />
-                    Promotion Active
+                    {t('client.products.promoActive')}
                   </div>
                 ) : null;
               })()}
@@ -264,7 +266,7 @@ export default function ProductList({
                     <div key={acc.id} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-100 hover:border-blue-200 hover:shadow-md transition-all shadow-sm">
                       <div>
                         <p className="font-bold text-slate-800">{acc.name}</p>
-                        <p className="text-sm font-black text-blue-600 mt-0.5">+{formatFCFA(acc.price)}</p>
+                        <p className="text-sm font-black text-blue-600 mt-0.5">+{format.money(acc.price)}</p>
                       </div>
                       <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
                         <button
@@ -292,8 +294,8 @@ export default function ProductList({
                     <div className="bg-white rounded-full p-4 inline-block mb-3 shadow-sm border border-slate-100">
                       <Clock className="w-8 h-8 text-slate-300" />
                     </div>
-                    <p className="text-slate-500 font-bold">Aucune option disponible</p>
-                    <p className="text-sm text-slate-400 mt-1">Ce produit n'a pas d'accompagnements.</p>
+                    <p className="text-slate-500 font-bold">{t('client.products.noOptionsTitle')}</p>
+                    <p className="text-sm text-slate-400 mt-1">{t('client.products.noOptionsText')}</p>
                   </div>
                 )}
               </div>
@@ -304,7 +306,7 @@ export default function ProductList({
                   className="w-full py-7 text-lg font-black bg-slate-900 hover:bg-blue-600 text-white rounded-2xl shadow-xl hover:shadow-blue-200 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <ShoppingCart className="w-5 h-5 mr-3" />
-                  Ajouter au panier
+                  {t('client.products.addToCart')}
                 </Button>
               </div>
             </>

@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { getUnreadNotificationsCount } from '@/app/actions/push';
 import Link from 'next/link';
+import { useT } from '@/lib/i18n/client';
+import { LanguageSwitcher } from '@/components/language-switcher';
 
 interface TopNavProps {
   session: SessionPayload;
@@ -15,6 +17,7 @@ interface TopNavProps {
 
 export function TopNav({ session, onMenuClick }: TopNavProps) {
   const [unreadCount, setUnreadCount] = useState(0);
+  const { t } = useT();
   // Les notifications sont rattachées à un point : l'ORG_ADMIN n'en reçoit pas.
   const showNotifications = session.role !== 'ORG_ADMIN';
 
@@ -38,7 +41,7 @@ export function TopNav({ session, onMenuClick }: TopNavProps) {
           variant="ghost"
           size="icon"
           className="shrink-0 text-slate-400 hover:text-slate-200 lg:hidden"
-          aria-label="Ouvrir le menu"
+          aria-label={t('nav.openMenu')}
           onClick={onMenuClick}
         >
           <Menu className="h-5 w-5" />
@@ -46,20 +49,21 @@ export function TopNav({ session, onMenuClick }: TopNavProps) {
         <div className="relative min-w-0 flex-1 max-w-full sm:max-w-md">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           <Input
-            placeholder="Rechercher…"
+            placeholder={t('common.search')}
             className="min-w-0 border-slate-600 bg-slate-700 pl-9 text-sm text-slate-50 placeholder:text-slate-500 sm:text-base"
           />
         </div>
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+        <LanguageSwitcher />
         {showNotifications && (
         <Link href="/notifications">
           <Button
             variant="ghost"
             size="icon"
             className="text-slate-400 hover:text-slate-200 relative"
-            aria-label="Notifications"
+            aria-label={t('nav.notifications')}
           >
             <Bell className="h-5 w-5" />
             {unreadCount > 0 && (

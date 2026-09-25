@@ -1,5 +1,7 @@
 'use client';
 
+import { useT } from '@/lib/i18n/client';
+
 import { useState } from 'react';
 import { Loader2, X, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
@@ -14,13 +16,14 @@ interface ImageUploadProps {
 
 export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const { t } = useT();
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!file.type.includes('image')) {
-      toast.error('Veuillez sélectionner une image valide.');
+      toast.error(t('products.upload.invalidImage'));
       return;
     }
 
@@ -28,7 +31,7 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
     const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
     if (!cloudName || !uploadPreset) {
-      toast.error('Cloudinary n\'est pas configuré. (Variables d\'environnement manquantes)');
+      toast.error(t('products.upload.notConfigured'));
       console.error('Missing Cloudinary env variables.');
       return;
     }
@@ -45,15 +48,15 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
       });
 
       if (!response.ok) {
-        throw new Error('Erreur lors de l\'upload de l\'image');
+        throw new Error(t('products.upload.uploadError'));
       }
 
       const data = await response.json();
       onChange(data.secure_url);
-      toast.success('Image ajoutée avec succès.');
+      toast.success(t('products.upload.uploaded'));
     } catch (error) {
       console.error(error);
-      toast.error('Échec de l\'upload. Veuillez réessayer.');
+      toast.error(t('products.upload.failed'));
     } finally {
       setIsUploading(false);
       // Réinitialiser l'input
@@ -71,7 +74,7 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
         <div className="relative w-40 h-40 rounded-xl overflow-hidden border-2 border-slate-700 group">
           <Image
             src={value}
-            alt="Produit"
+            alt={t('products.upload.alt')}
             fill
             className="object-cover"
           />
@@ -100,7 +103,7 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
             {isUploading ? (
               <>
                 <Loader2 className="w-8 h-8 mb-3 text-blue-500 animate-spin" />
-                <p className="mb-2 text-sm text-slate-400">Upload en cours...</p>
+                <p className="mb-2 text-sm text-slate-400">{t('products.upload.uploading')}</p>
               </>
             ) : (
               <>
@@ -108,9 +111,9 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
                   <ImageIcon className="w-5 h-5 text-slate-400" />
                 </div>
                 <p className="mb-2 text-sm text-slate-300">
-                  <span className="font-semibold text-blue-400">Cliquez</span> pour uploader une image
+                  <span className="font-semibold text-blue-400">{t('products.upload.click')}</span> {t('products.upload.toUpload')}
                 </p>
-                <p className="text-xs text-slate-500">SVG, PNG, JPG (MAX. 5MB)</p>
+                <p className="text-xs text-slate-500">{t('products.upload.formats')}</p>
               </>
             )}
           </div>

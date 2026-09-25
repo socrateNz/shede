@@ -1,6 +1,8 @@
 'use server';
 
 import { getAdminSupabase } from '@/lib/supabase';
+import { getLocale, te } from '@/lib/i18n/server';
+import { INTL_LOCALES } from '@/lib/i18n/config';
 
 export interface DailyRevenuePoint {
   date: string;
@@ -45,6 +47,7 @@ export async function getDashboardEnrichedData(
 ): Promise<DashboardEnrichedData> {
   const admin = getAdminSupabase();
   const now = new Date();
+  const intl = INTL_LOCALES[await getLocale()];
 
   // Plages de dates
   const todayStart = new Date(now);
@@ -147,7 +150,7 @@ export async function getDashboardEnrichedData(
 
     return {
       date: d.toISOString().split('T')[0],
-      label: d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit' }),
+      label: d.toLocaleDateString(intl, { weekday: 'short', day: '2-digit' }),
       revenue: dayRevenue,
     };
   });
@@ -174,13 +177,14 @@ export async function getDashboardEnrichedData(
       .in('order_id', orderIds.slice(0, 500));
 
     const productMap = new Map<string, { name: string; quantity: number }>();
+    const unknownLabel = await te('common.unknown');
     (items || []).forEach((item: any) => {
       const existing = productMap.get(item.product_id);
       if (existing) {
         existing.quantity += Number(item.quantity) || 0;
       } else {
         productMap.set(item.product_id, {
-          name: item.products?.name || 'Inconnu',
+          name: item.products?.name || unknownLabel,
           quantity: Number(item.quantity) || 0,
         });
       }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
+import { useT } from '@/lib/i18n/client';
 
 const logos = [
   { name: 'HOTEL.CO' },
@@ -18,6 +19,7 @@ export default function LogoCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [itemsPerView, setItemsPerView] = useState(5);
+  const { t } = useT();
 
   useEffect(() => {
     const handleResize = () => {
@@ -50,7 +52,7 @@ export default function LogoCarousel() {
   return (
     <div className="mx-auto max-w-7xl px-6 mt-24">
       <p className="text-center text-sm font-semibold text-slate-400 uppercase tracking-[0.2em] mb-10">
-        Ils nous font confiance
+        {t('landing.hero.trustedBy')}
       </p>
 
       <div className="relative group">
@@ -80,7 +82,7 @@ export default function LogoCarousel() {
         <button
           onClick={prevSlide}
           className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 lg:-translate-x-6 bg-white/80 backdrop-blur-sm hover:bg-white rounded-full p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300"
-          aria-label="Précédent"
+          aria-label={t('landing.hero.previous')}
         >
           <ChevronLeft className="w-5 h-5 text-slate-700" />
         </button>
@@ -88,7 +90,7 @@ export default function LogoCarousel() {
         <button
           onClick={nextSlide}
           className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 lg:translate-x-6 bg-white/80 backdrop-blur-sm hover:bg-white rounded-full p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300"
-          aria-label="Suivant"
+          aria-label={t('landing.hero.next')}
         >
           <ChevronRight className="w-5 h-5 text-slate-700" />
         </button>
@@ -97,7 +99,7 @@ export default function LogoCarousel() {
         <button
           onClick={() => setIsPlaying(!isPlaying)}
           className="absolute -bottom-12 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-sm hover:bg-white rounded-full p-2 shadow-md transition-all duration-300"
-          aria-label={isPlaying ? 'Pause' : 'Play'}
+          aria-label={isPlaying ? t('landing.hero.pause') : t('landing.hero.play')}
         >
           {isPlaying ? (
             <Pause className="w-4 h-4 text-slate-700" />
@@ -118,7 +120,7 @@ export default function LogoCarousel() {
                 ? 'w-8 bg-purple-600'
                 : 'w-1.5 bg-slate-300 hover:bg-slate-400'
             }`}
-            aria-label={`Aller au slide ${idx + 1}`}
+            aria-label={t('landing.hero.goToSlide', { number: idx + 1 })}
           />
         ))}
       </div>

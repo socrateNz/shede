@@ -59,6 +59,10 @@ export type MailContent = {
   action?: { label: string; url: string };
   /** Petite note en bas de l'email. */
   footnote?: string;
+  /** Langue de l'email (attribut lang). */
+  lang?: string;
+  /** Mention « email automatique » sous le message. */
+  footer?: string;
 };
 
 /** Gabarit HTML commun (styles en ligne pour la compatibilité des clients mail). */
@@ -83,7 +87,7 @@ export function renderMail(content: MailContent): { html: string; text: string }
     : '';
 
   const html = `<!doctype html>
-<html lang="fr">
+<html lang="${escapeHtml(content.lang ?? 'fr')}">
   <body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px 12px">
       <tr><td align="center">
@@ -99,7 +103,7 @@ export function renderMail(content: MailContent): { html: string; text: string }
             ${content.footnote ? `<p style="margin:16px 0 0;font-size:12px;color:#94a3b8">${escapeHtml(content.footnote)}</p>` : ''}
           </td></tr>
         </table>
-        <p style="margin:12px 0 0;font-size:12px;color:#94a3b8">Email automatique envoyé par Shede — merci de ne pas y répondre.</p>
+        <p style="margin:12px 0 0;font-size:12px;color:#94a3b8">${escapeHtml(content.footer ?? 'Email automatique envoyé par Shede — merci de ne pas y répondre.')}</p>
       </td></tr>
     </table>
   </body>

@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { useT } from '@/lib/i18n/client';
 
 export default function MainError({
   error,
@@ -11,6 +12,8 @@ export default function MainError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { t } = useT();
+
   useEffect(() => {
     console.error('[Shede] Erreur globale :', error);
   }, [error]);
@@ -24,14 +27,14 @@ export default function MainError({
           </div>
         </div>
         <h2 className="text-2xl font-bold text-white mb-3">
-          Une erreur est survenue
+          {t('errorPage.title')}
         </h2>
         <p className="text-slate-400 mb-2 text-sm">
-          {error.message || "Quelque chose s'est mal passé. Veuillez réessayer."}
+          {error.message || t('errorPage.description')}
         </p>
         {error.digest && (
           <p className="text-xs text-slate-600 font-mono mb-6">
-            Réf : {error.digest}
+            {t('errorPage.reference', { digest: error.digest })}
           </p>
         )}
         <Button
@@ -39,7 +42,7 @@ export default function MainError({
           className="bg-blue-600 hover:bg-blue-700 gap-2"
         >
           <RefreshCw className="w-4 h-4" />
-          Réessayer
+          {t('common.retry')}
         </Button>
       </div>
     </div>

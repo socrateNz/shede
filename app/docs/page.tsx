@@ -33,75 +33,37 @@ import {
   Menu,
   X,
 } from 'lucide-react';
+import { useT } from '@/lib/i18n/client';
+import { DOCS_CONTENT, type DocsContent } from './content';
 
 /* ─────────────────────────────────────────
    DATA
 ───────────────────────────────────────── */
 
-const navSections = [
-  {
-    title: 'Démarrage',
-    icon: Zap,
-    items: [
-      { id: 'introduction', label: 'Introduction' },
-      { id: 'quickstart', label: 'Démarrage rapide' },
-      { id: 'architecture', label: 'Architecture' },
-    ],
-  },
-  {
-    title: 'Côté Client (B2C)',
-    icon: Users,
-    items: [
-      { id: 'client-account', label: 'Compte client' },
-      { id: 'client-reservations', label: 'Réservations' },
-      { id: 'client-orders', label: 'Commandes & QR Code' },
-      { id: 'client-fidelite', label: 'Fidélité & Promos' },
-    ],
-  },
-  {
-    title: 'Côté Professionnel (B2B)',
-    icon: LayoutDashboard,
-    items: [
-      { id: 'pro-dashboard', label: 'Tableau de bord' },
-      { id: 'pro-pos', label: 'Caisse (POS)' },
-      { id: 'pro-pms', label: 'Gestion Hôtelière (PMS)' },
-      { id: 'pro-stocks', label: 'Stocks & Catalogue' },
-      { id: 'pro-promos', label: 'Promotions' },
-      { id: 'pro-analytics', label: 'Analytics' },
-    ],
-  },
-  {
-    title: 'Rôles & Permissions',
-    icon: Shield,
-    items: [
-      { id: 'roles-overview', label: "Vue d'ensemble" },
-      { id: 'roles-admin', label: 'Super Admin' },
-      { id: 'roles-cashier', label: 'Caissier' },
-      { id: 'roles-server', label: 'Serveur' },
-    ],
-  },
-  {
-    title: 'Intégrations',
-    icon: Globe,
-    items: [
-      { id: 'integrations-qr', label: 'QR Code & Self-Order' },
-      { id: 'integrations-payment', label: 'Paiements' },
-    ],
-  },
-  {
-    title: 'Support',
-    icon: HelpCircle,
-    items: [
-      { id: 'faq', label: 'FAQ' },
-      { id: 'contact-support', label: 'Contacter le support' },
-    ],
-  },
+const NAV_SECTIONS: { key: keyof DocsContent['nav']; icon: typeof Zap }[] = [
+  { key: 'start', icon: Zap },
+  { key: 'client', icon: Users },
+  { key: 'pro', icon: LayoutDashboard },
+  { key: 'roles', icon: Shield },
+  { key: 'integrations', icon: Globe },
+  { key: 'support', icon: HelpCircle },
 ];
+
+const ROLE_COLORS: Record<string, string> = {
+  SUPER_ADMIN: 'text-purple-400',
+  ORG_ADMIN: 'text-emerald-400',
+  ADMIN: 'text-blue-400',
+  CAISSE: 'text-yellow-400',
+  SERVEUR: 'text-cyan-400',
+  CLIENT: 'text-pink-400',
+};
 
 /* ─────────────────────────────────────────
    CODE BLOCK COMPONENT
 ───────────────────────────────────────── */
 function CodeBlock({ code, language = 'bash' }: { code: string; language?: string }) {
+  const { locale } = useT();
+  const labels = DOCS_CONTENT[locale].header;
   const [copied, setCopied] = useState(false);
   const copy = () => {
     navigator.clipboard.writeText(code);
@@ -114,7 +76,7 @@ function CodeBlock({ code, language = 'bash' }: { code: string; language?: strin
         <span className="text-xs font-mono text-slate-400">{language}</span>
         <button onClick={copy} className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors">
           {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-          {copied ? 'Copié !' : 'Copier'}
+          {copied ? labels.copied : labels.copy}
         </button>
       </div>
       <pre className="p-4 text-sm text-slate-300 overflow-x-auto font-mono leading-relaxed whitespace-pre-wrap">{code}</pre>
@@ -144,14 +106,22 @@ function Callout({ type = 'info', children }: { type?: 'info' | 'warning' | 'tip
    MAIN PAGE
 ───────────────────────────────────────── */
 export default function DocsPage() {
+  const { locale } = useT();
+  const c = DOCS_CONTENT[locale];
+  const navSections = NAV_SECTIONS.map(({ key, icon }) => ({
+    key,
+    icon,
+    title: c.nav[key].title,
+    items: Object.entries(c.nav[key].items).map(([id, label]) => ({ id, label })),
+  }));
   const [activeSection, setActiveSection] = useState('introduction');
-  const [openSections, setOpenSections] = useState<string[]>(['Démarrage', 'Côté Client (B2C)', 'Côté Professionnel (B2B)']);
+  const [openSections, setOpenSections] = useState<string[]>(['start', 'client', 'pro']);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const toggleSection = (title: string) => {
+  const toggleSection = (key: string) => {
     setOpenSections(prev =>
-      prev.includes(title) ? prev.filter(s => s !== title) : [...prev, title]
+      prev.includes(key) ? prev.filter(s => s !== key) : [...prev, key]
     );
   };
 
@@ -170,6 +140,7 @@ export default function DocsPage() {
           <div className="flex items-center gap-4">
             <button
               className="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition"
+              aria-label={c.header.menu}
               onClick={() => setSidebarOpen(!sidebarOpen)}
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -179,7 +150,7 @@ export default function DocsPage() {
               <span className="font-bold text-slate-900 text-lg">Shede</span>
             </Link>
             <span className="hidden sm:inline-flex items-center gap-1 text-sm text-slate-400">
-              <ChevronRight className="w-4 h-4" /> Documentation
+              <ChevronRight className="w-4 h-4" /> {c.header.docs}
             </span>
           </div>
 
@@ -187,7 +158,7 @@ export default function DocsPage() {
             <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
             <input
               type="text"
-              placeholder="Rechercher dans la doc…"
+              placeholder={c.header.search}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none w-full"
@@ -199,13 +170,13 @@ export default function DocsPage() {
               href="/"
               className="hidden sm:inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 transition"
             >
-              <ArrowLeft className="w-4 h-4" /> Retour
+              <ArrowLeft className="w-4 h-4" /> {c.header.back}
             </Link>
             <Link
               href="/register-client"
               className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-xl shadow-md transition hover:-translate-y-0.5"
             >
-              Commencer
+              {c.header.start}
             </Link>
           </div>
         </div>
@@ -223,13 +194,13 @@ export default function DocsPage() {
           `}
         >
           <div className="p-4 flex-1">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-2">Navigation</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-2">{c.header.navigation}</p>
             {navSections.map((section) => {
-              const isOpen = openSections.includes(section.title);
+              const isOpen = openSections.includes(section.key);
               return (
-                <div key={section.title} className="mb-2">
+                <div key={section.key} className="mb-2">
                   <button
-                    onClick={() => toggleSection(section.title)}
+                    onClick={() => toggleSection(section.key)}
                     className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-sm font-semibold text-slate-700 transition"
                   >
                     <div className="flex items-center gap-2">
@@ -263,7 +234,7 @@ export default function DocsPage() {
               href="tel:+237656954474"
               className="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-800 transition font-medium"
             >
-              <HelpCircle className="w-4 h-4" /> Besoin d'aide ? Appelez-nous
+              <HelpCircle className="w-4 h-4" /> {c.header.help}
             </a>
           </div>
         </aside>
@@ -282,37 +253,30 @@ export default function DocsPage() {
           {/* ── INTRODUCTION ── */}
           <section id="introduction" className="mb-20 scroll-mt-24">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-              <BookOpen className="w-3.5 h-3.5" /> Documentation
+              <BookOpen className="w-3.5 h-3.5" /> {c.intro.badge}
             </div>
             <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight mb-4">
-              Bienvenue sur <span className="text-purple-600">Shede</span>
+              {c.intro.titleBefore} <span className="text-purple-600">Shede</span>
             </h1>
-            <p className="text-lg text-slate-500 mb-6 leading-relaxed">
-              Shede est une plateforme SaaS multi-tenant conçue pour les hôtels et restaurants. Elle connecte les
-              professionnels de l'hôtellerie-restauration avec leurs clients via une interface unifiée, intuitive
-              et puissante.
-            </p>
+            <p className="text-lg text-slate-500 mb-6 leading-relaxed">{c.intro.text}</p>
 
             <div className="grid sm:grid-cols-3 gap-4 mb-8">
               {[
-                { icon: UtensilsCrossed, title: 'Restaurants', desc: 'POS, commandes, stocks', color: 'text-orange-500 bg-orange-50' },
-                { icon: Bed, title: 'Hôtels', desc: 'PMS, réservations chambres', color: 'text-purple-500 bg-purple-50' },
-                { icon: Users, title: 'Clients B2C', desc: 'App & Portail client', color: 'text-blue-500 bg-blue-50' },
-              ].map((card) => (
-                <div key={card.title} className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition">
+                { icon: UtensilsCrossed, color: 'text-orange-500 bg-orange-50' },
+                { icon: Bed, color: 'text-purple-500 bg-purple-50' },
+                { icon: Users, color: 'text-blue-500 bg-blue-50' },
+              ].map((card, i) => (
+                <div key={i} className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${card.color}`}>
                     <card.icon className="w-5 h-5" />
                   </div>
-                  <p className="font-semibold text-slate-800 text-sm">{card.title}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{card.desc}</p>
+                  <p className="font-semibold text-slate-800 text-sm">{c.intro.cards[i].title}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{c.intro.cards[i].desc}</p>
                 </div>
               ))}
             </div>
 
-            <Callout type="info">
-              Cette documentation couvre l'ensemble des fonctionnalités de Shede. Naviguez via la barre latérale ou
-              utilisez la recherche pour trouver rapidement ce dont vous avez besoin.
-            </Callout>
+            <Callout type="info">{c.intro.callout}</Callout>
           </section>
 
           <hr className="border-slate-100 mb-20" />
@@ -320,20 +284,15 @@ export default function DocsPage() {
           {/* ── QUICKSTART ── */}
           <section id="quickstart" className="mb-20 scroll-mt-24">
             <h2 className="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-2">
-              <Zap className="w-7 h-7 text-yellow-500" /> Démarrage rapide
+              <Zap className="w-7 h-7 text-yellow-500" /> {c.quickstart.title}
             </h2>
-            <p className="text-slate-500 mb-6">Créez votre compte et commencez à utiliser Shede en moins de 5 minutes.</p>
+            <p className="text-slate-500 mb-6">{c.quickstart.text}</p>
 
             <div className="space-y-4">
-              {[
-                { step: '01', title: 'Créer un compte', desc: "Rendez-vous sur /register-client (client) ou contactez-nous pour un compte professionnel." },
-                { step: '02', title: 'Configurer votre établissement', desc: 'Renseignez le nom, le type (Restaurant / Hôtel / Mixte), les horaires et le logo.' },
-                { step: '03', title: 'Inviter votre équipe', desc: 'Ajoutez vos collaborateurs avec les bons rôles : Admin, Caissier ou Serveur.' },
-                { step: '04', title: 'Lancer les opérations', desc: "Votre caisse est prête, vos QR codes générés. C'est parti !" },
-              ].map((item) => (
-                <div key={item.step} className="flex gap-5 p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+              {c.quickstart.steps.map((item, i) => (
+                <div key={i} className="flex gap-5 p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                   <div className="w-10 h-10 rounded-xl bg-purple-600 text-white font-bold text-sm flex items-center justify-center flex-shrink-0">
-                    {item.step}
+                    {String(i + 1).padStart(2, '0')}
                   </div>
                   <div>
                     <p className="font-semibold text-slate-900">{item.title}</p>
@@ -348,21 +307,19 @@ export default function DocsPage() {
 
           {/* ── ARCHITECTURE ── */}
           <section id="architecture" className="mb-20 scroll-mt-24">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Architecture</h2>
-            <p className="text-slate-500 mb-6">Shede repose sur une architecture multi-tenant moderne.</p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.architecture.title}</h2>
+            <p className="text-slate-500 mb-6">{c.architecture.text}</p>
 
             <div className="bg-slate-900 text-slate-300 rounded-2xl p-6 font-mono text-sm leading-loose border border-slate-700 mb-6">
-              <div className="text-green-400 font-bold mb-2"># Structure des rôles</div>
-              <div><span className="text-purple-400">SUPER_ADMIN</span>  →  Gère toutes les structures</div>
-              <div className="ml-4"><span className="text-blue-400">ADMIN</span>       →  Gère son établissement</div>
-              <div className="ml-8"><span className="text-yellow-400">CASHIER</span>    →  Caisse & paiements</div>
-              <div className="ml-8"><span className="text-cyan-400">SERVER</span>     →  Commandes (sans paiement)</div>
-              <div className="ml-4"><span className="text-pink-400">CLIENT</span>      →  Portail B2C</div>
+              <div className="text-green-400 font-bold mb-2">{c.architecture.codeTitle}</div>
+              {c.architecture.roles.map((role) => (
+                <div key={role.code} style={{ marginLeft: `${role.indent}rem` }}>
+                  <span className={ROLE_COLORS[role.code] ?? 'text-slate-200'}>{role.code}</span>  →  {role.desc}
+                </div>
+              ))}
             </div>
 
-            <Callout type="tip">
-              Chaque établissement est cloisonné : les données d'une structure ne sont jamais accessibles par une autre structure, même sous le même Super Admin.
-            </Callout>
+            <Callout type="tip">{c.architecture.callout}</Callout>
           </section>
 
           <hr className="border-slate-100 mb-20" />
@@ -370,112 +327,78 @@ export default function DocsPage() {
           {/* ── CLIENT ACCOUNT ── */}
           <section id="client-account" className="mb-20 scroll-mt-24">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-              <Users className="w-3.5 h-3.5" /> Côté Client
+              <Users className="w-3.5 h-3.5" /> {c.clientAccount.badge}
             </div>
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Compte client</h2>
-            <p className="text-slate-500 mb-6">
-              Le compte client (Lambda) est gratuit et donne accès à tous les établissements partenaires Shede.
-            </p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.clientAccount.title}</h2>
+            <p className="text-slate-500 mb-6">{c.clientAccount.text}</p>
             <ul className="space-y-2 mb-6">
-              {[
-                "Inscription via /register-client",
-                "Connexion avec email + mot de passe",
-                "Profil personnalisable (nom, photo, préférences)",
-                "Historique de toutes les commandes & réservations",
-                "Accès aux réductions et au programme de fidélité",
-              ].map((it) => (
+              {c.clientAccount.items.map((it) => (
                 <li key={it} className="flex items-start gap-2 text-sm text-slate-700">
                   <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" /> {it}
                 </li>
               ))}
             </ul>
-            <CodeBlock
-              language="URL"
-              code={`GET /client            → Tableau de bord client
-GET /client/orders     → Historique des commandes
-GET /client/bookings   → Mes réservations hôtelières`}
-            />
+            <CodeBlock language="URL" code={c.clientAccount.code} />
           </section>
 
           <hr className="border-slate-100 mb-20" />
 
           {/* ── CLIENT RESERVATIONS ── */}
           <section id="client-reservations" className="mb-20 scroll-mt-24">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Réservations</h2>
-            <p className="text-slate-500 mb-6">
-              Réservez une chambre en quelques secondes depuis le portail client ou l'application.
-            </p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.reservations.title}</h2>
+            <p className="text-slate-500 mb-6">{c.reservations.text}</p>
             <div className="grid sm:grid-cols-2 gap-4 mb-6">
-              {[
-                { icon: CalendarCheck, title: 'Calendrier en temps réel', desc: 'Disponibilité des chambres mise à jour instantanément.' },
-                { icon: CreditCard, title: 'Pré-paiement sécurisé', desc: "Règlement en ligne optionnel selon l'hôtel." },
-                { icon: Smartphone, title: 'Confirmation mobile', desc: 'Notification immédiate après la réservation.' },
-                { icon: FileText, title: 'e-Reçu PDF', desc: 'Justificatif téléchargeable depuis la réservation.' },
-              ].map((it) => (
-                <div key={it.title} className="flex gap-3 p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
-                  <it.icon className="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" />
+              {[CalendarCheck, CreditCard, Smartphone, FileText].map((Icon, i) => (
+                <div key={i} className="flex gap-3 p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
+                  <Icon className="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-semibold text-sm text-slate-800">{it.title}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{it.desc}</p>
+                    <p className="font-semibold text-sm text-slate-800">{c.reservations.items[i].title}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{c.reservations.items[i].desc}</p>
                   </div>
                 </div>
               ))}
             </div>
-            <Callout type="warning">
-              Les annulations sont soumises à la politique de chaque hôtel. Vérifiez les conditions avant de confirmer.
-            </Callout>
+            <Callout type="warning">{c.reservations.callout}</Callout>
           </section>
 
           <hr className="border-slate-100 mb-20" />
 
           {/* ── CLIENT ORDERS & QR ── */}
           <section id="client-orders" className="mb-20 scroll-mt-24">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Commandes & QR Code</h2>
-            <p className="text-slate-500 mb-6">
-              Scannez le QR code à votre table ou à la réception pour commander sans attendre.
-            </p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.orders.title}</h2>
+            <p className="text-slate-500 mb-6">{c.orders.text}</p>
             <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-2xl p-6 text-white mb-6">
               <div className="flex items-center gap-3 mb-4">
                 <QrCode className="w-8 h-8" />
                 <div>
-                  <p className="font-bold text-lg">Scan & Order</p>
-                  <p className="text-purple-200 text-sm">Zero contact, 100% autonomie</p>
+                  <p className="font-bold text-lg">{c.orders.cardTitle}</p>
+                  <p className="text-purple-200 text-sm">{c.orders.cardText}</p>
                 </div>
               </div>
               <ol className="space-y-2 text-sm text-purple-100">
-                <li className="flex gap-2"><span className="font-bold text-white">1.</span> Scanner le QR code à votre table</li>
-                <li className="flex gap-2"><span className="font-bold text-white">2.</span> Parcourir le menu digital</li>
-                <li className="flex gap-2"><span className="font-bold text-white">3.</span> Ajouter au panier et confirmer</li>
-                <li className="flex gap-2"><span className="font-bold text-white">4.</span> Suivre l'état en temps réel</li>
+                {c.orders.steps.map((step, i) => (
+                  <li key={i} className="flex gap-2"><span className="font-bold text-white">{i + 1}.</span> {step}</li>
+                ))}
               </ol>
             </div>
-            <CodeBlock
-              language="Workflow commande"
-              code={`En attente → En préparation → Prête → Servie`}
-            />
+            <CodeBlock language={c.orders.workflowLabel} code={c.orders.workflow} />
           </section>
 
           <hr className="border-slate-100 mb-20" />
 
           {/* ── CLIENT FIDELITE ── */}
           <section id="client-fidelite" className="mb-20 scroll-mt-24">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Fidélité & Promotions</h2>
-            <p className="text-slate-500 mb-6">
-              Profitez d'offres exclusives, de réductions automatiques et d'un programme de fidélité intégré.
-            </p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.loyalty.title}</h2>
+            <p className="text-slate-500 mb-6">{c.loyalty.text}</p>
             <div className="space-y-3">
-              {[
-                { icon: Star, label: 'Programme de points', desc: 'Gagnez des points à chaque commande, échangeables contre des réductions.' },
-                { icon: Tag, label: 'Promotions ciblées', desc: 'Des offres personnalisées selon vos habitudes et préférences.' },
-                { icon: CreditCard, label: 'Cashback automatique', desc: 'Remboursement automatique sur votre prochaine commande.' },
-              ].map((it) => (
-                <div key={it.label} className="flex items-start gap-4 p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition">
+              {[Star, Tag, CreditCard].map((Icon, i) => (
+                <div key={i} className="flex items-start gap-4 p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition">
                   <div className="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <it.icon className="w-4.5 h-4.5 text-purple-600" />
+                    <Icon className="w-4.5 h-4.5 text-purple-600" />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900 text-sm">{it.label}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{it.desc}</p>
+                    <p className="font-semibold text-slate-900 text-sm">{c.loyalty.items[i].label}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{c.loyalty.items[i].desc}</p>
                   </div>
                 </div>
               ))}
@@ -487,21 +410,12 @@ GET /client/bookings   → Mes réservations hôtelières`}
           {/* ── PRO DASHBOARD ── */}
           <section id="pro-dashboard" className="mb-20 scroll-mt-24">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-800 text-slate-200 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-              <LayoutDashboard className="w-3.5 h-3.5" /> Professionnel
+              <LayoutDashboard className="w-3.5 h-3.5" /> {c.dashboard.badge}
             </div>
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Tableau de bord</h2>
-            <p className="text-slate-500 mb-6">
-              Un hub centralisé pour piloter toute votre activité en temps réel.
-            </p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.dashboard.title}</h2>
+            <p className="text-slate-500 mb-6">{c.dashboard.text}</p>
             <div className="grid sm:grid-cols-2 gap-4 mb-6">
-              {[
-                "Chiffre d'affaires du jour / semaine / mois",
-                "Nombre de commandes en cours",
-                "Taux d'occupation des chambres",
-                "Alertes stock et notifications équipe",
-                "Top produits & meilleures ventes",
-                "Commandes par canal (salle, room service, QR)",
-              ].map((it) => (
+              {c.dashboard.items.map((it) => (
                 <div key={it} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl text-sm text-slate-700">
                   <BarChart3 className="w-4 h-4 text-purple-500 flex-shrink-0" /> {it}
                 </div>
@@ -513,55 +427,32 @@ GET /client/bookings   → Mes réservations hôtelières`}
 
           {/* ── PRO POS ── */}
           <section id="pro-pos" className="mb-20 scroll-mt-24">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Caisse intelligente (POS)</h2>
-            <p className="text-slate-500 mb-6">
-              Un système de caisse tactile conçu pour la rapidité et la fiabilité en restaurant.
-            </p>
-            <CodeBlock
-              language="Workflow POS"
-              code={`1. Sélectionner une table / commander en emporté
-2. Ajouter des articles depuis le catalogue
-3. Appliquer des promotions ou remises
-4. Envoyer en cuisine (ticket imprimé automatiquement)
-5. Marquer comme : Prête → Servie
-6. Encaisser : Espèces / Mobile Money / Carte`}
-            />
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.pos.title}</h2>
+            <p className="text-slate-500 mb-6">{c.pos.text}</p>
+            <CodeBlock language={c.pos.workflowLabel} code={c.pos.workflow} />
             <div className="grid sm:grid-cols-3 gap-3 mt-6">
-              {[
-                { icon: UtensilsCrossed, label: 'Menu digital' },
-                { icon: Package, label: 'Gestion des formules' },
-                { icon: Tag, label: 'Réductions & Promos' },
-              ].map((it) => (
-                <div key={it.label} className="flex items-center gap-2 p-3 bg-orange-50 border border-orange-100 rounded-xl text-sm font-medium text-orange-700">
-                  <it.icon className="w-4 h-4" /> {it.label}
+              {[UtensilsCrossed, Package, Tag].map((Icon, i) => (
+                <div key={i} className="flex items-center gap-2 p-3 bg-orange-50 border border-orange-100 rounded-xl text-sm font-medium text-orange-700">
+                  <Icon className="w-4 h-4" /> {c.pos.tags[i]}
                 </div>
               ))}
             </div>
-            <Callout type="info">
-              Seuls les rôles Admin et Caissier peuvent finaliser un paiement. Les Serveurs peuvent prendre des commandes mais pas encaisser.
-            </Callout>
+            <Callout type="info">{c.pos.callout}</Callout>
           </section>
 
           <hr className="border-slate-100 mb-20" />
 
           {/* ── PRO PMS ── */}
           <section id="pro-pms" className="mb-20 scroll-mt-24">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Gestion hôtelière (PMS)</h2>
-            <p className="text-slate-500 mb-6">
-              Gérez l'intégralité du cycle de vie de vos chambres depuis une seule interface.
-            </p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.pms.title}</h2>
+            <p className="text-slate-500 mb-6">{c.pms.text}</p>
             <div className="space-y-3 mb-6">
-              {[
-                { status: 'Disponible', color: 'bg-green-500', desc: 'La chambre est libre et peut être réservée.' },
-                { status: 'Occupée', color: 'bg-red-500', desc: 'Un client est actuellement en séjour.' },
-                { status: 'Réservée', color: 'bg-yellow-500', desc: 'Une réservation confirmée est en attente d\'arrivée.' },
-                { status: 'En nettoyage', color: 'bg-blue-500', desc: 'La chambre est en cours de préparation.' },
-              ].map((it) => (
-                <div key={it.status} className="flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-xl shadow-sm">
-                  <div className={`w-3 h-3 rounded-full ${it.color} flex-shrink-0`} />
+              {['bg-green-500', 'bg-red-500', 'bg-yellow-500', 'bg-blue-500'].map((color, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-xl shadow-sm">
+                  <div className={`w-3 h-3 rounded-full ${color} flex-shrink-0`} />
                   <div>
-                    <p className="font-semibold text-sm text-slate-900">{it.status}</p>
-                    <p className="text-xs text-slate-500">{it.desc}</p>
+                    <p className="font-semibold text-sm text-slate-900">{c.pms.statuses[i].status}</p>
+                    <p className="text-xs text-slate-500">{c.pms.statuses[i].desc}</p>
                   </div>
                 </div>
               ))}
@@ -572,36 +463,20 @@ GET /client/bookings   → Mes réservations hôtelières`}
 
           {/* ── PRO STOCKS ── */}
           <section id="pro-stocks" className="mb-20 scroll-mt-24">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Stocks & Catalogue</h2>
-            <p className="text-slate-500 mb-6">Gérez vos produits, catégories et niveaux de stock en temps réel.</p>
-            <CodeBlock
-              language="Catalogue — structure"
-              code={`Catégorie
-  └── Produit
-        ├── Nom, Description, Prix
-        ├── Image
-        ├── Stock actuel / Seuil d'alerte
-        └── Statut : Disponible | Épuisé | Masqué`}
-            />
-            <Callout type="warning">
-              Quand le stock d'un produit atteint le seuil d'alerte configuré, une notification automatique est
-              envoyée à l'Admin.
-            </Callout>
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.stocks.title}</h2>
+            <p className="text-slate-500 mb-6">{c.stocks.text}</p>
+            <CodeBlock language={c.stocks.codeLabel} code={c.stocks.code} />
+            <Callout type="warning">{c.stocks.callout}</Callout>
           </section>
 
           <hr className="border-slate-100 mb-20" />
 
           {/* ── PRO PROMOS ── */}
           <section id="pro-promos" className="mb-20 scroll-mt-24">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Promotions</h2>
-            <p className="text-slate-500 mb-6">Créez et gérez des promotions pour dynamiser vos ventes.</p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.promos.title}</h2>
+            <p className="text-slate-500 mb-6">{c.promos.text}</p>
             <div className="grid sm:grid-cols-2 gap-4">
-              {[
-                { title: 'Promotion globale', desc: 'Réduction appliquée à tout le panier. Visible par tous les clients.' },
-                { title: 'Réduction produit', desc: 'Remise ciblée sur un ou plusieurs produits spécifiques.' },
-                { title: 'Code promo', desc: "Un code unique à saisir au moment du paiement pour bénéficier d'une remise." },
-                { title: 'Promotion temporaire', desc: 'Active uniquement pendant une plage horaire définie (Happy Hour, etc.).' },
-              ].map((it) => (
+              {c.promos.items.map((it) => (
                 <div key={it.title} className="p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md transition">
                   <p className="font-semibold text-sm text-slate-900 mb-1">{it.title}</p>
                   <p className="text-xs text-slate-500">{it.desc}</p>
@@ -614,16 +489,10 @@ GET /client/bookings   → Mes réservations hôtelières`}
 
           {/* ── PRO ANALYTICS ── */}
           <section id="pro-analytics" className="mb-20 scroll-mt-24">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Analytics</h2>
-            <p className="text-slate-500 mb-6">
-              Des rapports complets pour comprendre et optimiser vos performances.
-            </p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.analytics.title}</h2>
+            <p className="text-slate-500 mb-6">{c.analytics.text}</p>
             <div className="grid sm:grid-cols-3 gap-4 mb-6">
-              {[
-                { value: 'J / S / M', label: 'Filtres temporels' },
-                { value: 'CSV / PDF', label: 'Export de rapports' },
-                { value: 'Temps réel', label: 'Mise à jour des données' },
-              ].map((stat) => (
+              {c.analytics.stats.map((stat) => (
                 <div key={stat.label} className="text-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
                   <p className="text-xl font-bold text-purple-600 mb-1">{stat.value}</p>
                   <p className="text-xs text-slate-500">{stat.label}</p>
@@ -637,31 +506,21 @@ GET /client/bookings   → Mes réservations hôtelières`}
           {/* ── ROLES OVERVIEW ── */}
           <section id="roles-overview" className="mb-20 scroll-mt-24">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-              <Shield className="w-3.5 h-3.5" /> Sécurité & Accès
+              <Shield className="w-3.5 h-3.5" /> {c.roles.badge}
             </div>
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Rôles & Permissions</h2>
-            <p className="text-slate-500 mb-6">
-              Shede applique un contrôle d'accès strict basé sur les rôles (RBAC).
-            </p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.roles.title}</h2>
+            <p className="text-slate-500 mb-6">{c.roles.text}</p>
             <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm">
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    {['Fonctionnalité', 'Super Admin', 'Admin', 'Caissier', 'Serveur', 'Client'].map((h) => (
+                    {c.roles.headers.map((h) => (
                       <th key={h} className="text-left px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {[
-                    ['Gérer les structures', '✅', '❌', '❌', '❌', '❌'],
-                    ['Dashboard & Analytics', '✅', '✅', '❌', '❌', '❌'],
-                    ['Gérer le catalogue', '✅', '✅', '❌', '❌', '❌'],
-                    ['Prendre une commande', '✅', '✅', '✅', '✅', '✅'],
-                    ['Finaliser un paiement', '✅', '✅', '✅', '❌', '❌'],
-                    ['Gérer les réservations', '✅', '✅', '✅', '❌', '✅'],
-                    ['Gérer les promotions', '✅', '✅', '❌', '❌', '❌'],
-                  ].map(([feat, ...vals]) => (
+                  {c.roles.rows.map(([feat, ...vals]) => (
                     <tr key={feat} className="hover:bg-slate-50">
                       <td className="px-4 py-3 font-medium text-slate-800">{feat}</td>
                       {vals.map((v, i) => <td key={i} className="px-4 py-3 text-center">{v}</td>)}
@@ -676,17 +535,17 @@ GET /client/bookings   → Mes réservations hôtelières`}
 
           {/* ── ROLES DETAIL ── */}
           <section id="roles-admin" className="mb-12 scroll-mt-24">
-            <h2 className="text-2xl font-bold text-slate-900 mb-4">Super Admin</h2>
-            <p className="text-slate-500 mb-4">Accès complet à tout le système. Peut créer, modifier et supprimer des structures.</p>
-            <Callout type="danger">Ce rôle est uniquement attribué par l'équipe Shede. Ne le partagez jamais.</Callout>
+            <h2 className="text-2xl font-bold text-slate-900 mb-4">{c.roles.superAdmin.title}</h2>
+            <p className="text-slate-500 mb-4">{c.roles.superAdmin.text}</p>
+            <Callout type="danger">{c.roles.superAdmin.callout}</Callout>
           </section>
           <section id="roles-cashier" className="mb-12 scroll-mt-24">
-            <h2 className="text-2xl font-bold text-slate-900 mb-4">Caissier</h2>
-            <p className="text-slate-500">Peut prendre des commandes, les finaliser et encaisser. Ne peut pas modifier le catalogue ni les paramètres.</p>
+            <h2 className="text-2xl font-bold text-slate-900 mb-4">{c.roles.cashier.title}</h2>
+            <p className="text-slate-500">{c.roles.cashier.text}</p>
           </section>
           <section id="roles-server" className="mb-20 scroll-mt-24">
-            <h2 className="text-2xl font-bold text-slate-900 mb-4">Serveur</h2>
-            <p className="text-slate-500">Peut uniquement prendre et modifier des commandes actives. Aucun accès aux fonctions financières.</p>
+            <h2 className="text-2xl font-bold text-slate-900 mb-4">{c.roles.server.title}</h2>
+            <p className="text-slate-500">{c.roles.server.text}</p>
           </section>
 
           <hr className="border-slate-100 mb-20" />
@@ -694,38 +553,26 @@ GET /client/bookings   → Mes réservations hôtelières`}
           {/* ── INTEGRATIONS QR ── */}
           <section id="integrations-qr" className="mb-20 scroll-mt-24">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-cyan-100 text-cyan-700 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-              <Globe className="w-3.5 h-3.5" /> Intégrations
+              <Globe className="w-3.5 h-3.5" /> {c.qr.badge}
             </div>
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">QR Code & Self-Order</h2>
-            <p className="text-slate-500 mb-6">
-              Chaque table ou chambre dispose d'un QR code unique généré automatiquement par Shede.
-            </p>
-            <CodeBlock
-              language="URL QR Code générée"
-              code={`https://shede.app/menu/{structureSlug}?table={tableId}
-https://shede.app/menu/{structureSlug}?room={roomId}`}
-            />
-            <Callout type="tip">
-              Les QR codes sont téléchargeables au format PDF depuis le tableau de bord Admin, prêts à imprimer et à plastifier.
-            </Callout>
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.qr.title}</h2>
+            <p className="text-slate-500 mb-6">{c.qr.text}</p>
+            <CodeBlock language={c.qr.codeLabel} code={c.qr.code} />
+            <Callout type="tip">{c.qr.callout}</Callout>
           </section>
 
           <hr className="border-slate-100 mb-20" />
 
           {/* ── INTEGRATIONS PAYMENT ── */}
           <section id="integrations-payment" className="mb-20 scroll-mt-24">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Paiements</h2>
-            <p className="text-slate-500 mb-6">Shede supporte plusieurs méthodes de paiement adaptées au marché local et international.</p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.payments.title}</h2>
+            <p className="text-slate-500 mb-6">{c.payments.text}</p>
             <div className="grid sm:grid-cols-3 gap-3">
-              {[
-                { method: 'Espèces', icon: '💵', desc: 'Paiement manuel enregistré' },
-                { method: 'Mobile Money', icon: '📱', desc: 'MTN, Orange Money…' },
-                { method: 'Carte bancaire', icon: '💳', desc: 'Visa, Mastercard' },
-              ].map((it) => (
-                <div key={it.method} className="p-4 bg-white border border-slate-100 rounded-xl shadow-sm text-center">
-                  <div className="text-3xl mb-2">{it.icon}</div>
-                  <p className="font-semibold text-slate-800 text-sm">{it.method}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{it.desc}</p>
+              {['💵', '📱', '💳'].map((icon, i) => (
+                <div key={i} className="p-4 bg-white border border-slate-100 rounded-xl shadow-sm text-center">
+                  <div className="text-3xl mb-2">{icon}</div>
+                  <p className="font-semibold text-slate-800 text-sm">{c.payments.methods[i].method}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{c.payments.methods[i].desc}</p>
                 </div>
               ))}
             </div>
@@ -738,15 +585,9 @@ https://shede.app/menu/{structureSlug}?room={roomId}`}
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
               <HelpCircle className="w-3.5 h-3.5" /> FAQ
             </div>
-            <h2 className="text-3xl font-bold text-slate-900 mb-6">Questions fréquentes</h2>
+            <h2 className="text-3xl font-bold text-slate-900 mb-6">{c.faq.title}</h2>
             <div className="space-y-4">
-              {[
-                { q: 'Shede est-il gratuit pour les clients ?', a: "Oui, totalement. La version B2C (compte client) est 100% gratuite et sans commission sur les commandes." },
-                { q: 'Puis-je gérer plusieurs établissements ?', a: "Oui. En tant que Super Admin ou Admin multi-structure, vous pouvez piloter plusieurs restaurants et hôtels depuis un seul compte." },
-                { q: 'Les données sont-elles sécurisées ?', a: "Oui. Toutes les données sont chiffrées, hébergées sur des serveurs sécurisés et cloisonnées par structure multi-tenant." },
-                { q: "Est-ce qu'il faut installer une application ?", a: "Non. Shede est une Progressive Web App (PWA) accessible depuis n'importe quel navigateur mobile ou desktop." },
-                { q: 'Comment obtenir un compte professionnel ?', a: "Contactez-nous via le numéro +237 656 954 474 ou via le formulaire de contact. Un de nos experts vous accompagnera." },
-              ].map((item) => (
+              {c.faq.items.map((item) => (
                 <details key={item.q} className="group bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
                   <summary className="flex justify-between items-center px-5 py-4 cursor-pointer font-semibold text-slate-900 text-sm list-none hover:bg-slate-50 transition">
                     {item.q}
@@ -762,8 +603,8 @@ https://shede.app/menu/{structureSlug}?room={roomId}`}
 
           {/* ── CONTACT SUPPORT ── */}
           <section id="contact-support" className="mb-20 scroll-mt-24">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Contacter le support</h2>
-            <p className="text-slate-500 mb-6">Notre équipe est disponible 7j/7 pour vous aider.</p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.contact.title}</h2>
+            <p className="text-slate-500 mb-6">{c.contact.text}</p>
             <div className="grid sm:grid-cols-2 gap-4">
               <a
                 href="tel:+237656954474"
@@ -773,7 +614,7 @@ https://shede.app/menu/{structureSlug}?room={roomId}`}
                   <Smartphone className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="font-bold">Appel téléphonique</p>
+                  <p className="font-bold">{c.contact.call}</p>
                   <p className="text-purple-200 text-sm">+237 656 954 474</p>
                 </div>
               </a>
@@ -787,7 +628,7 @@ https://shede.app/menu/{structureSlug}?room={roomId}`}
                   <ExternalLink className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="font-bold">Portfolio développeur</p>
+                  <p className="font-bold">{c.contact.portfolio}</p>
                   <p className="text-slate-400 text-sm">Etarcos Dev</p>
                 </div>
               </a>
@@ -796,16 +637,16 @@ https://shede.app/menu/{structureSlug}?room={roomId}`}
 
           {/* Footer mini */}
           <div className="text-center py-8 border-t border-slate-100">
-            <p className="text-slate-400 text-sm">© 2026 Shede Tech · Documentation v1.0</p>
+            <p className="text-slate-400 text-sm">{c.footer.version.replace('{year}', String(new Date().getFullYear()))}</p>
             <Link href="/" className="text-purple-600 hover:text-purple-800 text-sm font-medium mt-2 inline-block transition">
-              ← Retour à l'accueil
+              {c.footer.backHome}
             </Link>
           </div>
         </main>
 
         {/* ── Table of Contents (right) ── */}
         <aside className="hidden xl:block w-56 flex-shrink-0 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto p-6">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Sur cette page</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">{c.header.onThisPage}</p>
           <nav className="space-y-1.5">
             {navSections.flatMap((s) =>
               s.items.map((item) => (

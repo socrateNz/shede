@@ -3,6 +3,7 @@
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
+import { te } from '@/lib/i18n/server';
 
 const KITCHEN_ROLES = ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CUISINIER'] as const;
 
@@ -31,6 +32,7 @@ export async function getKitchenOrders(structureId: string): Promise<KitchenOrde
   if (!session || !KITCHEN_ROLES.includes(session.role as any)) return [];
 
   const admin = getAdminSupabase();
+  const unknownProduct = await te('errors.unknownProduct');
 
   const { data: orders, error } = await admin
     .from('orders')
@@ -71,7 +73,7 @@ export async function getKitchenOrders(structureId: string): Promise<KitchenOrde
       .filter((item: any) => item.products?.destination === 'CUISINE')
       .map((item: any) => ({
         id: item.id,
-        product_name: item.products?.name ?? 'Produit inconnu',
+        product_name: item.products?.name ?? unknownProduct,
         quantity: item.quantity,
         notes: item.notes ?? null,
       })),
@@ -88,7 +90,7 @@ export async function updateOrderStatusFromKitchen(
 ) {
   const session = await getSession();
   if (!session || !KITCHEN_ROLES.includes(session.role as any)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   const admin = getAdminSupabase();
@@ -102,7 +104,7 @@ export async function updateOrderStatusFromKitchen(
     .single();
 
   if (fetchError || !order) {
-    return { success: false, error: 'Commande introuvable' };
+    return { success: false, error: await te('errors.orderNotFound') };
   }
 
   const currentStatus = order.kitchen_status || 'PENDING';
@@ -112,7 +114,7 @@ export async function updateOrderStatusFromKitchen(
   };
 
   if (!allowedTransitions[currentStatus]?.includes(newStatus)) {
-    return { success: false, error: `Transition ${currentStatus} → ${newStatus} non autorisée` };
+    return { success: false, error: await te('errors.invalidTransition', { from: currentStatus, to: newStatus }) };
   }
 
   // Update kitchen_status
@@ -123,7 +125,8 @@ export async function updateOrderStatusFromKitchen(
     .eq('structure_id', session.structureId!);
 
   if (updateError) {
-    return { success: false, error: updateError.message };
+    console.error('[kitchen] status update:', updateError.message);
+    return { success: false, error: await te('errors.statusUpdateFailed') };
   }
 
   // Calculate if global status should be updated
@@ -153,6 +156,7 @@ export async function getBarOrders(structureId: string): Promise<KitchenOrder[]>
   if (!session) return [];
 
   const admin = getAdminSupabase();
+  const unknownProduct = await te('errors.unknownProduct');
 
   const { data: orders } = await admin
     .from('orders')
@@ -196,7 +200,7 @@ export async function getBarOrders(structureId: string): Promise<KitchenOrder[]>
         })
         .map((item: any) => ({
           id: item.id,
-          product_name: item.products?.name ?? 'Produit inconnu',
+          product_name: item.products?.name ?? unknownProduct,
           quantity: item.quantity,
           notes: item.notes ?? null,
         })),
@@ -213,7 +217,7 @@ export async function updateOrderStatusFromBar(
 ) {
   const session = await getSession();
   if (!session) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   const admin = getAdminSupabase();
@@ -226,7 +230,7 @@ export async function updateOrderStatusFromBar(
     .single();
 
   if (fetchError || !order) {
-    return { success: false, error: 'Commande introuvable' };
+    return { success: false, error: await te('errors.orderNotFound') };
   }
 
   const currentStatus = order.bar_status || 'PENDING';
@@ -236,7 +240,7 @@ export async function updateOrderStatusFromBar(
   };
 
   if (!allowedTransitions[currentStatus]?.includes(newStatus)) {
-    return { success: false, error: `Transition ${currentStatus} → ${newStatus} non autorisée` };
+    return { success: false, error: await te('errors.invalidTransition', { from: currentStatus, to: newStatus }) };
   }
 
   // Update bar_status
@@ -247,7 +251,8 @@ export async function updateOrderStatusFromBar(
     .eq('structure_id', session.structureId!);
 
   if (updateError) {
-    return { success: false, error: updateError.message };
+    console.error('[kitchen] status update:', updateError.message);
+    return { success: false, error: await te('errors.statusUpdateFailed') };
   }
 
   // Calculate if global status should be updated

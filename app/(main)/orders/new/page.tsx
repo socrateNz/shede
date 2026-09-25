@@ -5,10 +5,13 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { NewOrderForm } from '@/components/new-order-form';
 import { getPromotions } from '@/app/actions/promotions';
 import { getStructureActiveShift } from '@/app/actions/shifts';
+import { getActiveDeliveryZones } from '@/lib/delivery';
+import { getT } from '@/lib/i18n/server';
 import { AlertTriangle } from 'lucide-react';
 
 export default async function NewOrderPage() {
   const session = await requireRole('ADMIN', 'CAISSE', 'SERVEUR');
+  const { t } = await getT();
   const activeShift = await getStructureActiveShift(session.structureId!);
   const admin = getAdminSupabase();
 
@@ -109,7 +112,7 @@ export default async function NewOrderPage() {
     <div className="p-8">
       <Link href="/orders" className="flex items-center gap-2 text-blue-400 hover:text-blue-300 mb-8">
         <ArrowLeft className="w-4 h-4" />
-        Back to Orders
+        {t('orders.create.back')}
       </Link>
 
       {!activeShift ? (
@@ -117,14 +120,14 @@ export default async function NewOrderPage() {
           <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <AlertTriangle className="w-8 h-8 text-amber-500" />
           </div>
-          <h2 className="text-2xl font-bold text-amber-500 mb-4">Caisse fermée</h2>
+          <h2 className="text-2xl font-bold text-amber-500 mb-4">{t('orders.list.tillClosed')}</h2>
           <p className="text-slate-300 mb-8 max-w-md mx-auto">
-            Vous ne pouvez pas créer de nouvelle commande tant qu'aucune session de caisse n'est ouverte pour cet établissement.
+            {t('orders.create.tillClosedText')}
           </p>
           {(session.role === 'ADMIN' || session.role === 'CAISSE') && (
             <Link href="/shifts">
               <button className="px-6 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors font-medium">
-                Ouvrir la caisse
+                {t('orders.list.openTill')}
               </button>
             </Link>
           )}
@@ -137,6 +140,7 @@ export default async function NewOrderPage() {
           promotions={activePromotions}
           clients={clients || []}
           tables={tables || []}
+          deliveryZones={session.modules?.includes('LIVRAISON') ? await getActiveDeliveryZones(session.structureId!) : []}
         />
       )}
     </div>

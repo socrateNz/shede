@@ -1,33 +1,52 @@
-/** Modules activables par la licence d'une organisation. */
+import type { Translator } from '@/lib/i18n/translate';
+
+/**
+ * Modules activables par la licence d'une organisation.
+ * Les libellés et descriptions sont traduits : dictionnaire `modules`.
+ */
 export const MODULE_OPTIONS = [
   // ── Core ──
-  { value: 'POS',        label: '🖥️ Caisse (POS)',              description: 'Point de vente, commandes, paiements',                  category: 'Core' },
-  { value: 'CLIENT_APP', label: '📱 Application Client (B2C)',   description: 'Catalogue public, panier, commandes en ligne',           category: 'Core' },
+  { value: 'POS', icon: '🖥️', category: 'Core' },
+  { value: 'CLIENT_APP', icon: '📱', category: 'Core' },
 
   // ── Restauration ──
-  { value: 'CUISINE',    label: '🍳 Kitchen Display (KDS)',       description: 'Affichage cuisine en temps réel, gestion commandes',    category: 'Restauration' },
-  { value: 'BAR',        label: '🍺 Bar Display',                description: 'Affichage des commandes bar/boissons',                  category: 'Restauration' },
-  { value: 'LIVRAISON',  label: '🛵 Livraison',                  description: 'Gestion des commandes à livrer, suivi livreurs',        category: 'Restauration' },
-  { value: 'TABLES',     label: '🪑 Plan de salle',              description: 'Floor manager interactif pour la gestion des tables',   category: 'Restauration' },
+  { value: 'CUISINE', icon: '🍳', category: 'Restauration' },
+  { value: 'BAR', icon: '🍺', category: 'Restauration' },
+  { value: 'LIVRAISON', icon: '🛵', category: 'Restauration' },
+  { value: 'TABLES', icon: '🪑', category: 'Restauration' },
 
   // ── Gestion ──
-  { value: 'HOTEL',      label: '🏨 Hôtel (PMS)',                description: 'Chambres, réservations, check-in/check-out',            category: 'Gestion' },
-  { value: 'STOCK',      label: '📦 Stock (Inventaire)',          description: "Mouvements de stock, seuils d'alerte, recettes",        category: 'Gestion' },
-  { value: 'PROMOTION',  label: '🏷️ Promotions',                description: 'Codes promo, remises automatiques, offres spéciales',   category: 'Gestion' },
-  { value: 'RH',         label: '👥 Ressources Humaines',        description: 'Gestion du personnel, planning, congés',                category: 'Gestion' },
-  { value: 'CRM',        label: '🤝 CRM Clients',                description: 'Base de données clients, fiches, historique commandes', category: 'Gestion' },
+  { value: 'HOTEL', icon: '🏨', category: 'Gestion' },
+  { value: 'STOCK', icon: '📦', category: 'Gestion' },
+  { value: 'PROMOTION', icon: '🏷️', category: 'Gestion' },
+  { value: 'RH', icon: '👥', category: 'Gestion' },
+  { value: 'CRM', icon: '🤝', category: 'Gestion' },
 ] as const;
+
+export type ModuleCode = (typeof MODULE_OPTIONS)[number]['value'];
+export type ModuleCategory = (typeof MODULE_OPTIONS)[number]['category'];
 
 export const KNOWN_MODULES: string[] = MODULE_OPTIONS.map((m) => m.value);
 
-export const MODULE_CATEGORY_LABELS: Record<string, string> = {
-  Core: '⚡ Essentiels',
-  Restauration: '🍽️ Restauration',
-  Gestion: '🏢 Gestion',
-};
+export const MODULE_CATEGORIES: ModuleCategory[] = ['Core', 'Restauration', 'Gestion'];
 
-export function getModuleLabel(value: string): string {
-  return MODULE_OPTIONS.find((m) => m.value === value)?.label ?? value;
+function isModuleCode(value: string): value is ModuleCode {
+  return KNOWN_MODULES.includes(value);
+}
+
+/** « 🏨 Hôtel (PMS) » dans la langue courante. */
+export function moduleLabel(t: Translator, value: string): string {
+  if (!isModuleCode(value)) return value;
+  const icon = MODULE_OPTIONS.find((m) => m.value === value)?.icon ?? '';
+  return `${icon} ${t(`modules.names.${value}`)}`.trim();
+}
+
+export function moduleDescription(t: Translator, value: string): string {
+  return isModuleCode(value) ? t(`modules.descriptions.${value}`) : '';
+}
+
+export function moduleCategoryLabel(t: Translator, category: ModuleCategory): string {
+  return t(`modules.categories.${category}`);
 }
 
 /** Filtre sur les modules connus et dédoublonne ; POS par défaut. */

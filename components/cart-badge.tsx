@@ -4,9 +4,11 @@ import { useCartStore } from '@/lib/cart-store';
 import { ShoppingCart } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useT } from '@/lib/i18n/client';
 
 export function CartBadge({ mobile = false }: { mobile?: boolean }) {
   const [mounted, setMounted] = useState(false);
+  const { t } = useT();
   const items = useCartStore((state) => state.items);
   
   useEffect(() => {
@@ -19,7 +21,7 @@ export function CartBadge({ mobile = false }: { mobile?: boolean }) {
     return (
       <Link href="/cart" className="text-slate-600 text-sm font-medium flex flex-col items-center relative">
         <span className="text-xl">🛒</span>
-        Panier
+        {t('client.nav.cart')}
         {mounted && count > 0 && (
           <span className="absolute top-0 right-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 border border-white rounded-full -translate-y-2 translate-x-3">
             {count}

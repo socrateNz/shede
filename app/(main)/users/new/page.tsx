@@ -9,9 +9,12 @@ import { ArrowLeft, UserPlus, Mail, Lock, Briefcase, User, CheckCircle, AlertCir
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { useT } from '@/lib/i18n/client';
+import { STAFF_ROLES } from '@/lib/staff-roles';
 
 export default function NewUserPage() {
   const router = useRouter();
+  const { t } = useT();
   const [state, formAction, isPending] = useActionState(
     createUser as any,
     { success: false, error: '' }
@@ -23,19 +26,11 @@ export default function NewUserPage() {
     }
   }, [state.success, router]);
 
-  const roles = [
-    { value: 'ADMIN',      label: 'Administrateur',       icon: '👑', description: 'Accès complet à la gestion' },
-    { value: 'MANAGER',    label: 'Manager',               icon: '🎯', description: 'Gestion opérationnelle' },
-    { value: 'CAISSE',     label: 'Caisse',                icon: '💳', description: 'Paiements et factures' },
-    { value: 'SERVEUR',    label: 'Serveur',               icon: '🍽️', description: 'Prise de commandes et service' },
-    { value: 'RECEPTION',  label: 'Réception',             icon: '🏨', description: 'Réservations hôtel' },
-    { value: 'CUISINIER',  label: 'Cuisinier',             icon: '🍳', description: 'Affichage cuisine (KDS)' },
-    { value: 'BAR',        label: 'Bar',                   icon: '🍺', description: 'Affichage bar' },
-    { value: 'LIVREUR',    label: 'Livreur',               icon: '🛵', description: 'Gestion des livraisons' },
-    { value: 'COMPTABLE',  label: 'Comptable',             icon: '📊', description: 'Statistiques et rapports' },
-    { value: 'MAGASINIER', label: 'Magasinier',            icon: '📦', description: 'Gestion des stocks' },
-    { value: 'RH',         label: 'Ressources Humaines',   icon: '👥', description: 'Gestion du personnel' },
-  ];
+  const roles = STAFF_ROLES.map((role) => ({
+    ...role,
+    label: t(`roles.${role.value}`),
+    description: t(`team.roleDescriptions.${role.value}`),
+  }));
 
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -52,19 +47,19 @@ export default function NewUserPage() {
           className="inline-flex items-center gap-2 text-slate-400 hover:text-blue-400 mb-6 transition-all duration-300 group"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span>Retour à l'équipe</span>
+          <span>{t('team.form.back')}</span>
         </Link>
 
         {/* Header */}
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
             <UserPlus className="w-4 h-4 text-blue-400" />
-            <span className="text-sm text-blue-400 font-medium">Nouveau membre</span>
+            <span className="text-sm text-blue-400 font-medium">{t('team.form.createBadge')}</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
-            Ajouter un membre
+            {t('team.form.createTitle')}
           </h1>
-          <p className="text-slate-400">Créez un nouveau compte pour votre personnel</p>
+          <p className="text-slate-400">{t('team.form.createSubtitle')}</p>
         </div>
 
         {/* Formulaire Card */}
@@ -76,7 +71,7 @@ export default function NewUserPage() {
               <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
                 <UserPlus className="w-5 h-5 text-white" />
               </div>
-              Formulaire d'inscription
+              {t('team.form.createCard')}
             </CardTitle>
           </CardHeader>
 
@@ -86,19 +81,19 @@ export default function NewUserPage() {
               <div className="space-y-6">
                 <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
                   <User className="w-4 h-4 text-blue-400" />
-                  <h3 className="font-semibold">Informations personnelles</h3>
+                  <h3 className="font-semibold">{t('team.form.personal')}</h3>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <User className="w-4 h-4 text-blue-400" />
-                      Prénom *
+                      {t('team.form.firstName')}
                     </label>
                     <Input
                       type="text"
                       name="firstName"
-                      placeholder="Jean"
+                      placeholder={t('team.form.firstNamePlaceholder')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300 group-hover:border-slate-500"
                       required
                     />
@@ -107,12 +102,12 @@ export default function NewUserPage() {
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <User className="w-4 h-4 text-purple-400" />
-                      Nom *
+                      {t('team.form.lastName')}
                     </label>
                     <Input
                       type="text"
                       name="lastName"
-                      placeholder="Dupont"
+                      placeholder={t('team.form.lastNamePlaceholder')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300 group-hover:border-slate-500"
                       required
                     />
@@ -122,22 +117,22 @@ export default function NewUserPage() {
                 <div className="space-y-2 group">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                     <Mail className="w-4 h-4 text-emerald-400" />
-                    Email *
+                    {t('team.form.email')}
                   </label>
                   <Input
                     type="email"
                     name="email"
-                    placeholder="jean.dupont@restaurant.com"
+                    placeholder={t('team.form.emailPlaceholder')}
                     className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300 group-hover:border-slate-500"
                     required
                   />
-                  <p className="text-xs text-slate-500 mt-1">L'email servira d'identifiant de connexion</p>
+                  <p className="text-xs text-slate-500 mt-1">{t('team.form.emailHint')}</p>
                 </div>
 
                 <div className="space-y-2 group">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                     <Lock className="w-4 h-4 text-amber-400" />
-                    Mot de passe *
+                    {t('team.form.password')}
                   </label>
                   <Input
                     type="password"
@@ -147,7 +142,7 @@ export default function NewUserPage() {
                     required
                     minLength={6}
                   />
-                  <p className="text-xs text-slate-500 mt-1">Minimum 6 caractères</p>
+                  <p className="text-xs text-slate-500 mt-1">{t('team.form.passwordHint')}</p>
                 </div>
               </div>
 
@@ -155,13 +150,13 @@ export default function NewUserPage() {
               <div className="space-y-6">
                 <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
                   <Briefcase className="w-4 h-4 text-purple-400" />
-                  <h3 className="font-semibold">Attribution du rôle</h3>
+                  <h3 className="font-semibold">{t('team.form.roleSection')}</h3>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                     <Briefcase className="w-4 h-4 text-purple-400" />
-                    Rôle *
+                    {t('team.form.role')}
                   </label>
                   <select
                     name="role"
@@ -171,7 +166,7 @@ export default function NewUserPage() {
                   >
                     {roles.map((role) => (
                       <option key={role.value} value={role.value}>
-                        {role.icon} {role.label} - {role.description}
+                        {t('team.form.roleOption', { icon: role.icon, label: role.label, description: role.description })}
                       </option>
                     ))}
                   </select>
@@ -209,7 +204,7 @@ export default function NewUserPage() {
                 <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-4 text-sm text-green-400 animate-in slide-in-from-top-2">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4" />
-                    Utilisateur créé avec succès ! Redirection...
+                    {t('team.form.created')}
                   </div>
                 </div>
               )}
@@ -224,12 +219,12 @@ export default function NewUserPage() {
                   {isPending ? (
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Création en cours...
+                      {t('team.form.creating')}
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
                       <UserPlus className="w-4 h-4" />
-                      Ajouter le membre
+                      {t('team.form.create')}
                     </div>
                   )}
                 </Button>
@@ -239,7 +234,7 @@ export default function NewUserPage() {
                     variant="outline"
                     className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-300"
                   >
-                    Annuler
+                    {t('common.cancel')}
                   </Button>
                 </Link>
               </div>
@@ -250,7 +245,7 @@ export default function NewUserPage() {
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-xs text-slate-500">
-            L'utilisateur recevra un email de bienvenue avec ses identifiants de connexion
+            {t('team.form.createFooter')}
           </p>
         </div>
       </div>

@@ -31,6 +31,8 @@ import { getMyNotifications } from '@/app/actions/push';
 import { getDashboardEnrichedData } from '@/app/actions/dashboard';
 import { DashboardAdminCharts } from '@/components/dashboard-admin-charts';
 import type { UserRole } from '@/lib/auth';
+import { getT } from '@/lib/i18n/server';
+import type { TranslationKey } from '@/lib/i18n/translate';
 
 async function getDashboardStats(structureId: string, role: string, userId: string) {
   const admin = getAdminSupabase();
@@ -121,28 +123,27 @@ async function getDashboardStats(structureId: string, role: string, userId: stri
   return { type: 'UNKNOWN', data: {} };
 }
 
-const ROLE_CONFIG: Record<string, { label: string; Icon: any; color: string }> = {
-  SUPER_ADMIN: { label: 'Super Administrateur', Icon: Shield, color: 'text-red-400 bg-red-500/10' },
-  ADMIN:       { label: 'Administrateur',        Icon: Shield, color: 'text-purple-400 bg-purple-500/10' },
-  MANAGER:     { label: 'Manager',               Icon: UserCog, color: 'text-indigo-400 bg-indigo-500/10' },
-  CAISSE:      { label: 'Caisse',                Icon: CreditCard, color: 'text-blue-400 bg-blue-500/10' },
-  SERVEUR:     { label: 'Serveur',               Icon: Coffee, color: 'text-emerald-400 bg-emerald-500/10' },
-  RECEPTION:   { label: 'Réception',             Icon: Hotel, color: 'text-teal-400 bg-teal-500/10' },
-  CUISINIER:   { label: 'Cuisinier',             Icon: ChefHat, color: 'text-orange-400 bg-orange-500/10' },
-  BAR:         { label: 'Bar',                   Icon: Beer, color: 'text-amber-400 bg-amber-500/10' },
-  LIVREUR:     { label: 'Livreur',               Icon: Truck, color: 'text-cyan-400 bg-cyan-500/10' },
-  COMPTABLE:   { label: 'Comptable',             Icon: BookOpen, color: 'text-violet-400 bg-violet-500/10' },
-  MAGASINIER:  { label: 'Magasinier',            Icon: Boxes, color: 'text-pink-400 bg-pink-500/10' },
-  RH:          { label: 'Ressources Humaines',   Icon: Users, color: 'text-rose-400 bg-rose-500/10' },
+const ROLE_CONFIG: Record<string, { Icon: any; color: string }> = {
+  SUPER_ADMIN: { Icon: Shield, color: 'text-red-400 bg-red-500/10' },
+  ADMIN:       { Icon: Shield, color: 'text-purple-400 bg-purple-500/10' },
+  MANAGER:     { Icon: UserCog, color: 'text-indigo-400 bg-indigo-500/10' },
+  CAISSE:      { Icon: CreditCard, color: 'text-blue-400 bg-blue-500/10' },
+  SERVEUR:     { Icon: Coffee, color: 'text-emerald-400 bg-emerald-500/10' },
+  RECEPTION:   { Icon: Hotel, color: 'text-teal-400 bg-teal-500/10' },
+  CUISINIER:   { Icon: ChefHat, color: 'text-orange-400 bg-orange-500/10' },
+  BAR:         { Icon: Beer, color: 'text-amber-400 bg-amber-500/10' },
+  LIVREUR:     { Icon: Truck, color: 'text-cyan-400 bg-cyan-500/10' },
+  COMPTABLE:   { Icon: BookOpen, color: 'text-violet-400 bg-violet-500/10' },
+  MAGASINIER:  { Icon: Boxes, color: 'text-pink-400 bg-pink-500/10' },
+  RH:          { Icon: Users, color: 'text-rose-400 bg-rose-500/10' },
 };
 
-function formatAmount(value: number, currency = 'XOF') {
-  return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value) + ' ' + currency;
-}
 
 export default async function DashboardPage() {
   const session = await requireAuth();
   const role = session.role as UserRole;
+  const { t, format } = await getT();
+  const formatAmount = (value: number, currency: string) => format.money(value, currency);
 
   // Charger structure pour la devise
   let structure: any = null;
@@ -151,17 +152,17 @@ export default async function DashboardPage() {
     const { data } = await admin.from('structures').select('*').eq('id', session.structureId).single();
     structure = data;
   }
-  const currency = structure?.currency || 'XOF';
+  const currency = structure?.currency || 'XAF';
 
   const stats = await getDashboardStats(session.structureId!, role, session.userId);
-  const roleConfig = ROLE_CONFIG[role] || { label: role, Icon: Users, color: 'text-slate-400 bg-slate-500/10' };
+  const roleConfig = { ...(ROLE_CONFIG[role] || { Icon: Users, color: 'text-slate-400 bg-slate-500/10' }), label: t(`roles.${role}` as TranslationKey) };
   const RoleIcon = roleConfig.Icon;
 
   const greet = () => {
     const h = new Date().getHours();
-    if (h < 12) return 'Bonjour';
-    if (h < 18) return 'Bon après-midi';
-    return 'Bonsoir';
+    if (h < 12) return t('dashboard.greetingMorning');
+    if (h < 18) return t('dashboard.greetingAfternoon');
+    return t('dashboard.greetingEvening');
   };
 
   const recentNotifications = await getMyNotifications(5);
@@ -178,96 +179,96 @@ export default async function DashboardPage() {
 
   if (stats.type === 'SUPER_ADMIN') {
     statCards = [
-      { title: 'Structures', value: stats.data.structuresCount, icon: Building2, color: 'text-blue-400', bgColor: 'bg-blue-500/10', gradient: 'from-blue-500/20 to-cyan-500/20' },
-      { title: 'Licences actives', value: stats.data.licensesCount, icon: CheckCircle, color: 'text-green-400', bgColor: 'bg-green-500/10', gradient: 'from-green-500/20 to-emerald-500/20' },
-      { title: 'Utilisateurs', value: stats.data.allUsersCount, icon: Users, color: 'text-purple-400', bgColor: 'bg-purple-500/10', gradient: 'from-purple-500/20 to-pink-500/20' },
-      { title: 'Commandes globales', value: stats.data.allOrdersCount, icon: ShoppingCart, color: 'text-orange-400', bgColor: 'bg-orange-500/10', gradient: 'from-orange-500/20 to-red-500/20' },
+      { title: t('dashboard.kpi.structures'), value: stats.data.structuresCount, icon: Building2, color: 'text-blue-400', bgColor: 'bg-blue-500/10', gradient: 'from-blue-500/20 to-cyan-500/20' },
+      { title: t('dashboard.kpi.activeLicenses'), value: stats.data.licensesCount, icon: CheckCircle, color: 'text-green-400', bgColor: 'bg-green-500/10', gradient: 'from-green-500/20 to-emerald-500/20' },
+      { title: t('dashboard.kpi.users'), value: stats.data.allUsersCount, icon: Users, color: 'text-purple-400', bgColor: 'bg-purple-500/10', gradient: 'from-purple-500/20 to-pink-500/20' },
+      { title: t('dashboard.kpi.globalOrders'), value: stats.data.allOrdersCount, icon: ShoppingCart, color: 'text-orange-400', bgColor: 'bg-orange-500/10', gradient: 'from-orange-500/20 to-red-500/20' },
     ];
     quickActions = [
-      { href: '/structures', label: 'Gérer les structures', icon: Building2 },
-      { href: '/users', label: 'Voir les utilisateurs', icon: Users },
-      { href: '/statistics', label: 'Voir les analyses', icon: TrendingUp },
+      { href: '/structures', label: t('dashboard.actions.manageStructures'), icon: Building2 },
+      { href: '/users', label: t('dashboard.actions.viewUsers'), icon: Users },
+      { href: '/statistics', label: t('dashboard.actions.viewAnalytics'), icon: TrendingUp },
     ];
   } else if (stats.type === 'ADMIN' || stats.type === 'MANAGER') {
     statCards = [
-      { title: 'CA Aujourd\'hui', value: formatAmount(enrichedData?.todayRevenue || 0, currency), icon: DollarSign, color: 'text-emerald-400', bgColor: 'bg-emerald-500/10', gradient: 'from-emerald-500/20 to-teal-500/20' },
-      { title: 'CA ce mois', value: formatAmount(enrichedData?.monthRevenue || 0, currency), icon: TrendingUp, color: 'text-blue-400', bgColor: 'bg-blue-500/10', gradient: 'from-blue-500/20 to-cyan-500/20' },
-      { title: 'Ticket moyen (30j)', value: formatAmount(enrichedData?.avgOrderValue || 0, currency), icon: Ticket, color: 'text-violet-400', bgColor: 'bg-violet-500/10', gradient: 'from-violet-500/20 to-purple-500/20' },
-      { title: 'Commandes en cours', value: enrichedData?.activeOrdersCount || 0, icon: Clock, color: 'text-orange-400', bgColor: 'bg-orange-500/10', gradient: 'from-orange-500/20 to-red-500/20' },
-      { title: 'Total commandes', value: stats.data.ordersCount, icon: ShoppingCart, color: 'text-sky-400', bgColor: 'bg-sky-500/10', gradient: 'from-sky-500/20 to-blue-500/20' },
-      { title: 'Produits actifs', value: stats.data.productsCount, icon: Package, color: 'text-green-400', bgColor: 'bg-green-500/10', gradient: 'from-green-500/20 to-emerald-500/20' },
-      { title: 'Équipe', value: stats.data.usersCount, icon: Users, color: 'text-purple-400', bgColor: 'bg-purple-500/10', gradient: 'from-purple-500/20 to-pink-500/20' },
-      { title: 'CA Total', value: formatAmount(stats.data.totalRevenue || 0, currency), icon: DollarSign, color: 'text-yellow-400', bgColor: 'bg-yellow-500/10', gradient: 'from-yellow-500/20 to-orange-500/20' },
+      { title: t('dashboard.kpi.revenueToday'), value: formatAmount(enrichedData?.todayRevenue || 0, currency), icon: DollarSign, color: 'text-emerald-400', bgColor: 'bg-emerald-500/10', gradient: 'from-emerald-500/20 to-teal-500/20' },
+      { title: t('dashboard.kpi.revenueMonth'), value: formatAmount(enrichedData?.monthRevenue || 0, currency), icon: TrendingUp, color: 'text-blue-400', bgColor: 'bg-blue-500/10', gradient: 'from-blue-500/20 to-cyan-500/20' },
+      { title: t('dashboard.kpi.avgTicket30'), value: formatAmount(enrichedData?.avgOrderValue || 0, currency), icon: Ticket, color: 'text-violet-400', bgColor: 'bg-violet-500/10', gradient: 'from-violet-500/20 to-purple-500/20' },
+      { title: t('dashboard.kpi.activeOrders'), value: enrichedData?.activeOrdersCount || 0, icon: Clock, color: 'text-orange-400', bgColor: 'bg-orange-500/10', gradient: 'from-orange-500/20 to-red-500/20' },
+      { title: t('dashboard.kpi.totalOrders'), value: stats.data.ordersCount, icon: ShoppingCart, color: 'text-sky-400', bgColor: 'bg-sky-500/10', gradient: 'from-sky-500/20 to-blue-500/20' },
+      { title: t('dashboard.kpi.activeProducts'), value: stats.data.productsCount, icon: Package, color: 'text-green-400', bgColor: 'bg-green-500/10', gradient: 'from-green-500/20 to-emerald-500/20' },
+      { title: t('dashboard.kpi.team'), value: stats.data.usersCount, icon: Users, color: 'text-purple-400', bgColor: 'bg-purple-500/10', gradient: 'from-purple-500/20 to-pink-500/20' },
+      { title: t('dashboard.kpi.totalRevenue'), value: formatAmount(stats.data.totalRevenue || 0, currency), icon: DollarSign, color: 'text-yellow-400', bgColor: 'bg-yellow-500/10', gradient: 'from-yellow-500/20 to-orange-500/20' },
     ];
     quickActions = [
-      { href: '/orders/new', label: 'Nouvelle commande', icon: ShoppingCart },
-      { href: '/products', label: 'Gérer les produits', icon: TrendingUp },
-      { href: '/users', label: 'Gérer l\'équipe', icon: Users },
-      { href: '/statistics', label: 'Statistiques', icon: BarChart2 },
-      { href: '/stock', label: 'Stock', icon: Boxes },
-      { href: '/shifts', label: 'Sessions caisse', icon: Clock },
+      { href: '/orders/new', label: t('dashboard.actions.newOrder'), icon: ShoppingCart },
+      { href: '/products', label: t('dashboard.actions.manageProducts'), icon: TrendingUp },
+      { href: '/users', label: t('dashboard.actions.manageTeam'), icon: Users },
+      { href: '/statistics', label: t('dashboard.actions.statistics'), icon: BarChart2 },
+      { href: '/stock', label: t('dashboard.actions.stock'), icon: Boxes },
+      { href: '/shifts', label: t('dashboard.actions.shifts'), icon: Clock },
     ];
   } else if (stats.type === 'CAISSE') {
     statCards = [
-      { title: 'Commandes aujourd\'hui', value: stats.data.todayOrdersCount, icon: ShoppingCart, color: 'text-blue-400', bgColor: 'bg-blue-500/10', gradient: 'from-blue-500/20 to-cyan-500/20' },
-      { title: 'Commandes en attente', value: stats.data.pendingOrdersCount, icon: Clock, color: 'text-orange-400', bgColor: 'bg-orange-500/10', gradient: 'from-orange-500/20 to-red-500/20' },
-      { title: 'CA aujourd\'hui', value: formatAmount(stats.data.todayRevenue || 0, currency), icon: DollarSign, color: 'text-green-400', bgColor: 'bg-green-500/10', gradient: 'from-green-500/20 to-emerald-500/20' },
+      { title: t('dashboard.kpi.ordersToday'), value: stats.data.todayOrdersCount, icon: ShoppingCart, color: 'text-blue-400', bgColor: 'bg-blue-500/10', gradient: 'from-blue-500/20 to-cyan-500/20' },
+      { title: t('dashboard.kpi.pendingOrders'), value: stats.data.pendingOrdersCount, icon: Clock, color: 'text-orange-400', bgColor: 'bg-orange-500/10', gradient: 'from-orange-500/20 to-red-500/20' },
+      { title: t('dashboard.kpi.revenueToday'), value: formatAmount(stats.data.todayRevenue || 0, currency), icon: DollarSign, color: 'text-green-400', bgColor: 'bg-green-500/10', gradient: 'from-green-500/20 to-emerald-500/20' },
     ];
     quickActions = [
-      { href: '/orders/new', label: 'Nouvelle commande', icon: ShoppingCart },
-      { href: '/orders', label: 'Voir les commandes', icon: Clock },
+      { href: '/orders/new', label: t('dashboard.actions.newOrder'), icon: ShoppingCart },
+      { href: '/orders', label: t('dashboard.actions.viewOrders'), icon: Clock },
     ];
   } else if (stats.type === 'SERVEUR') {
     statCards = [
-      { title: 'Mes commandes actives', value: stats.data.myActiveOrdersCount, icon: Clock, color: 'text-blue-400', bgColor: 'bg-blue-500/10', gradient: 'from-blue-500/20 to-cyan-500/20' },
-      { title: 'Commandes terminées aujourd\'hui', value: stats.data.myTodayCompletedCount, icon: CheckCircle, color: 'text-green-400', bgColor: 'bg-green-500/10', gradient: 'from-green-500/20 to-emerald-500/20' },
+      { title: t('dashboard.kpi.myActiveOrders'), value: stats.data.myActiveOrdersCount, icon: Clock, color: 'text-blue-400', bgColor: 'bg-blue-500/10', gradient: 'from-blue-500/20 to-cyan-500/20' },
+      { title: t('dashboard.kpi.completedToday'), value: stats.data.myTodayCompletedCount, icon: CheckCircle, color: 'text-green-400', bgColor: 'bg-green-500/10', gradient: 'from-green-500/20 to-emerald-500/20' },
     ];
     quickActions = [
-      { href: '/orders/new', label: 'Nouvelle commande', icon: ShoppingCart },
-      { href: '/orders', label: 'Mes commandes', icon: Clock },
+      { href: '/orders/new', label: t('dashboard.actions.newOrder'), icon: ShoppingCart },
+      { href: '/orders', label: t('dashboard.actions.myOrders'), icon: Clock },
     ];
   } else if (stats.type === 'RECEPTION') {
     statCards = [
-      { title: 'Réservations aujourd\'hui', value: stats.data.todayBookingsCount, icon: Calendar, color: 'text-blue-400', bgColor: 'bg-blue-500/10', gradient: 'from-blue-500/20 to-cyan-500/20' },
-      { title: 'En attente', value: stats.data.pendingBookingsCount, icon: Clock, color: 'text-orange-400', bgColor: 'bg-orange-500/10', gradient: 'from-orange-500/20 to-red-500/20' },
-      { title: 'Chambres disponibles', value: `${stats.data.availableRoomsCount}/${stats.data.totalRoomsCount}`, icon: Hotel, color: 'text-teal-400', bgColor: 'bg-teal-500/10', gradient: 'from-teal-500/20 to-cyan-500/20' },
-      { title: 'Recettes aujourd\'hui', value: formatAmount(stats.data.todayRevenue || 0, currency), icon: DollarSign, color: 'text-green-400', bgColor: 'bg-green-500/10', gradient: 'from-green-500/20 to-emerald-500/20' },
+      { title: t('dashboard.kpi.bookingsToday'), value: stats.data.todayBookingsCount, icon: Calendar, color: 'text-blue-400', bgColor: 'bg-blue-500/10', gradient: 'from-blue-500/20 to-cyan-500/20' },
+      { title: t('dashboard.kpi.pending'), value: stats.data.pendingBookingsCount, icon: Clock, color: 'text-orange-400', bgColor: 'bg-orange-500/10', gradient: 'from-orange-500/20 to-red-500/20' },
+      { title: t('dashboard.kpi.availableRooms'), value: `${stats.data.availableRoomsCount}/${stats.data.totalRoomsCount}`, icon: Hotel, color: 'text-teal-400', bgColor: 'bg-teal-500/10', gradient: 'from-teal-500/20 to-cyan-500/20' },
+      { title: t('dashboard.kpi.takingsToday'), value: formatAmount(stats.data.todayRevenue || 0, currency), icon: DollarSign, color: 'text-green-400', bgColor: 'bg-green-500/10', gradient: 'from-green-500/20 to-emerald-500/20' },
     ];
     quickActions = [
-      { href: '/bookings/new', label: 'Nouvelle réservation', icon: Calendar },
-      { href: '/bookings', label: 'Voir les réservations', icon: Clock },
-      { href: '/rooms', label: 'Gérer les chambres', icon: Hotel },
+      { href: '/bookings/new', label: t('dashboard.actions.newBooking'), icon: Calendar },
+      { href: '/bookings', label: t('dashboard.actions.viewBookings'), icon: Clock },
+      { href: '/rooms', label: t('dashboard.actions.manageRooms'), icon: Hotel },
     ];
   } else if (stats.type === 'CUISINIER') {
     statCards = [
-      { title: 'Commandes en attente', value: stats.data.pendingCount, icon: Clock, color: 'text-orange-400', bgColor: 'bg-orange-500/10', gradient: 'from-orange-500/20 to-red-500/20' },
-      { title: 'En préparation', value: stats.data.inProgressCount, icon: ChefHat, color: 'text-blue-400', bgColor: 'bg-blue-500/10', gradient: 'from-blue-500/20 to-cyan-500/20' },
+      { title: t('dashboard.kpi.pendingOrders'), value: stats.data.pendingCount, icon: Clock, color: 'text-orange-400', bgColor: 'bg-orange-500/10', gradient: 'from-orange-500/20 to-red-500/20' },
+      { title: t('dashboard.kpi.inPreparation'), value: stats.data.inProgressCount, icon: ChefHat, color: 'text-blue-400', bgColor: 'bg-blue-500/10', gradient: 'from-blue-500/20 to-cyan-500/20' },
     ];
-    quickActions = [{ href: '/kitchen', label: 'Accéder à la cuisine', icon: ChefHat }];
+    quickActions = [{ href: '/kitchen', label: t('dashboard.actions.openKitchen'), icon: ChefHat }];
   } else if (stats.type === 'BAR') {
     statCards = [
-      { title: 'Commandes actives', value: stats.data.activeCount, icon: Beer, color: 'text-amber-400', bgColor: 'bg-amber-500/10', gradient: 'from-amber-500/20 to-orange-500/20' },
+      { title: t('dashboard.kpi.activeBarOrders'), value: stats.data.activeCount, icon: Beer, color: 'text-amber-400', bgColor: 'bg-amber-500/10', gradient: 'from-amber-500/20 to-orange-500/20' },
     ];
-    quickActions = [{ href: '/bar', label: 'Accéder au bar', icon: Beer }];
+    quickActions = [{ href: '/bar', label: t('dashboard.actions.openBar'), icon: Beer }];
   } else if (stats.type === 'MAGASINIER') {
     statCards = [
-      { title: 'Articles en stock', value: stats.data.totalStock, icon: Boxes, color: 'text-pink-400', bgColor: 'bg-pink-500/10', gradient: 'from-pink-500/20 to-rose-500/20' },
+      { title: t('dashboard.kpi.stockItems'), value: stats.data.totalStock, icon: Boxes, color: 'text-pink-400', bgColor: 'bg-pink-500/10', gradient: 'from-pink-500/20 to-rose-500/20' },
     ];
-    quickActions = [{ href: '/stock', label: 'Gérer le stock', icon: Boxes }];
+    quickActions = [{ href: '/stock', label: t('dashboard.actions.manageStock'), icon: Boxes }];
   } else if (stats.type === 'COMPTABLE') {
     statCards = [
-      { title: 'CA aujourd\'hui', value: formatAmount(stats.data.todayRevenue || 0, currency), icon: DollarSign, color: 'text-violet-400', bgColor: 'bg-violet-500/10', gradient: 'from-violet-500/20 to-purple-500/20' },
-      { title: 'Sessions ouvertes', value: stats.data.shiftsCount, icon: Clock, color: 'text-blue-400', bgColor: 'bg-blue-500/10', gradient: 'from-blue-500/20 to-cyan-500/20' },
+      { title: t('dashboard.kpi.revenueToday'), value: formatAmount(stats.data.todayRevenue || 0, currency), icon: DollarSign, color: 'text-violet-400', bgColor: 'bg-violet-500/10', gradient: 'from-violet-500/20 to-purple-500/20' },
+      { title: t('dashboard.kpi.openShifts'), value: stats.data.shiftsCount, icon: Clock, color: 'text-blue-400', bgColor: 'bg-blue-500/10', gradient: 'from-blue-500/20 to-cyan-500/20' },
     ];
     quickActions = [
-      { href: '/statistics', label: 'Statistiques', icon: TrendingUp },
-      { href: '/shifts', label: 'Sessions de caisse', icon: Clock },
+      { href: '/statistics', label: t('dashboard.actions.statistics'), icon: TrendingUp },
+      { href: '/shifts', label: t('dashboard.actions.shifts'), icon: Clock },
     ];
   } else if (stats.type === 'RH') {
     statCards = [
-      { title: 'Employés actifs', value: stats.data.usersCount, icon: Users, color: 'text-rose-400', bgColor: 'bg-rose-500/10', gradient: 'from-rose-500/20 to-pink-500/20' },
+      { title: t('dashboard.kpi.activeEmployees'), value: stats.data.usersCount, icon: Users, color: 'text-rose-400', bgColor: 'bg-rose-500/10', gradient: 'from-rose-500/20 to-pink-500/20' },
     ];
-    quickActions = [{ href: '/users', label: 'Gérer l\'équipe', icon: Users }];
+    quickActions = [{ href: '/users', label: t('dashboard.actions.manageTeam'), icon: Users }];
   }
 
   return (
@@ -285,7 +286,7 @@ export default async function DashboardPage() {
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-1">
               {greet()}
             </h1>
-            <p className="text-slate-400">Bienvenue sur votre espace {roleConfig.label}</p>
+            <p className="text-slate-400">{t('dashboard.welcome', { role: roleConfig.label })}</p>
           </div>
           <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium ${roleConfig.color}`}>
             <RoleIcon className="w-4 h-4" />
@@ -335,7 +336,7 @@ export default async function DashboardPage() {
               <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-xl overflow-hidden h-full">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 pointer-events-none" />
                 <CardHeader className="border-b border-slate-700/50">
-                  <CardTitle className="text-slate-50 text-lg">Actions rapides</CardTitle>
+                  <CardTitle className="text-slate-50 text-lg">{t('dashboard.actions.title')}</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -368,15 +369,15 @@ export default async function DashboardPage() {
               <CardHeader className="border-b border-slate-700/50 flex flex-row items-center justify-between">
                 <CardTitle className="text-slate-50 flex items-center gap-2 text-lg">
                   <Bell className="w-5 h-5 text-orange-400" />
-                  Notifications
+                  {t('dashboard.notifications')}
                 </CardTitle>
                 <Link href="/notifications" className="text-xs text-blue-400 hover:underline">
-                  Voir tout
+                  {t('dashboard.seeAll')}
                 </Link>
               </CardHeader>
               <CardContent className="p-0">
                 {recentNotifications.length === 0 ? (
-                  <div className="p-12 text-center text-slate-500 text-sm italic">Aucune notification</div>
+                  <div className="p-12 text-center text-slate-500 text-sm italic">{t('dashboard.noNotifications')}</div>
                 ) : (
                   <div className="divide-y divide-slate-700/50">
                     {recentNotifications.slice(0, 4).map((notif) => (
@@ -388,7 +389,7 @@ export default async function DashboardPage() {
                             <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{notif.body}</p>
                             <p className="text-[10px] text-slate-600 mt-1.5 flex items-center gap-1">
                               <Clock className="w-2.5 h-2.5" />
-                              {new Date(notif.created_at).toLocaleDateString('fr-FR')}
+                              {format.date(notif.created_at)}
                             </p>
                           </div>
                         </div>

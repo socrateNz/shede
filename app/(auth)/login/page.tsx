@@ -8,9 +8,12 @@ import { useActionState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { LogIn, Mail, Lock, ArrowRight } from 'lucide-react';
+import { useT } from '@/lib/i18n/client';
+import { LanguageSwitcher } from '@/components/language-switcher';
 
 function LoginForm() {
   const router = useRouter();
+  const { t } = useT();
   const searchParams = useSearchParams();
   const [state, formAction, isPending] = useActionState(login, {
     success: false,
@@ -37,8 +40,9 @@ function LoginForm() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-lg mb-4" />
-          <h1 className="text-2xl font-bold text-white">Shede POS</h1>
-          <p className="text-slate-400 text-sm mt-1">Plateforme de gestion professionnelle</p>
+          <h1 className="text-2xl font-bold text-white">{t('auth.login.brand')}</h1>
+          <p className="text-slate-400 text-sm mt-1">{t('auth.login.tagline')}</p>
+          <div className="mt-4 flex justify-center"><LanguageSwitcher /></div>
         </div>
 
         <Card className="border-0 bg-white/10 backdrop-blur-xl shadow-2xl overflow-hidden">
@@ -47,10 +51,10 @@ function LoginForm() {
           <CardHeader className="space-y-2 pb-6 relative">
             <CardTitle className="text-2xl text-white flex items-center gap-2">
               <LogIn className="w-6 h-6 text-blue-400" />
-              Connexion
+              {t('auth.login.title')}
             </CardTitle>
             <CardDescription className="text-slate-300">
-              Accédez à votre espace professionnel
+              {t('auth.login.subtitle')}
             </CardDescription>
           </CardHeader>
 
@@ -60,7 +64,7 @@ function LoginForm() {
                 role="alert"
                 className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200"
               >
-                Votre licence a expiré. Contactez le support pour prolonger votre abonnement.
+                {t('auth.login.licenseExpired')}
               </div>
             )}
             {passwordReset && (
@@ -68,7 +72,7 @@ function LoginForm() {
                 role="status"
                 className="mb-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-200"
               >
-                Mot de passe enregistré. Vous pouvez vous connecter.
+                {t('auth.login.passwordReset')}
               </div>
             )}
             {pointInactive && (
@@ -76,7 +80,7 @@ function LoginForm() {
                 role="alert"
                 className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200"
               >
-                Ce point a été désactivé. Contactez l&apos;administrateur de votre organisation.
+                {t('auth.login.pointInactive')}
               </div>
             )}
 
@@ -84,12 +88,12 @@ function LoginForm() {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-200 flex items-center gap-2">
                   <Mail className="w-4 h-4 text-slate-400" />
-                  Email
+                  {t('common.email')}
                 </label>
                 <Input
                   type="email"
                   name="email"
-                  placeholder="exemple@shede.com"
+                  placeholder={t('auth.login.emailPlaceholder')}
                   className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all"
                   required
                 />
@@ -99,10 +103,10 @@ function LoginForm() {
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-slate-200 flex items-center gap-2">
                     <Lock className="w-4 h-4 text-slate-400" />
-                    Mot de passe
+                    {t('common.password')}
                   </label>
                   <Link href="/forgot-password" className="text-xs font-medium text-blue-400 hover:text-blue-300">
-                    Mot de passe oublié ?
+                    {t('auth.login.forgotPassword')}
                   </Link>
                 </div>
                 <Input
@@ -129,11 +133,11 @@ function LoginForm() {
                 {isPending ? (
                   <div className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                    Connexion...
+                    {t('auth.login.submitting')}
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    Se connecter
+                    {t('auth.login.submit')}
                     <ArrowRight className="w-4 h-4" />
                   </div>
                 )}
@@ -141,21 +145,21 @@ function LoginForm() {
 
               <div className="space-y-2 pt-4 text-center">
                 <p className="text-sm text-slate-400">
-                  Établissement professionnel ?{' '}
+                  {t('auth.login.businessQuestion')}{' '}
                   <Link
                     href="/register-business"
                     className="font-medium text-blue-400 transition-colors hover:text-blue-300"
                   >
-                    Créer un compte business
+                    {t('auth.login.businessLink')}
                   </Link>
                 </p>
                 <p className="text-sm text-slate-400">
-                  Client particulier ?{' '}
+                  {t('auth.login.clientQuestion')}{' '}
                   <Link
                     href="/register-client"
                     className="font-medium text-blue-400 transition-colors hover:text-blue-300"
                   >
-                    S&apos;inscrire
+                    {t('auth.login.clientLink')}
                   </Link>
                 </p>
               </div>
@@ -164,9 +168,18 @@ function LoginForm() {
         </Card>
 
         <p className="text-center text-xs text-slate-500 mt-6">
-          © 2024 Shede - Tous droits réservés
+          {t('common.copyright', { year: new Date().getFullYear() })}
         </p>
       </div>
+    </div>
+  );
+}
+
+function LoadingFallback() {
+  const { t } = useT();
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-900 text-slate-400">
+      {t('common.loading')}
     </div>
   );
 }
@@ -175,9 +188,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-slate-900 text-slate-400">
-          Chargement…
-        </div>
+        <LoadingFallback />
       }
     >
       <LoginForm />

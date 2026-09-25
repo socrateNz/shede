@@ -24,24 +24,26 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { TablePagination } from './table-pagination';
+import { useT } from '@/lib/i18n/client';
+import type { TranslationKey } from '@/lib/i18n/translate';
 
 interface UsersListProps {
   users: User[];
 }
 
-const roleConfig: Record<string, { label: string; icon: any; color: string; bg: string }> = {
-  SUPER_ADMIN: { label: 'Super Admin', icon: Shield, color: 'text-red-400', bg: 'bg-red-500/10' },
-  ADMIN: { label: 'Administrateur', icon: Shield, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-  CAISSE: { label: 'Caisse', icon: CreditCard, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-  SERVEUR: { label: 'Serveur', icon: Coffee, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-  RECEPTION: { label: 'Réception', icon: UserCheck, color: 'text-teal-400', bg: 'bg-teal-500/10' },
-  STAFF: { label: 'Personnel', icon: UserCog, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+const roleConfig: Record<string, { icon: any; color: string; bg: string }> = {
+  SUPER_ADMIN: { icon: Shield, color: 'text-red-400', bg: 'bg-red-500/10' },
+  ADMIN: { icon: Shield, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+  CAISSE: { icon: CreditCard, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+  SERVEUR: { icon: Coffee, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+  RECEPTION: { icon: UserCheck, color: 'text-teal-400', bg: 'bg-teal-500/10' },
 };
 
 export function UsersList({ users }: UsersListProps) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const { t } = useT();
   const itemsPerPage = 10;
 
   const totalPages = Math.ceil(users.length / itemsPerPage);
@@ -55,22 +57,23 @@ export function UsersList({ users }: UsersListProps) {
   }
 
   const handleDelete = async (userId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return;
+    if (!confirm(t('team.list.confirmDelete'))) return;
 
     setDeletingId(userId);
     const result = await deleteUser(userId);
     setDeletingId(null);
 
     if (result.success) {
-      toast.success('Utilisateur supprimé avec succès');
+      toast.success(t('team.list.deleted'));
       router.refresh();
     } else {
-      toast.error(result.error || 'Erreur lors de la suppression');
+      toast.error(result.error || t('team.list.deleteError'));
     }
   };
 
   const getRoleConfig = (role: string) => {
-    return roleConfig[role] || { label: role, icon: UserCog, color: 'text-slate-400', bg: 'bg-slate-500/10' };
+    const config = roleConfig[role] || { icon: UserCog, color: 'text-amber-400', bg: 'bg-amber-500/10' };
+    return { ...config, label: t(`roles.${role}` as TranslationKey) };
   };
 
   const getInitials = (firstName: string, lastName: string) => {
@@ -82,11 +85,11 @@ export function UsersList({ users }: UsersListProps) {
       <Table>
         <TableHeader>
           <TableRow className="border-slate-700 hover:bg-transparent bg-slate-800/50">
-            <TableHead className="text-slate-300 font-semibold">Nom</TableHead>
-            <TableHead className="text-slate-300 font-semibold">Email</TableHead>
-            <TableHead className="text-slate-300 font-semibold">Rôle</TableHead>
-            <TableHead className="text-slate-300 font-semibold">Statut</TableHead>
-            <TableHead className="text-slate-300 font-semibold text-right">Actions</TableHead>
+            <TableHead className="text-slate-300 font-semibold">{t('team.list.colName')}</TableHead>
+            <TableHead className="text-slate-300 font-semibold">{t('team.list.colEmail')}</TableHead>
+            <TableHead className="text-slate-300 font-semibold">{t('team.list.colRole')}</TableHead>
+            <TableHead className="text-slate-300 font-semibold">{t('team.list.colStatus')}</TableHead>
+            <TableHead className="text-slate-300 font-semibold text-right">{t('team.list.colActions')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -136,12 +139,12 @@ export function UsersList({ users }: UsersListProps) {
                     {user.is_active ? (
                       <>
                         <CheckCircle className="w-3 h-3" />
-                        Actif
+                        {t('team.list.active')}
                       </>
                     ) : (
                       <>
                         <XCircle className="w-3 h-3" />
-                        Inactif
+                        {t('team.list.inactive')}
                       </>
                     )}
                   </span>
@@ -165,7 +168,7 @@ export function UsersList({ users }: UsersListProps) {
                         <Link href={`/users/${user.id}`}>
                           <DropdownMenuItem className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700 gap-2">
                             <Edit2 className="w-4 h-4 text-blue-400" />
-                            <span>Modifier</span>
+                            <span>{t('common.edit')}</span>
                           </DropdownMenuItem>
                         </Link>
                         <DropdownMenuSeparator className="bg-slate-700" />
@@ -179,14 +182,14 @@ export function UsersList({ users }: UsersListProps) {
                           ) : (
                             <Trash2 className="w-4 h-4" />
                           )}
-                          <span>Supprimer</span>
+                          <span>{t('common.delete')}</span>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   ) : (
                     <span className="text-xs text-slate-500 px-2 py-1 rounded-lg bg-red-500/10 text-red-400">
                       <Shield className="w-3 h-3 inline mr-1" />
-                      Super Admin
+                      {t('roles.SUPER_ADMIN')}
                     </span>
                   )}
                 </TableCell>

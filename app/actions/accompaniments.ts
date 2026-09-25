@@ -3,6 +3,7 @@
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
+import { te } from '@/lib/i18n/server';
 
 export async function getAccompaniments() {
   const session = await getSession();
@@ -31,14 +32,14 @@ export async function createAccompaniment(
 ) {
   const session = await getSession();
   if (!session || !['ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   const name = String(formData.get('name') || '').trim();
   const price = Number(formData.get('price') || 0);
 
   if (!name || Number.isNaN(price) || price < 0) {
-    return { success: false, error: 'Valid name and price required' };
+    return { success: false, error: await te('errors.nameAndPriceRequired') };
   }
 
   try {
@@ -51,23 +52,23 @@ export async function createAccompaniment(
       is_deleted: false
     });
 
-    if (error) return { success: false, error: 'Failed to create' };
+    if (error) return { success: false, error: await te('errors.createFailed') };
     
     revalidatePath('/accompaniments');
     return { success: true, error: '' };
   } catch (error) {
-    return { success: false, error: 'Failed to create' };
+    return { success: false, error: await te('errors.createFailed') };
   }
 }
 
 export async function updateAccompaniment(id: string, name: string, price: number, isAvailable: boolean) {
   const session = await getSession();
   if (!session || !['ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   if (!name || Number.isNaN(price) || price < 0) {
-    return { success: false, error: 'Valid name and price required' };
+    return { success: false, error: await te('errors.nameAndPriceRequired') };
   }
 
   try {
@@ -78,19 +79,19 @@ export async function updateAccompaniment(id: string, name: string, price: numbe
       .eq('id', id)
       .eq('structure_id', session.structureId);
 
-    if (error) return { success: false, error: 'Failed to update' };
+    if (error) return { success: false, error: await te('errors.updateFailed') };
 
     revalidatePath('/accompaniments');
     return { success: true };
   } catch (error) {
-    return { success: false, error: 'Failed to update' };
+    return { success: false, error: await te('errors.updateFailed') };
   }
 }
 
 export async function deleteAccompaniment(id: string) {
   const session = await getSession();
   if (!session || !['ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   try {
@@ -101,11 +102,11 @@ export async function deleteAccompaniment(id: string) {
       .eq('id', id)
       .eq('structure_id', session.structureId);
 
-    if (error) return { success: false, error: 'Failed to delete' };
+    if (error) return { success: false, error: await te('errors.deleteFailed') };
 
     revalidatePath('/accompaniments');
     return { success: true };
   } catch (error) {
-    return { success: false, error: 'Failed to delete' };
+    return { success: false, error: await te('errors.deleteFailed') };
   }
 }

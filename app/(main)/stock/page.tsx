@@ -5,9 +5,11 @@ import { Boxes, AlertTriangle, ArrowUpRight, History, Plus, Package, Coffee } fr
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { StockList } from '@/components/stock-list';
+import { getT } from '@/lib/i18n/server';
 
 export default async function StockPage() {
   await requireModule('STOCK');
+  const { t } = await getT();
   const stocks = await getStockList();
 
   const productCount = stocks.filter(s => s.type === 'product').length;
@@ -21,20 +23,20 @@ export default async function StockPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-50">Gestion du Stock</h1>
-          <p className="text-slate-400">Suivez et gérez l'inventaire de vos produits et accompagnements en temps réel.</p>
+          <h1 className="text-3xl font-bold text-slate-50">{t('stock.page.title')}</h1>
+          <p className="text-slate-400">{t('stock.page.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <Link href="/stock/movements">
             <Button variant="outline">
               <History className="w-4 h-4 mr-2" />
-              Historique
+              {t('stock.page.history')}
             </Button>
           </Link>
           <Link href="/stock/adjust">
             <Button className="bg-blue-600 hover:bg-blue-700 text-white">
               <Plus className="w-4 h-4 mr-2" />
-              Nouveau Mouvement
+              {t('stock.page.newMovement')}
             </Button>
           </Link>
         </div>
@@ -45,17 +47,17 @@ export default async function StockPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-slate-400 text-sm font-medium flex items-center gap-2">
               <Boxes className="w-4 h-4" />
-              Articles en stock
+              {t('stock.page.itemsInStock')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-50">{stocks.length}</div>
             <div className="flex items-center gap-3 mt-2 text-xs">
-              <div className="flex items-center gap-1 text-blue-400" title="Produits">
+              <div className="flex items-center gap-1 text-blue-400" title={t('stock.page.products')}>
                 <Package className="w-3 h-3" />
                 <span>{productCount}</span>
               </div>
-              <div className="flex items-center gap-1 text-purple-400" title="Accompagnements">
+              <div className="flex items-center gap-1 text-purple-400" title={t('stock.page.accompaniments')}>
                 <Coffee className="w-3 h-3" />
                 <span>{accompCount}</span>
               </div>
@@ -67,17 +69,17 @@ export default async function StockPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-amber-400 text-sm font-medium flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
-              Alertes de stock
+              {t('stock.page.alerts')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-amber-500">{lowStockCount}</div>
             <div className="flex items-center gap-3 mt-2 text-xs">
-              <div className="flex items-center gap-1 text-amber-500/80" title="Produits sous le seuil">
+              <div className="flex items-center gap-1 text-amber-500/80" title={t('stock.page.productsBelow')}>
                 <Package className="w-3 h-3" />
                 <span>{productsLow}</span>
               </div>
-              <div className="flex items-center gap-1 text-amber-500/80" title="Accompagnements sous le seuil">
+              <div className="flex items-center gap-1 text-amber-500/80" title={t('stock.page.accompanimentsBelow')}>
                 <Coffee className="w-3 h-3" />
                 <span>{accompLow}</span>
               </div>
@@ -89,12 +91,12 @@ export default async function StockPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-emerald-400 text-sm font-medium flex items-center gap-2">
               <ArrowUpRight className="w-4 h-4" />
-              Dernière entrée
+              {t('stock.page.lastEntry')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-emerald-500">---</div>
-            <p className="text-xs text-slate-500 mt-1">Aujourd'hui</p>
+            <p className="text-xs text-slate-500 mt-1">{t('stock.page.today')}</p>
           </CardContent>
         </Card>
       </div>

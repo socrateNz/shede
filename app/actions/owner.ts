@@ -2,6 +2,8 @@
 
 import { getSession, type SessionPayload } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
+import { getLocale } from '@/lib/i18n/server';
+import { INTL_LOCALES } from '@/lib/i18n/config';
 
 // ─────────────────────────────────────────────────────────
 // Vue propriétaire (ORG_ADMIN) : statistiques consolidées de tous les
@@ -21,6 +23,8 @@ const RANGES: OwnerRange[] = ['today', '7', '30', '90'];
 const PAGE_SIZE = 1000; // plafond par réponse de PostgREST
 const IN_CHUNK = 150; // taille des listes `in (...)` pour rester sous la limite d'URL
 const ACTIVE_ORDER_STATUSES = ['PENDING', 'IN_PROGRESS', 'READY', 'SERVED'];
+/** Clé des lignes dont le produit a été supprimé (libellé traduit par la page). */
+const DELETED_PRODUCT = '__deleted__';
 
 type OwnerSession = SessionPayload & { organizationId: string };
 
@@ -72,7 +76,7 @@ function getPeriod(range: OwnerRange, now = new Date()) {
 type Bucket = { key: string; label: string; start: number; end: number };
 
 /** Tranches du graphique : par heure pour « aujourd'hui », sinon par jour. */
-function buildBuckets(range: OwnerRange, start: Date, days: number): Bucket[] {
+function buildBuckets(range: OwnerRange, start: Date, days: number, intl: string): Bucket[] {
   if (range === 'today') {
     return Array.from({ length: 24 }, (_, hour) => {
       const from = new Date(start);
@@ -87,7 +91,7 @@ function buildBuckets(range: OwnerRange, start: Date, days: number): Bucket[] {
     to.setDate(to.getDate() + 1);
     return {
       key: from.toISOString().slice(0, 10),
-      label: from.toLocaleDateString('fr-FR', days > 14 ? { day: '2-digit', month: '2-digit' } : { weekday: 'short', day: '2-digit' }),
+      label: from.toLocaleDateString(intl, days > 14 ? { day: '2-digit', month: '2-digit' } : { weekday: 'short', day: '2-digit' }),
       start: from.getTime(),
       end: to.getTime(),
     };
@@ -104,6 +108,7 @@ type OrderRow = {
   id: string;
   structure_id: string;
   total: number | null;
+  tax: number | null;
   discount_amount: number | null;
   tip_amount: number | null;
   paid_at: string;
@@ -113,6 +118,8 @@ type OrderRow = {
 
 type BookingRow = {
   total_amount: number | null;
+  /** Colonne de docs/phase9-fiscal.sql (absente avant la migration). */
+  tax_amount?: number | null;
   updated_at: string;
   rooms: { structure_id: string } | { structure_id: string }[] | null;
 };
@@ -152,7 +159,7 @@ export async function getOwnerDashboard(params: { range?: string; pointId?: stri
 
   const { start, end, previousStart, days } = getPeriod(range);
   const startIso = start.toISOString();
-  const buckets = buildBuckets(range, start, days);
+  const buckets = buildBuckets(range, start, days, INTL_LOCALES[await getLocale()]);
 
   const base = {
     organization,
@@ -174,7 +181,7 @@ export async function getOwnerDashboard(params: { range?: string; pointId?: stri
       fetchAll<OrderRow>((from, to) =>
         admin
           .from('orders')
-          .select('id, structure_id, total, discount_amount, tip_amount, paid_at, source, consumption_type')
+          .select('id, structure_id, total, tax, discount_amount, tip_amount, paid_at, source, consumption_type')
           .in('structure_id', scopeIds)
           .eq('status', 'COMPLETED')
           .gte('paid_at', previousStart.toISOString())
@@ -185,7 +192,7 @@ export async function getOwnerDashboard(params: { range?: string; pointId?: stri
       fetchAll<BookingRow>((from, to) =>
         admin
           .from('bookings')
-          .select('total_amount, updated_at, rooms!inner(structure_id)')
+          .select('*, rooms!inner(structure_id)') // * : tolère l'absence de tax_amount avant la migration
           .in('rooms.structure_id', scopeIds)
           .or('status.eq.COMPLETED,is_paid.eq.true')
           .gte('updated_at', previousStart.toISOString())
@@ -259,6 +266,7 @@ export async function getOwnerDashboard(params: { range?: string; pointId?: stri
     avgTicket: currentOrders.length ? orderRevenue / currentOrders.length : 0,
     previousAvgTicket: previousOrders.length ? previousOrderRevenue / previousOrders.length : 0,
     discounts: sum(currentOrders, (o) => o.discount_amount),
+    tax: sum(currentOrders, (o) => o.tax) + sum(currentBookings, (b) => b.tax_amount),
     tips: sum(currentOrders, (o) => o.tip_amount),
     bookingsCount: currentBookings.length,
     cancelledCount,
@@ -296,9 +304,10 @@ export async function getOwnerDashboard(params: { range?: string; pointId?: stri
 
   // ── Canaux de vente ──
   const channelLabel = (o: OrderRow) => {
-    if (o.source === 'CLIENT') return 'Application client';
+    if (o.consumption_type === 'DELIVERY') return 'DELIVERY';
+    if (o.source === 'CLIENT') return 'CLIENT_APP';
     if (o.source && o.source !== 'CAISSE') return o.source;
-    return o.consumption_type === 'TAKEAWAY' ? 'À emporter' : 'Sur place';
+    return o.consumption_type === 'TAKEAWAY' ? 'TAKEAWAY' : 'DINE_IN';
   };
   const channelsMap = new Map<string, { amount: number; count: number }>();
   for (const o of currentOrders) {
@@ -308,7 +317,7 @@ export async function getOwnerDashboard(params: { range?: string; pointId?: stri
     entry.count += 1;
     channelsMap.set(key, entry);
   }
-  if (hotelRevenue > 0) channelsMap.set('Hébergement', { amount: hotelRevenue, count: currentBookings.length });
+  if (hotelRevenue > 0) channelsMap.set('HOTEL', { amount: hotelRevenue, count: currentBookings.length });
   const channels = [...channelsMap.entries()]
     .map(([name, v]) => ({ name, ...v }))
     .sort((a, b) => b.amount - a.amount);
@@ -345,7 +354,7 @@ export async function getOwnerDashboard(params: { range?: string; pointId?: stri
   const productsMap = new Map<string, { quantity: number; revenue: number }>();
   for (const item of items) {
     if (item.parent_order_item_id) continue; // composants d'un menu : comptés via le produit parent
-    const name = item.products?.name || 'Produit supprimé';
+    const name = item.products?.name || DELETED_PRODUCT;
     const entry = productsMap.get(name) ?? { quantity: 0, revenue: 0 };
     entry.quantity += Number(item.quantity) || 0;
     if (item.is_price_counted !== false) entry.revenue += Number(item.total_price) || 0;

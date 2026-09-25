@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useT } from '@/lib/i18n/client';
 import { getStockList, addStockMovement, getAvailableAccompanimentsForStock } from '@/app/actions/stock';
 import type { StockItemType } from '@/app/actions/stock';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +23,7 @@ interface StockItem {
 export default function AdjustStockPage() {
   const router = useRouter();
   const [itemType, setItemType] = useState<StockItemType>('product');
+  const { t } = useT();
   const [products, setProducts] = useState<StockItem[]>([]);
   const [accompaniments, setAccompaniments] = useState<StockItem[]>([]);
   const [loadingItems, setLoadingItems] = useState(true);
@@ -64,10 +66,10 @@ export default function AdjustStockPage() {
     );
 
     if (result.success) {
-      toast.success('Mouvement de stock enregistré');
+      toast.success(t('stock.adjust.saved'));
       router.push('/stock');
     } else {
-      toast.error(result.error || 'Erreur lors de l\'enregistrement');
+      toast.error(result.error || t('stock.adjust.saveError'));
       setSubmitting(false);
     }
   };
@@ -88,8 +90,8 @@ export default function AdjustStockPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-slate-50">Nouveau Mouvement</h1>
-            <p className="text-slate-400">Enregistrez une entrée, sortie ou ajustement manuel.</p>
+            <h1 className="text-3xl font-bold text-slate-50">{t('stock.adjust.title')}</h1>
+            <p className="text-slate-400">{t('stock.adjust.subtitle')}</p>
           </div>
         </div>
 
@@ -97,7 +99,7 @@ export default function AdjustStockPage() {
           <CardHeader className="border-b border-slate-700/50">
             <CardTitle className="text-slate-50 flex items-center gap-2 text-lg">
               <Settings2 className="w-5 h-5 text-blue-500" />
-              Détails de l'opération
+              {t('stock.adjust.details')}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
@@ -105,7 +107,7 @@ export default function AdjustStockPage() {
 
               {/* Sélecteur de type : Produit ou Accompagnement */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">Type d'article</label>
+                <label className="text-sm font-medium text-slate-300">{t('stock.adjust.itemType')}</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
@@ -117,7 +119,7 @@ export default function AdjustStockPage() {
                     }`}
                   >
                     <Package className="w-4 h-4" />
-                    <span className="text-sm font-semibold">Produit</span>
+                    <span className="text-sm font-semibold">{t('stock.itemType.product')}</span>
                   </button>
                   <button
                     type="button"
@@ -129,7 +131,7 @@ export default function AdjustStockPage() {
                     }`}
                   >
                     <Coffee className="w-4 h-4" />
-                    <span className="text-sm font-semibold">Accompagnement</span>
+                    <span className="text-sm font-semibold">{t('stock.itemType.accompaniment')}</span>
                   </button>
                 </div>
               </div>
@@ -138,16 +140,16 @@ export default function AdjustStockPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                   {itemType === 'product' ? <Package className="w-4 h-4" /> : <Coffee className="w-4 h-4" />}
-                  {itemType === 'product' ? 'Produit à impacter' : 'Accompagnement à impacter'}
+                  {itemType === 'product' ? t('stock.adjust.productToUpdate') : t('stock.adjust.accompanimentToUpdate')}
                 </label>
                 {loadingItems ? (
                   <div className="flex items-center gap-2 text-slate-400 py-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Chargement...</span>
+                    <span className="text-sm">{t('stock.adjust.loading')}</span>
                   </div>
                 ) : currentList.length === 0 ? (
                   <div className="text-sm text-slate-500 italic py-2">
-                    Aucun {itemType === 'product' ? 'produit' : 'accompagnement'} disponible.
+                    {itemType === 'product' ? t('stock.adjust.noProducts') : t('stock.adjust.noAccompaniments')}
                   </div>
                 ) : (
                   <select
@@ -157,11 +159,11 @@ export default function AdjustStockPage() {
                     required
                   >
                     <option value="">
-                      Sélectionner {itemType === 'product' ? 'un produit' : 'un accompagnement'}...
+                      {itemType === 'product' ? t('stock.adjust.selectProduct') : t('stock.adjust.selectAccompaniment')}
                     </option>
                     {currentList.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.name} (Stock: {s.quantity})
+                        {t('stock.adjust.stockOption', { name: s.name, quantity: s.quantity })}
                       </option>
                     ))}
                   </select>
@@ -171,25 +173,25 @@ export default function AdjustStockPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Type de mouvement */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">Type de mouvement</label>
+                  <label className="text-sm font-medium text-slate-300">{t('stock.adjust.movementType')}</label>
                   <div className="grid grid-cols-3 gap-2">
-                    {(['IN', 'OUT', 'ADJUSTMENT'] as const).map((t) => (
+                    {(['IN', 'OUT', 'ADJUSTMENT'] as const).map((mt) => (
                       <button
-                        key={t}
+                        key={mt}
                         type="button"
-                        onClick={() => setMovementType(t)}
+                        onClick={() => setMovementType(mt)}
                         className={`flex flex-col items-center gap-1 p-3 rounded-lg border transition-all ${
-                          movementType === t
-                            ? t === 'IN'
+                          movementType === mt
+                            ? mt === 'IN'
                               ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-500'
-                              : t === 'OUT'
+                              : mt === 'OUT'
                               ? 'border-red-500/50 bg-red-500/10 text-red-500'
                               : 'border-amber-500/50 bg-amber-500/10 text-amber-500'
                             : 'border-slate-700 bg-slate-900/30 text-slate-400 hover:border-slate-600'
                         }`}
                       >
-                        {t === 'IN' ? <Plus className="w-5 h-5" /> : t === 'OUT' ? <Minus className="w-5 h-5" /> : <Settings2 className="w-5 h-5" />}
-                        <span className="text-xs font-semibold">{t === 'IN' ? 'ENTRÉE' : t === 'OUT' ? 'SORTIE' : 'AJUST.'}</span>
+                        {mt === 'IN' ? <Plus className="w-5 h-5" /> : mt === 'OUT' ? <Minus className="w-5 h-5" /> : <Settings2 className="w-5 h-5" />}
+                        <span className="text-xs font-semibold">{mt === 'IN' ? t('stock.adjust.in') : mt === 'OUT' ? t('stock.adjust.out') : t('stock.adjust.adjustment')}</span>
                       </button>
                     ))}
                   </div>
@@ -197,7 +199,7 @@ export default function AdjustStockPage() {
 
                 {/* Quantité */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">Quantité</label>
+                  <label className="text-sm font-medium text-slate-300">{t('stock.adjust.quantity')}</label>
                   <Input
                     type="number"
                     value={quantity}
@@ -205,33 +207,33 @@ export default function AdjustStockPage() {
                     step="0.001"
                     min="0"
                     className="bg-slate-900/50 border-slate-700 text-slate-50"
-                    placeholder="Ex: 5"
+                    placeholder={t('stock.adjust.quantityPlaceholder')}
                     required
                   />
-                  <p className="text-[10px] text-slate-500">Pour AJUSTEMENT, saisissez le nouveau stock final.</p>
+                  <p className="text-[10px] text-slate-500">{t('stock.adjust.adjustmentHint')}</p>
                 </div>
               </div>
 
               {/* Raison */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">Raison (Optionnel)</label>
+                <label className="text-sm font-medium text-slate-300">{t('stock.adjust.reason')}</label>
                 <select
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   className="w-full bg-slate-900/50 border border-slate-700 text-slate-50 rounded-lg p-2.5 focus:border-blue-500 focus:ring-blue-500/20"
                 >
-                  <option value="manual_adjustment">Ajustement manuel</option>
-                  <option value="purchase">Nouvel achat / Réapprovisionnement</option>
-                  <option value="loss">Perte / Vol / Casse</option>
-                  <option value="return">Retour client</option>
-                  <option value="inventory">Inventaire physique</option>
+                  <option value="manual_adjustment">{t('stock.reasons.manual_adjustment')}</option>
+                  <option value="purchase">{t('stock.reasons.purchase')}</option>
+                  <option value="loss">{t('stock.reasons.loss')}</option>
+                  <option value="return">{t('stock.reasons.return')}</option>
+                  <option value="inventory">{t('stock.reasons.inventory')}</option>
                 </select>
               </div>
 
               <div className="pt-4 flex gap-3">
                 <Link href="/stock" className="flex-1">
                   <Button variant="outline" type="button" className="w-full border-slate-700 text-slate-300 hover:bg-slate-800">
-                    Annuler
+                    {t('common.cancel')}
                   </Button>
                 </Link>
                 <Button
@@ -240,8 +242,8 @@ export default function AdjustStockPage() {
                   className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white disabled:opacity-50"
                 >
                   {submitting ? (
-                    <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Enregistrement...</span>
-                  ) : 'Enregistrer le mouvement'}
+                    <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> {t('stock.adjust.saving')}</span>
+                  ) : t('stock.adjust.submit')}
                 </Button>
               </div>
             </form>

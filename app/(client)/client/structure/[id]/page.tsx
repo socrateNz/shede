@@ -5,9 +5,11 @@ import Link from 'next/link';
 import { getActivePromotionsForClient } from '@/app/actions/promotions';
 import { PromoBanner } from '@/components/promo-banner';
 import { Building2, MapPin, Phone, Bed, UtensilsCrossed, ArrowRight, ArrowLeft } from 'lucide-react';
+import { getT } from '@/lib/i18n/server';
 
 export default async function StructurePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const { t } = await getT();
   
   const supabase = getAdminSupabase();
 
@@ -58,7 +60,7 @@ export default async function StructurePage({ params }: { params: Promise<{ id: 
             className="absolute top-6 left-4 md:left-8 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md text-white/90 hover:bg-white/20 hover:text-white transition-all text-sm font-medium border border-white/10"
           >
             <ArrowLeft className="w-4 h-4" />
-            Retour
+            {t('client.structure.back')}
           </Link>
 
           <div className="max-w-3xl">
@@ -67,7 +69,7 @@ export default async function StructurePage({ params }: { params: Promise<{ id: 
                 {isHotel ? <Bed className="w-6 h-6 text-white" /> : <UtensilsCrossed className="w-6 h-6 text-white" />}
               </div>
               <span className="text-sm font-bold tracking-wider uppercase text-white/90 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-                {isHotel && isRestaurant ? 'Hôtel & Restaurant' : isHotel ? 'Hôtel' : 'Restaurant'}
+                {isHotel && isRestaurant ? t('client.types.MIXTE') : isHotel ? t('client.types.HOTEL') : t('client.types.RESTAURANT')}
               </span>
             </div>
 
@@ -95,7 +97,7 @@ export default async function StructurePage({ params }: { params: Promise<{ id: 
                   className="inline-flex items-center gap-2 bg-white text-slate-900 px-6 py-3 font-bold text-lg rounded-full shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_rgba(255,255,255,0.5)] hover:-translate-y-1 transition-all duration-300"
                 >
                   <Bed className="w-5 h-5 text-purple-600" />
-                  Réserver votre séjour
+                  {t('client.structure.bookStay')}
                   <ArrowRight className="w-5 h-5" />
                 </Link>
               </div>
@@ -118,9 +120,9 @@ export default async function StructurePage({ params }: { params: Promise<{ id: 
             <div>
               <h2 className="text-2xl font-black text-white flex items-center gap-3 tracking-tight">
                 <UtensilsCrossed className="w-6 h-6 text-blue-400" />
-                La Carte
+                {t('client.structure.menu')}
               </h2>
-              <p className="text-slate-400 font-medium mt-1">Laissez-vous tenter par nos spécialités</p>
+              <p className="text-slate-400 font-medium mt-1">{t('client.structure.menuText')}</p>
             </div>
           </div>
           <div className="p-6 md:p-8 bg-slate-50/50">

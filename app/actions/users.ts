@@ -3,14 +3,15 @@
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { hashPassword } from '@/lib/auth';
-import { notifyUser } from '@/app/actions/push';
+import { notifyUser } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
-import { buildAccountCreatedMail, buildAccountStatusMail, buildRoleChangedMail, queueMail } from '@/lib/emails';
+import { buildAccountCreatedMail, buildAccountStatusMail, buildRoleChangedMail, getUserLocale, queueMail } from '@/lib/emails';
+import { getLocale, te } from '@/lib/i18n/server';
 
 async function getStructureName(structureId: string | undefined) {
-  if (!structureId) return 'votre établissement';
+  if (!structureId) return null;
   const { data } = await getAdminSupabase().from('structures').select('name').eq('id', structureId).maybeSingle();
-  return data?.name ?? 'votre établissement';
+  return data?.name ?? null;
 }
 
 /** Rôles attribuables par l'administrateur d'un point (jamais ORG_ADMIN / SUPER_ADMIN / CLIENT). */
@@ -39,16 +40,16 @@ export async function createUser(
   const role = String(formData.get('role') || '').trim();
 
   if (!email || !firstName || !lastName || !password || !role) {
-    return { success: false, error: 'All required fields must be provided' };
+    return { success: false, error: await te('errors.requiredFields') };
   }
 
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   if (!POINT_ASSIGNABLE_ROLES.includes(role)) {
-    return { success: false, error: 'Invalid role' };
+    return { success: false, error: await te('errors.invalidRole') };
   }
 
   try {
@@ -75,11 +76,12 @@ export async function createUser(
 
     if (error || !user) {
       if (error?.message.includes('duplicate')) {
-        return { success: false, error: 'Email already exists' };
+        return { success: false, error: await te('errors.emailExists') };
       }
-      return { success: false, error: 'Failed to create user' };
+      return { success: false, error: await te('errors.userCreateFailed') };
     }
 
+    const locale = await getLocale();
     queueMail(async () =>
       buildAccountCreatedMail({
         userId: user.id,
@@ -87,6 +89,7 @@ export async function createUser(
         firstName,
         role,
         scopeName: await getStructureName(session.structureId),
+        locale,
       })
     );
 
@@ -94,8 +97,10 @@ export async function createUser(
     await notifyUser({
       userId: user.id,
       structureId: session.structureId!,
-      title: 'Bienvenue dans l\'équipe !',
-      body: `Votre compte en tant que ${role} a été créé avec succès.`,
+      message: ({ t }) => ({
+        title: t('notify.welcome.title'),
+        body: t('notify.welcome.body', { role: t(`roles.${role as 'ADMIN'}`) }),
+      }),
       url: '/dashboard',
     });
 
@@ -104,7 +109,7 @@ export async function createUser(
     return { success: true, userId: user.id };
   } catch (error) {
     console.error('Create user error:', error);
-    return { success: false, error: 'Failed to create user' };
+    return { success: false, error: await te('errors.userCreateFailed') };
   }
 }
 
@@ -117,11 +122,11 @@ export async function updateUser(
 ) {
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   if (!POINT_ASSIGNABLE_ROLES.includes(role)) {
-    return { success: false, error: 'Invalid role' };
+    return { success: false, error: await te('errors.invalidRole') };
   }
 
   try {
@@ -146,7 +151,7 @@ export async function updateUser(
       .eq('structure_id', session.structureId);
 
     if (error) {
-      return { success: false, error: 'Failed to update user' };
+      return { success: false, error: await te('errors.userUpdateFailed') };
     }
 
     if (previous && previous.is_active !== isActive) {
@@ -156,6 +161,7 @@ export async function updateUser(
           firstName,
           isActive,
           scopeName: await getStructureName(session.structureId),
+          locale: await getUserLocale(userId),
         })
       );
     } else if (previous && isActive && previous.role !== role) {
@@ -166,6 +172,7 @@ export async function updateUser(
           previousRole: previous.role,
           role,
           scopeName: await getStructureName(session.structureId),
+          locale: await getUserLocale(userId),
         })
       );
     }
@@ -174,8 +181,10 @@ export async function updateUser(
     await notifyUser({
       userId: userId,
       structureId: session.structureId!,
-      title: 'Mise à jour de profil',
-      body: `Votre profil ou votre rôle (${role}) a été mis à jour par l'administrateur.`,
+      message: ({ t }) => ({
+        title: t('notify.profileUpdated.title'),
+        body: t('notify.profileUpdated.body', { role: t(`roles.${role as 'ADMIN'}`) }),
+      }),
       url: '/profile',
     });
 
@@ -183,19 +192,19 @@ export async function updateUser(
     return { success: true };
   } catch (error) {
     console.error('Update user error:', error);
-    return { success: false, error: 'Failed to update user' };
+    return { success: false, error: await te('errors.userUpdateFailed') };
   }
 }
 
 export async function deleteUser(userId: string) {
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   // Prevent deleting self
   if (userId === session.userId) {
-    return { success: false, error: 'Cannot delete your own account' };
+    return { success: false, error: await te('errors.cannotDeleteSelf') };
   }
 
   try {
@@ -208,13 +217,13 @@ export async function deleteUser(userId: string) {
       .eq('structure_id', session.structureId);
 
     if (error) {
-      return { success: false, error: 'Failed to delete user' };
+      return { success: false, error: await te('errors.userDeleteFailed') };
     }
 
     return { success: true };
   } catch (error) {
     console.error('Delete user error:', error);
-    return { success: false, error: 'Failed to delete user' };
+    return { success: false, error: await te('errors.userDeleteFailed') };
   }
 }
 

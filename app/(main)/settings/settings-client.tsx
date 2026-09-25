@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import {
   Building2, Mail, Phone, MapPin, Globe, DollarSign,
   Clock, Bell, LogOut, Save, Shield, Users, Loader2,
-  ChevronRight, Settings,
+  ChevronRight, Settings, Receipt,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,79 +18,41 @@ import { logout } from '@/app/actions/auth';
 import { updateStructureSettings } from '@/app/actions/structures';
 import type { SessionPayload } from '@/lib/auth';
 import type { Structure } from '@/lib/supabase';
+import { useT } from '@/lib/i18n/client';
+import type { TranslationKey } from '@/lib/i18n/translate';
+import { moduleLabel } from '@/lib/modules';
 
 interface SettingsPageClientProps {
   session: SessionPayload;
   structure: Structure | null;
 }
 
-const CURRENCIES = [
-  { code: 'XOF', label: 'Franc CFA UEMOA (XOF)' },
-  { code: 'XAF', label: 'Franc CFA BEAC (XAF)' },
-  { code: 'GHS', label: 'Cedi Ghanéen (GHS)' },
-  { code: 'NGN', label: 'Naira Nigérian (NGN)' },
-  { code: 'MAD', label: 'Dirham Marocain (MAD)' },
-  { code: 'DZD', label: 'Dinar Algérien (DZD)' },
-  { code: 'TND', label: 'Dinar Tunisien (TND)' },
-  { code: 'EUR', label: 'Euro (EUR)' },
-  { code: 'USD', label: 'Dollar US (USD)' },
-];
+/** Le franc CFA BEAC (XAF) en tête : c'est la devise du Cameroun. */
+const CURRENCIES = ['XAF', 'XOF', 'NGN', 'GHS', 'MAD', 'DZD', 'TND', 'EUR', 'USD'];
 
 const TIMEZONES = [
-  { tz: 'Africa/Abidjan',     label: 'Abidjan — UTC+0' },
-  { tz: 'Africa/Dakar',       label: 'Dakar — UTC+0' },
-  { tz: 'Africa/Bamako',      label: 'Bamako — UTC+0' },
-  { tz: 'Africa/Ouagadougou', label: 'Ouagadougou — UTC+0' },
-  { tz: 'Africa/Lagos',       label: 'Lagos — UTC+1' },
-  { tz: 'Africa/Douala',      label: 'Douala — UTC+1' },
-  { tz: 'Africa/Kinshasa',    label: 'Kinshasa — UTC+1' },
-  { tz: 'Africa/Nairobi',     label: 'Nairobi — UTC+3' },
-  { tz: 'Africa/Addis_Ababa', label: 'Addis Abeba — UTC+3' },
-  { tz: 'Africa/Casablanca',  label: 'Casablanca — UTC+0/+1' },
-  { tz: 'Africa/Tunis',       label: 'Tunis — UTC+1' },
-  { tz: 'Africa/Cairo',       label: 'Le Caire — UTC+2' },
-  { tz: 'Europe/Paris',       label: 'Paris — UTC+1/+2' },
-];
+  'Africa/Douala', 'Africa/Lagos', 'Africa/Kinshasa', 'Africa/Abidjan', 'Africa/Dakar',
+  'Africa/Bamako', 'Africa/Ouagadougou', 'Africa/Nairobi', 'Africa/Addis_Ababa',
+  'Africa/Casablanca', 'Africa/Tunis', 'Africa/Cairo', 'Europe/Paris',
+] as const;
 
-const STRUCTURE_TYPES = [
-  { value: 'RESTAURANT', label: '🍽️ Restaurant' },
-  { value: 'HOTEL',      label: '🏨 Hôtel' },
-  { value: 'MIXTE',      label: '🏩 Hôtel-Restaurant' },
-];
-
-const MODULE_LABELS: Record<string, string> = {
-  POS:       '🖥️ Caisse (POS)',
-  HOTEL:     '🏨 Hôtel',
-  STOCK:     '📦 Stock',
-  PROMOTION: '🏷️ Promotions',
-};
-
-const ROLE_LABELS: Record<string, string> = {
-  SUPER_ADMIN: 'Super Administrateur',
-  ADMIN:       'Administrateur',
-  MANAGER:     'Manager',
-  CAISSE:      'Caisse',
-  SERVEUR:     'Serveur',
-  RECEPTION:   'Réception',
-  CUISINIER:   'Cuisinier',
-  BAR:         'Bar',
-  LIVREUR:     'Livreur',
-  COMPTABLE:   'Comptable',
-  MAGASINIER:  'Magasinier',
-  RH:          'Ressources Humaines',
-};
+const STRUCTURE_TYPES = ['RESTAURANT', 'HOTEL', 'MIXTE'] as const;
 
 export function SettingsPageClient({ session, structure }: SettingsPageClientProps) {
   const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(session.role);
   const [logoUrl, setLogoUrl] = useState<string | null>(structure?.logo_url || null);
+  const { t, format } = useT();
+
+  const currencyNames = new Intl.DisplayNames([format.intl], { type: 'currency' });
+  const currencyLabel = (code: string) => `${currencyNames.of(code) ?? code} (${code})`;
 
   const [formState, formAction, isSubmitting] = useActionState(
     async (prev: any, formData: FormData) => {
       const result = await updateStructureSettings(prev, formData);
       if (result.success) {
-        toast.success('Paramètres sauvegardés avec succès !');
+        toast.success(t('settings.page.saved'));
       } else {
-        toast.error(result.error || 'Erreur lors de la sauvegarde');
+        toast.error(result.error || t('settings.page.saveError'));
       }
       return result;
     },
@@ -109,15 +71,15 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-2 text-slate-500 text-sm mb-3">
-            <span>Dashboard</span>
+            <span>{t('settings.page.breadcrumb')}</span>
             <ChevronRight className="w-3.5 h-3.5" />
-            <span className="text-slate-300">Paramètres</span>
+            <span className="text-slate-300">{t('settings.page.title')}</span>
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-1 flex items-center gap-3">
             <Settings className="w-7 h-7 text-blue-400" />
-            Paramètres
+            {t('settings.page.title')}
           </h1>
-          <p className="text-slate-400">Configurez votre établissement et vos préférences</p>
+          <p className="text-slate-400">{t('settings.page.subtitle')}</p>
         </div>
 
         <div className="space-y-6">
@@ -126,24 +88,24 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
             <CardHeader className="border-b border-slate-700/50">
               <CardTitle className="text-slate-50 flex items-center gap-2">
                 <Users className="w-4 h-4 text-blue-400" />
-                Informations du compte
+                {t('settings.page.account')}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <p className="text-xs text-slate-500">Email</p>
+                  <p className="text-xs text-slate-500">{t('settings.page.email')}</p>
                   <p className="text-slate-200 font-medium">{session.email}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-slate-500">Rôle</p>
+                  <p className="text-xs text-slate-500">{t('settings.page.role')}</p>
                   <Badge variant="outline" className="border-blue-500/30 text-blue-300 bg-blue-500/10">
-                    {ROLE_LABELS[session.role] || session.role}
+                    {t(`roles.${session.role}` as TranslationKey)}
                   </Badge>
                 </div>
                 {session.structureId && (
                   <div className="sm:col-span-2 space-y-1">
-                    <p className="text-xs text-slate-500">ID de structure</p>
+                    <p className="text-xs text-slate-500">{t('settings.page.structureId')}</p>
                     <p className="text-slate-400 font-mono text-sm break-all">{session.structureId}</p>
                   </div>
                 )}
@@ -158,10 +120,10 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
                 <CardHeader className="border-b border-slate-700/50">
                   <CardTitle className="text-slate-50 flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-emerald-400" />
-                    Établissement
+                    {t('settings.page.establishment')}
                   </CardTitle>
                   <CardDescription className="text-slate-400">
-                    Informations de base de votre restaurant
+                    {t('settings.page.establishmentHint')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-5 space-y-4">
@@ -169,7 +131,7 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
                   
                   <div className="flex justify-center mb-6">
                     <div className="w-full max-w-sm space-y-1.5 text-center">
-                      <Label className="text-slate-300 block mb-2">Logo de l'établissement (Max 1 image)</Label>
+                      <Label className="text-slate-300 block mb-2">{t('settings.page.logo')}</Label>
                       <ImageUpload
                         value={logoUrl}
                         onChange={(url) => setLogoUrl(url)}
@@ -181,20 +143,20 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label htmlFor="name" className="text-slate-300">
-                        Nom de l&apos;établissement *
+                        {t('settings.page.name')}
                       </Label>
                       <Input
                         id="name"
                         name="name"
                         defaultValue={structure.name}
                         required
-                        placeholder="Mon Restaurant"
+                        placeholder={t('settings.page.namePlaceholder')}
                         className="bg-slate-900/50 border-slate-600 text-slate-100 placeholder:text-slate-600 focus:border-blue-500"
                       />
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="email" className="text-slate-300">
-                        Email professionnel *
+                        {t('settings.page.businessEmail')}
                       </Label>
                       <Input
                         id="email"
@@ -202,87 +164,74 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
                         type="email"
                         defaultValue={structure.email}
                         required
-                        placeholder="contact@monrestaurant.com"
+                        placeholder={t('settings.page.businessEmailPlaceholder')}
                         className="bg-slate-900/50 border-slate-600 text-slate-100 placeholder:text-slate-600 focus:border-blue-500"
                       />
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="phone" className="text-slate-300 flex items-center gap-1">
-                        <Phone className="w-3 h-3" /> Téléphone
+                        <Phone className="w-3 h-3" /> {t('settings.page.phone')}
                       </Label>
                       <Input
                         id="phone"
                         name="phone"
                         type="tel"
                         defaultValue={structure.phone || ''}
-                        placeholder="+225 07 00 00 00 00"
+                        placeholder={t('settings.page.phonePlaceholder')}
                         className="bg-slate-900/50 border-slate-600 text-slate-100 placeholder:text-slate-600 focus:border-blue-500"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="type" className="text-slate-300">Type d&apos;établissement</Label>
+                      <Label htmlFor="type" className="text-slate-300">{t('settings.page.type')}</Label>
                       <select
                         id="type"
                         name="type"
                         defaultValue={structure.type || 'RESTAURANT'}
                         className="w-full px-3 py-2 rounded-md bg-slate-900/50 border border-slate-600 text-slate-100 focus:outline-none focus:border-blue-500 text-sm"
                       >
-                        {STRUCTURE_TYPES.map(({ value, label }) => (
+                        {STRUCTURE_TYPES.map((value) => (
                           <option key={value} value={value} className="bg-slate-900">
-                            {label}
+                            {t(`settings.structureTypes.${value}`)}
                           </option>
                         ))}
                       </select>
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="address" className="text-slate-300 flex items-center gap-1">
-                        <MapPin className="w-3 h-3" /> Adresse
+                        <MapPin className="w-3 h-3" /> {t('settings.page.address')}
                       </Label>
                       <Input
                         id="address"
                         name="address"
                         defaultValue={structure.address || ''}
-                        placeholder="Rue, quartier..."
+                        placeholder={t('settings.page.addressPlaceholder')}
                         className="bg-slate-900/50 border-slate-600 text-slate-100 placeholder:text-slate-600 focus:border-blue-500"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="city" className="text-slate-300">Ville</Label>
+                      <Label htmlFor="city" className="text-slate-300">{t('settings.page.city')}</Label>
                       <Input
                         id="city"
                         name="city"
                         defaultValue={structure.city || ''}
-                        placeholder="Abidjan"
+                        placeholder={t('settings.page.cityPlaceholder')}
                         className="bg-slate-900/50 border-slate-600 text-slate-100 placeholder:text-slate-600 focus:border-blue-500"
                       />
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="country" className="text-slate-300 flex items-center gap-1">
-                        <Globe className="w-3 h-3" /> Pays
+                        <Globe className="w-3 h-3" /> {t('settings.page.country')}
                       </Label>
                       <Input
                         id="country"
                         name="country"
-                        defaultValue={structure.country || 'Côte d\'Ivoire'}
-                        placeholder="Côte d'Ivoire"
+                        defaultValue={structure.country || t('settings.page.countryDefault')}
+                        placeholder={t('settings.page.countryDefault')}
                         className="bg-slate-900/50 border-slate-600 text-slate-100 placeholder:text-slate-600 focus:border-blue-500"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="tax_rate" className="text-slate-300">Taux de TVA (%)</Label>
-                      <Input
-                        id="tax_rate"
-                        name="tax_rate"
-                        type="number"
-                        min={0}
-                        max={100}
-                        step={0.5}
-                        defaultValue={structure.tax_rate ?? 0}
-                        className="bg-slate-900/50 border-slate-600 text-slate-100 placeholder:text-slate-600 focus:border-blue-500"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="takeaway_fee" className="text-slate-300">Frais d'emballage (À emporter)</Label>
+                      <Label htmlFor="takeaway_fee" className="text-slate-300">{t('settings.page.takeawayFee')}</Label>
                       <Input
                         id="takeaway_fee"
                         name="takeaway_fee"
@@ -296,44 +245,107 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
                 </CardContent>
               </Card>
 
-              {/* ── Devises & Fuseaux ── */}
+              {/* ── Fiscalité ── */}
               <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-xl mt-6">
                 <CardHeader className="border-b border-slate-700/50">
                   <CardTitle className="text-slate-50 flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-yellow-400" />
-                    Devise & Fuseau horaire
+                    <Receipt className="w-4 h-4 text-emerald-400" />
+                    {t('settings.page.tax')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-5 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="currency" className="text-slate-300">Devise</Label>
+                      <Label htmlFor="niu" className="text-slate-300">{t('settings.page.niu')}</Label>
+                      <Input
+                        id="niu"
+                        name="niu"
+                        defaultValue={structure.niu ?? ''}
+                        placeholder="M012345678901A"
+                        className="bg-slate-900/50 border-slate-600 text-slate-100 placeholder:text-slate-600 focus:border-blue-500"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="rccm" className="text-slate-300">{t('settings.page.rccm')}</Label>
+                      <Input
+                        id="rccm"
+                        name="rccm"
+                        defaultValue={structure.rccm ?? ''}
+                        placeholder="RC/DLA/2024/B/1234"
+                        className="bg-slate-900/50 border-slate-600 text-slate-100 placeholder:text-slate-600 focus:border-blue-500"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="tax_rate" className="text-slate-300">{t('settings.page.taxRate')}</Label>
+                      <Input
+                        id="tax_rate"
+                        name="tax_rate"
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={0.01}
+                        defaultValue={structure.tax_rate ?? 0}
+                        className="bg-slate-900/50 border-slate-600 text-slate-100 placeholder:text-slate-600 focus:border-blue-500"
+                      />
+                      <p className="text-xs text-slate-500">{t('settings.page.taxRateHint')}</p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="prices_include_tax" className="text-slate-300">{t('settings.page.pricesAre')}</Label>
+                      <select
+                        id="prices_include_tax"
+                        name="prices_include_tax"
+                        defaultValue={structure.prices_include_tax === false ? 'false' : 'true'}
+                        className="w-full px-3 py-2 rounded-md bg-slate-900/50 border border-slate-600 text-slate-100 focus:outline-none focus:border-blue-500 text-sm"
+                      >
+                        <option value="true" className="bg-slate-900">{t('settings.page.pricesTtc')}</option>
+                        <option value="false" className="bg-slate-900">{t('settings.page.pricesHt')}</option>
+                      </select>
+                      <p className="text-xs text-slate-500">
+                        {t('settings.page.pricesHint')}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* ── Devises & Fuseaux ── */}
+              <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-xl mt-6">
+                <CardHeader className="border-b border-slate-700/50">
+                  <CardTitle className="text-slate-50 flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-yellow-400" />
+                    {t('settings.page.currencyAndTimezone')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-5 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="currency" className="text-slate-300">{t('settings.page.currency')}</Label>
                       <select
                         id="currency"
                         name="currency"
-                        defaultValue={structure.currency || 'XOF'}
+                        defaultValue={structure.currency || 'XAF'}
                         className="w-full px-3 py-2 rounded-md bg-slate-900/50 border border-slate-600 text-slate-100 focus:outline-none focus:border-blue-500 text-sm"
                       >
-                        {CURRENCIES.map(({ code, label }) => (
+                        {CURRENCIES.map((code) => (
                           <option key={code} value={code} className="bg-slate-900">
-                            {label}
+                            {currencyLabel(code)}
                           </option>
                         ))}
                       </select>
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="timezone" className="text-slate-300 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> Fuseau horaire
+                        <Clock className="w-3 h-3" /> {t('settings.page.timezone')}
                       </Label>
                       <select
                         id="timezone"
                         name="timezone"
-                        defaultValue={structure.timezone || 'Africa/Abidjan'}
+                        defaultValue={structure.timezone || 'Africa/Douala'}
                         className="w-full px-3 py-2 rounded-md bg-slate-900/50 border border-slate-600 text-slate-100 focus:outline-none focus:border-blue-500 text-sm"
                       >
-                        {TIMEZONES.map(({ tz, label }) => (
+                        {TIMEZONES.map((tz) => (
                           <option key={tz} value={tz} className="bg-slate-900">
-                            {label}
+                            {t(`settings.timezones.${tz}`)}
                           </option>
                         ))}
                       </select>
@@ -354,7 +366,7 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
                   ) : (
                     <Save className="w-4 h-4" />
                   )}
-                  {isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                  {isSubmitting ? t('settings.page.saving') : t('settings.page.save')}
                 </Button>
               </div>
             </form>
@@ -366,7 +378,7 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
               <CardHeader className="border-b border-slate-700/50">
                 <CardTitle className="text-slate-50 flex items-center gap-2">
                   <Shield className="w-4 h-4 text-purple-400" />
-                  Modules actifs
+                  {t('settings.page.modules')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-5">
@@ -377,12 +389,12 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
                       variant="outline"
                       className="border-purple-500/30 text-purple-300 bg-purple-500/10 px-3 py-1"
                     >
-                      {MODULE_LABELS[mod] || mod}
+                      {moduleLabel(t, mod)}
                     </Badge>
                   ))}
                 </div>
                 <p className="text-xs text-slate-500 mt-3">
-                  Pour activer ou désactiver des modules, contactez le support Shede.
+                  {t('settings.page.modulesHint')}
                 </p>
               </CardContent>
             </Card>
@@ -393,12 +405,12 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
             <CardHeader className="border-b border-slate-700/50">
               <CardTitle className="text-slate-50 flex items-center gap-2">
                 <Bell className="w-4 h-4 text-orange-400" />
-                Notifications push
+                {t('settings.page.push')}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-5 space-y-3">
               <p className="text-sm text-slate-400">
-                Recevez des alertes en temps réel pour les nouvelles commandes et réservations.
+                {t('settings.page.pushHint')}
               </p>
               <PushSubscriptionToggle />
             </CardContent>
@@ -407,7 +419,7 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
           {/* ── Déconnexion ── */}
           <Card className="bg-slate-800/50 backdrop-blur-sm border-red-900/30 shadow-xl">
             <CardHeader className="border-b border-red-900/20">
-              <CardTitle className="text-red-400">Zone dangereuse</CardTitle>
+              <CardTitle className="text-red-400">{t('settings.page.dangerZone')}</CardTitle>
             </CardHeader>
             <CardContent className="pt-5">
               <form action={logout}>
@@ -417,7 +429,7 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
                   className="border-red-700/50 text-red-400 hover:bg-red-900/20 hover:text-red-300 gap-2"
                 >
                   <LogOut className="w-4 h-4" />
-                  Se déconnecter
+                  {t('settings.page.logout')}
                 </Button>
               </form>
             </CardContent>

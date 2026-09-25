@@ -2,7 +2,9 @@
 
 import { useEffect, useState, type Ref } from 'react';
 import { getShiftReport } from '@/app/actions/shifts';
-import { formatFCFA } from '@/lib/utils';
+import { useT } from '@/lib/i18n/client';
+import { moduleLabel } from '@/lib/modules';
+import type { Translator } from '@/lib/i18n/translate';
 import {
   Receipt,
   Calendar,
@@ -34,35 +36,44 @@ interface Props {
 
 const RESTAURANT_MODULES = ['POS', 'CUISINE', 'BAR', 'TABLES', 'LIVRAISON', 'CLIENT_APP'];
 
-const MODULE_INFO: Record<string, { label: string; icon: LucideIcon }> = {
-  POS: { label: 'Caisse (POS)', icon: Wallet },
-  CLIENT_APP: { label: 'App Client (B2C)', icon: Smartphone },
-  CUISINE: { label: 'Cuisine (KDS)', icon: ChefHat },
-  BAR: { label: 'Bar', icon: Beer },
-  LIVRAISON: { label: 'Livraison', icon: Bike },
-  TABLES: { label: 'Plan de salle', icon: LayoutGrid },
-  HOTEL: { label: 'Hôtel (PMS)', icon: Hotel },
-  STOCK: { label: 'Stock', icon: Package },
-  PROMOTION: { label: 'Promotions', icon: Tag },
-  RH: { label: 'Ressources Humaines', icon: Users },
-  CRM: { label: 'CRM Clients', icon: Contact },
+const MODULE_ICONS: Record<string, LucideIcon> = {
+  POS: Wallet,
+  CLIENT_APP: Smartphone,
+  CUISINE: ChefHat,
+  BAR: Beer,
+  LIVRAISON: Bike,
+  TABLES: LayoutGrid,
+  HOTEL: Hotel,
+  STOCK: Package,
+  PROMOTION: Tag,
+  RH: Users,
+  CRM: Contact,
 };
 
-function getModuleMetric(moduleKey: string, summary: any): { value: string; note: string } | null {
+function getModuleMetric(
+  t: Translator,
+  formatFCFA: (value: number) => string,
+  moduleKey: string,
+  summary: any
+): { value: string; note: string } | null {
   if (moduleKey === 'POS') {
-    return { value: formatFCFA(summary.orderRevenue), note: `${summary.orderCount} commande(s) encaissée(s)` };
+    return { value: formatFCFA(summary.orderRevenue), note: t('documents.zReport.ordersPaid', { count: summary.orderCount }) };
   }
   if (moduleKey === 'HOTEL') {
-    return { value: formatFCFA(summary.bookingRevenue), note: `${summary.bookingCount} réservation(s) réglée(s)` };
+    return { value: formatFCFA(summary.bookingRevenue), note: t('documents.zReport.bookingsPaid', { count: summary.bookingCount }) };
   }
   if (moduleKey === 'PROMOTION') {
-    return { value: `-${formatFCFA(summary.totalDiscounts)}`, note: 'Total des remises accordées' };
+    return { value: `-${formatFCFA(summary.totalDiscounts)}`, note: t('documents.zReport.discountsTotal') };
   }
   return null;
 }
 
+const PAYMENT_KEYS = { CASH: 1, CARD: 1, CHEQUE: 1, TRANSFER: 1, MOBILE: 1, AUTRE: 1 } as const;
+
 export function RapportZ({ shiftId, containerRef }: Props) {
   const [data, setData] = useState<any>(null);
+  const { t, format } = useT();
+  const formatFCFA = (value: number) => format.money(value);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -78,12 +89,12 @@ export function RapportZ({ shiftId, containerRef }: Props) {
     return (
       <div className="py-12 flex flex-col items-center justify-center gap-4 text-slate-400">
         <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <p>Génération du rapport A4...</p>
+        <p>{t('documents.zReport.loading')}</p>
       </div>
     );
   }
 
-  if (!data?.shift) return <div>Erreur de chargement du rapport.</div>;
+  if (!data?.shift) return <div>{t('documents.zReport.loadError')}</div>;
 
   const { shift, orders, bookings, paymentMethods, modules, summary } = data;
   const isPositiveEcart = Number(summary.difference) > 0;
@@ -94,7 +105,7 @@ export function RapportZ({ shiftId, containerRef }: Props) {
   // during the shift belong here. Operational modules (KDS, Bar display, Stock,
   // RH, CRM...) have nothing to reconcile and are omitted, not just greyed out.
   const financialModules = modules
-    .map((m: string) => ({ key: m, info: MODULE_INFO[m] || { label: m, icon: Package }, metric: getModuleMetric(m, summary) }))
+    .map((m: string) => ({ key: m, info: { label: moduleLabel(t, m), icon: MODULE_ICONS[m] ?? Package }, metric: getModuleMetric(t, formatFCFA, m, summary) }))
     .filter((m: { metric: { value: string; note: string } | null }) => m.metric !== null);
 
   return (
@@ -143,61 +154,75 @@ export function RapportZ({ shiftId, containerRef }: Props) {
               </div>
               <div>
                 <h1 className="text-3xl font-black uppercase tracking-tighter leading-none">{shift.structures?.name}</h1>
-                <p className="text-slate-500 font-bold tracking-widest text-xs mt-1">ÉTABLISSEMENT {shift.structures?.name?.toUpperCase()}</p>
+                <p className="text-slate-500 font-bold tracking-widest text-xs mt-1">{t('documents.zReport.establishment', { name: shift.structures?.name?.toUpperCase() ?? '' })}</p>
               </div>
             </div>
             <div className="text-sm space-y-1 text-slate-600 font-medium">
-              <p className="flex items-center gap-2"><Building2 className="w-4 h-4" /> {shift.structures?.address || 'Adresse non spécifiée'}</p>
-              <p className="flex items-center gap-2"><Wallet className="w-4 h-4" /> Tél: {shift.structures?.phone || 'N/A'}</p>
+              <p className="flex items-center gap-2"><Building2 className="w-4 h-4" /> {shift.structures?.address || t('documents.zReport.noAddress')}</p>
+              <p className="flex items-center gap-2"><Wallet className="w-4 h-4" /> {t('documents.zReport.phone', { phone: shift.structures?.phone || 'N/A' })}</p>
+              {(shift.structures?.niu || shift.structures?.rccm) && (
+                <p className="flex items-center gap-2">
+                  <Receipt className="w-4 h-4" />
+                  {[shift.structures?.niu && t('documents.identity.niu', { niu: shift.structures.niu }), shift.structures?.rccm && t('documents.identity.rccm', { rccm: shift.structures.rccm })]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
+              )}
             </div>
           </div>
           <div className="text-right">
-            <div className="inline-block bg-slate-900 text-white px-4 py-2 font-black text-xl mb-2">RAPPORT Z</div>
-            <p className="text-xs font-bold text-slate-400">SESSION #{shift.id.slice(0, 8).toUpperCase()}</p>
-            <p className="text-xs font-bold text-slate-400 mt-1">{new Date().toLocaleDateString('fr-FR')}</p>
+            <div className="inline-block bg-slate-900 text-white px-4 py-2 font-black text-xl mb-2">{t('documents.zReport.title')}</div>
+            <p className="text-xs font-bold text-slate-400">{t('documents.zReport.session', { id: shift.id.slice(0, 8).toUpperCase() })}</p>
+            <p className="text-xs font-bold text-slate-400 mt-1">{format.date(new Date())}</p>
           </div>
         </div>
 
         {/* Audit Details */}
         <div className="grid grid-cols-2 gap-16 mb-10">
           <div className="min-w-0">
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 border-l-4 border-blue-500 pl-3">Responsable de Session</h3>
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 border-l-4 border-blue-500 pl-3">{t('documents.zReport.manager')}</h3>
             <div className="space-y-2 text-sm">
               <p className="flex justify-between items-center border-b pb-1">
-                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">Caissier :</span>
+                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">{t('documents.zReport.cashier')}</span>
                 <span className="font-bold truncate">{shift.users?.first_name} {shift.users?.last_name}</span>
               </p>
               <p className="flex justify-between items-center border-b pb-1">
-                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">Ouverture :</span>
-                <span className="font-bold">{new Date(shift.opened_at).toLocaleString('fr-FR')}</span>
+                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">{t('documents.zReport.opening')}</span>
+                <span className="font-bold">{format.dateTime(shift.opened_at)}</span>
               </p>
               <p className="flex justify-between items-center border-b pb-1">
-                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">Fermeture :</span>
-                <span className="font-bold">{shift.closed_at ? new Date(shift.closed_at).toLocaleString('fr-FR') : 'NON CLÔTURÉ'}</span>
+                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">{t('documents.zReport.closing')}</span>
+                <span className="font-bold">{shift.closed_at ? format.dateTime(shift.closed_at) : t('documents.zReport.notClosed')}</span>
               </p>
             </div>
           </div>
           <div className="min-w-0">
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 border-l-4 border-green-500 pl-3">Résumé des Flux</h3>
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 border-l-4 border-green-500 pl-3">{t('documents.zReport.flows')}</h3>
             <div className="space-y-2 text-sm">
               <p className="flex justify-between items-center border-b pb-1">
-                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">Fond de caisse :</span>
+                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">{t('documents.zReport.float')}</span>
                 <span className="font-bold text-blue-600">{formatFCFA(summary.openingBalance)}</span>
               </p>
               <p className="flex justify-between items-center border-b pb-1">
-                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">Ventes (Brut) :</span>
+                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">{t('documents.zReport.grossSales')}</span>
                 <span className="font-bold text-slate-700">{formatFCFA(summary.grossSales)}</span>
               </p>
               <p className="flex justify-between items-center border-b pb-1">
-                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">Promotions / Remises :</span>
+                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">{t('documents.zReport.discounts')}</span>
                 <span className="font-bold text-red-500">-{formatFCFA(summary.totalDiscounts)}</span>
               </p>
               <p className="flex justify-between items-center border-b pb-1">
-                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">Ventes Net (Payé) :</span>
+                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">{t('documents.zReport.netSales')}</span>
                 <span className="font-bold text-green-600">{formatFCFA(summary.netSales)}</span>
               </p>
+              {Number(summary.totalTax) > 0 && (
+                <p className="flex justify-between items-center border-b pb-1">
+                  <span className="text-slate-500 font-medium whitespace-nowrap mr-4">{t('documents.zReport.vatCollected')}</span>
+                  <span className="font-bold text-slate-700">{formatFCFA(summary.totalTax)}</span>
+                </p>
+              )}
               <p className="flex justify-between items-center border-b pb-1">
-                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">Argent Attendu :</span>
+                <span className="text-slate-500 font-medium whitespace-nowrap mr-4">{t('documents.zReport.expected')}</span>
                 <span className="font-bold underline">{formatFCFA(summary.expectedAmount)}</span>
               </p>
             </div>
@@ -207,11 +232,11 @@ export function RapportZ({ shiftId, containerRef }: Props) {
         {/* The Big Number: Difference */}
         <div className={`p-6 mb-10 rounded-none border-2 border-slate-900 flex justify-between items-center ${isNegativeEcart ? 'bg-red-50' : 'bg-green-50'}`}>
           <div>
-            <h2 className="text-sm font-black uppercase tracking-widest text-slate-900">Total Réel Compté en Caisse</h2>
+            <h2 className="text-sm font-black uppercase tracking-widest text-slate-900">{t('documents.zReport.counted')}</h2>
             <p className="text-4xl font-black text-slate-900 mt-1">{formatFCFA(summary.actualAmount)}</p>
           </div>
           <div className="text-right">
-            <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 opacity-60">Écart de Caisse</h2>
+            <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 opacity-60">{t('documents.zReport.difference')}</h2>
             <p className={`text-4xl font-black ${isNegativeEcart ? 'text-red-600' : isPositiveEcart ? 'text-green-600' : 'text-blue-600'}`}>
               {summary.difference > 0 ? '+' : ''}{formatFCFA(summary.difference)}
             </p>
@@ -222,7 +247,7 @@ export function RapportZ({ shiftId, containerRef }: Props) {
         {financialModules.length > 0 && (
         <div className="mb-10">
           <h2 className="text-sm font-black uppercase tracking-widest mb-4 bg-slate-100 p-2 border-l-4 border-slate-900 flex items-center gap-2">
-            <Building2 className="w-4 h-4" /> Résumé Financier par Module
+            <Building2 className="w-4 h-4" /> {t('documents.zReport.byModule')}
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {financialModules.map(({ key, info, metric }: { key: string; info: { label: string; icon: LucideIcon }; metric: { value: string; note: string } }) => {
@@ -246,16 +271,16 @@ export function RapportZ({ shiftId, containerRef }: Props) {
         {showRestaurantSection && (
         <div className="mb-10">
           <h2 className="text-sm font-black uppercase tracking-widest mb-4 bg-slate-100 p-2 border-l-4 border-orange-500 flex items-center gap-2">
-            <ChefHat className="w-4 h-4" /> Ventes Restaurant (Détails)
+            <ChefHat className="w-4 h-4" /> {t('documents.zReport.restaurantTitle')}
           </h2>
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b-2 border-slate-900 text-[10px] font-black uppercase text-slate-500">
-                <th className="py-2">Ref</th>
-                <th className="py-2">Désignation</th>
-                <th className="py-2">Heure</th>
-                <th className="py-2">Table / Client</th>
-                <th className="py-2 text-right">Payé (Session)</th>
+                <th className="py-2">{t('documents.zReport.ref')}</th>
+                <th className="py-2">{t('documents.zReport.designation')}</th>
+                <th className="py-2">{t('documents.zReport.time')}</th>
+                <th className="py-2">{t('documents.zReport.tableClient')}</th>
+                <th className="py-2 text-right">{t('documents.zReport.paidSession')}</th>
               </tr>
             </thead>
             <tbody className="text-xs">
@@ -265,11 +290,11 @@ export function RapportZ({ shiftId, containerRef }: Props) {
                   <td className="py-2 font-black text-[10px]">
                     {o.order_items?.length > 0
                       ? o.order_items.map((item: any) => `${item.quantity}x ${item.products?.name}`).join(', ')
-                      : 'Commande Directe'}
+                      : t('documents.zReport.directOrder')}
                   </td>
-                  <td className="py-2 font-medium">{new Date(o.updated_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</td>
+                  <td className="py-2 font-medium">{format.time(o.updated_at)}</td>
                   <td className="py-2 text-blue-600 font-bold">
-                    {o.rooms?.number ? `Chambre ${o.rooms.number}` : o.table_number ? `Table ${o.table_number}` : o.guest_name || 'Comptoir'}
+                    {o.rooms?.number ? t('documents.zReport.room', { number: o.rooms.number }) : o.table_number ? t('documents.zReport.table', { number: o.table_number }) : o.guest_name || t('documents.zReport.counter')}
                   </td>
                   <td className="py-2 text-right font-black">
                     {Number(o.discount_amount) > 0 && (
@@ -282,13 +307,13 @@ export function RapportZ({ shiftId, containerRef }: Props) {
                   </td>
                 </tr>
               )) : (
-                <tr><td colSpan={4} className="py-8 text-center italic text-slate-400">Aucune commande restaurant pendant cette session.</td></tr>
+                <tr><td colSpan={5} className="py-8 text-center italic text-slate-400">{t('documents.zReport.noOrders')}</td></tr>
               )}
             </tbody>
             {orders.length > 0 && (
               <tfoot>
                 <tr className="font-black text-sm bg-slate-900 text-white">
-                  <td colSpan={4} className="py-2 px-3">SOUS-TOTAL RESTAURANT</td>
+                  <td colSpan={4} className="py-2 px-3">{t('documents.zReport.restaurantSubtotal')}</td>
                   <td className="py-2 px-3 text-right">{formatFCFA(orders.reduce((sum: number, o: any) => sum + Number(o.total), 0))}</td>
                 </tr>
               </tfoot>
@@ -301,35 +326,35 @@ export function RapportZ({ shiftId, containerRef }: Props) {
         {showHotelSection && (
         <div className="mb-10">
           <h2 className="text-sm font-black uppercase tracking-widest mb-4 bg-slate-100 p-2 border-l-4 border-blue-500 flex items-center gap-2">
-            <Hotel className="w-4 h-4" /> Réservations Hôtel (Détails)
+            <Hotel className="w-4 h-4" /> {t('documents.zReport.hotelTitle')}
           </h2>
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b-2 border-slate-900 text-[10px] font-black uppercase text-slate-500">
-                <th className="py-2">Ref</th>
-                <th className="py-2">Désignation (Client)</th>
-                <th className="py-2">Type / N°</th>
-                <th className="py-2">Paiement à</th>
-                <th className="py-2 text-right">Montant Payé</th>
+                <th className="py-2">{t('documents.zReport.ref')}</th>
+                <th className="py-2">{t('documents.zReport.designationClient')}</th>
+                <th className="py-2">{t('documents.zReport.typeNumber')}</th>
+                <th className="py-2">{t('documents.zReport.paidAt')}</th>
+                <th className="py-2 text-right">{t('documents.zReport.amountPaid')}</th>
               </tr>
             </thead>
             <tbody className="text-xs">
               {bookings.length > 0 ? bookings.map((b: any) => (
                 <tr key={b.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                   <td className="py-2 font-bold text-slate-400">#{b.id.slice(0, 6)}</td>
-                  <td className="py-2 font-black">{b.guest_name || 'Client de passage'}</td>
-                  <td className="py-2 font-medium">Ch. {b.rooms?.number} ({b.rooms?.type})</td>
-                  <td className="py-2 font-medium">{new Date(b.updated_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</td>
+                  <td className="py-2 font-black">{b.guest_name || t('documents.zReport.walkIn')}</td>
+                  <td className="py-2 font-medium">{t('documents.zReport.roomShort', { number: b.rooms?.number ?? '', type: b.rooms?.type ?? '' })}</td>
+                  <td className="py-2 font-medium">{format.time(b.updated_at)}</td>
                   <td className="py-2 text-right font-black">{formatFCFA(b.total_amount)}</td>
                 </tr>
               )) : (
-                <tr><td colSpan={4} className="py-8 text-center italic text-slate-400">Aucune réservation hôtel pendant cette session.</td></tr>
+                <tr><td colSpan={5} className="py-8 text-center italic text-slate-400">{t('documents.zReport.noBookings')}</td></tr>
               )}
             </tbody>
             {bookings.length > 0 && (
               <tfoot>
                 <tr className="font-black text-sm bg-slate-900 text-white">
-                  <td colSpan={4} className="py-2 px-3">SOUS-TOTAL HÔTEL</td>
+                  <td colSpan={4} className="py-2 px-3">{t('documents.zReport.hotelSubtotal')}</td>
                   <td className="py-2 px-3 text-right">{formatFCFA(bookings.reduce((sum: number, b: any) => sum + Number(b.total_amount), 0))}</td>
                 </tr>
               </tfoot>
@@ -340,15 +365,15 @@ export function RapportZ({ shiftId, containerRef }: Props) {
 
         {/* Payment Methods Breakdown */}
         <div className="mb-12">
-          <h2 className="text-sm font-black uppercase tracking-widest mb-4 border-b pb-1">Récapitulatif des Modes de Paiement</h2>
+          <h2 className="text-sm font-black uppercase tracking-widest mb-4 border-b pb-1">{t('documents.zReport.paymentMethods')}</h2>
           <div className="grid grid-cols-4 gap-4">
             {Object.entries(paymentMethods).length > 0 ? Object.entries(paymentMethods).map(([method, amount]: [string, any]) => (
               <div key={method} className="bg-slate-50 p-3 border border-slate-200">
-                <p className="text-[10px] font-black uppercase text-slate-400 mb-1">{method}</p>
+                <p className="text-[10px] font-black uppercase text-slate-400 mb-1">{method in PAYMENT_KEYS ? t(`common.paymentMethods.${method as keyof typeof PAYMENT_KEYS}`) : method}</p>
                 <p className="text-lg font-black">{formatFCFA(amount)}</p>
               </div>
             )) : (
-              <p className="col-span-4 text-xs italic text-slate-400">Aucune donnée de paiement détaillé détectée.</p>
+              <p className="col-span-4 text-xs italic text-slate-400">{t('documents.zReport.noPayments')}</p>
             )}
           </div>
         </div>
@@ -356,7 +381,7 @@ export function RapportZ({ shiftId, containerRef }: Props) {
         {/* Notes */}
         {shift.notes && (
           <div className="mb-12 p-4 border-2 border-dashed border-slate-200 bg-slate-50">
-            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2 underline">Observations Générales :</h3>
+            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2 underline">{t('documents.zReport.notes')}</h3>
             <p className="text-xs italic text-slate-600">"{shift.notes}"</p>
           </div>
         )}
@@ -365,16 +390,16 @@ export function RapportZ({ shiftId, containerRef }: Props) {
         <div className="mt-auto pt-8">
           <div className="grid grid-cols-2 gap-20">
             <div className="text-center pt-8 border-t-2 border-slate-900">
-              <p className="text-xs font-black uppercase tracking-widest">Visa du Caissier ({shift.users?.last_name})</p>
+              <p className="text-xs font-black uppercase tracking-widest">{t('documents.zReport.cashierSignature', { name: shift.users?.last_name ?? '' })}</p>
               <div className="h-24"></div>
             </div>
             <div className="text-center pt-8 border-t-2 border-slate-900">
-              <p className="text-xs font-black uppercase tracking-widest">Visa de la Direction</p>
+              <p className="text-xs font-black uppercase tracking-widest">{t('documents.zReport.managementSignature')}</p>
               <div className="h-24"></div>
             </div>
           </div>
           <div className="text-[9px] text-slate-400 text-center mt-8">
-            Document généré électroniquement par Shede SaaS - Certifié conforme.
+            {t('documents.zReport.footer')}
           </div>
         </div>
 

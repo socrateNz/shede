@@ -26,7 +26,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { togglePromotionStatus, deletePromotion } from '@/app/actions/promotions';
-import { cn, formatFCFA } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n/client';
 import { toast } from 'sonner';
 import { PromotionDetailDialog } from './promotion-detail-dialog';
 import { PromotionEditDialog } from './promotion-edit-dialog';
@@ -63,6 +64,7 @@ export function PromotionsList({ promotions: initialPromotions, products }: Prom
   const [detailOpen, setDetailOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const { t, format } = useT();
   const itemsPerPage = 10;
 
   const totalPages = Math.ceil(promotions.length / itemsPerPage);
@@ -79,24 +81,24 @@ export function PromotionsList({ promotions: initialPromotions, products }: Prom
     const result = await togglePromotionStatus(id, !currentStatus);
     if (result.success) {
       setPromotions(prev => prev.map(p => p.id === id ? { ...p, is_active: !currentStatus } : p));
-      toast.success(`Promotion ${!currentStatus ? 'activée' : 'désactivée'}`);
+      toast.success(!currentStatus ? t('promotions.list.activated') : t('promotions.list.deactivated'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette promotion ?')) return;
+    if (!confirm(t('promotions.list.confirmDelete'))) return;
     
     const result = await deletePromotion(id);
     if (result.success) {
       setPromotions(prev => prev.filter(p => p.id !== id));
-      toast.success('Promotion supprimée');
+      toast.success(t('promotions.list.deleted'));
     } else {
-      toast.error(result.error || 'Erreur de suppression');
+      toast.error(result.error || t('promotions.list.deleteError'));
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
+    return format.date(dateString, {
       day: 'numeric',
       month: 'short'
     });
@@ -107,12 +109,12 @@ export function PromotionsList({ promotions: initialPromotions, products }: Prom
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="border-b border-slate-700/50">
-            <th className="px-4 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Promotion</th>
-            <th className="px-4 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">Mode</th>
-            <th className="px-4 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Valeur / Offre</th>
-            <th className="px-4 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Période</th>
-            <th className="px-4 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">Status</th>
-            <th className="px-4 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+            <th className="px-4 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('promotions.list.colPromotion')}</th>
+            <th className="px-4 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">{t('promotions.list.colMode')}</th>
+            <th className="px-4 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('promotions.list.colValue')}</th>
+            <th className="px-4 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('promotions.list.colPeriod')}</th>
+            <th className="px-4 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">{t('promotions.list.colStatus')}</th>
+            <th className="px-4 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">{t('promotions.list.colActions')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-700/30">
@@ -132,7 +134,7 @@ export function PromotionsList({ promotions: initialPromotions, products }: Prom
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-slate-50">{promo.name}</p>
-                    <p className="text-[10px] text-slate-500 font-mono mt-0.5">{promo.scope === 'ORDER' ? 'Toute commande' : 'Produit ciblé'}</p>
+                    <p className="text-[10px] text-slate-500 font-mono mt-0.5">{promo.scope === 'ORDER' ? t('promotions.list.scopeOrder') : t('promotions.list.scopeProduct')}</p>
                   </div>
                 </div>
               </td>
@@ -143,15 +145,14 @@ export function PromotionsList({ promotions: initialPromotions, products }: Prom
                   promo.promo_mode === 'CODE' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
                   'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                 )}>
-                  {promo.promo_mode === 'STANDARD' ? 'STANDARD' :
-                   promo.promo_mode === 'CODE' ? 'CODE PROMO' : 'CADEAU'}
+                  {t(`promotions.modeBadge.${promo.promo_mode}`)}
                 </span>
               </td>
               <td className="px-4 py-4">
                 <div className="flex items-center gap-2">
                   {promo.promo_mode === 'BUY_X_GET_Y' ? (
                     <span className="text-sm font-medium text-emerald-400">
-                      {promo.required_qty} + {promo.free_qty} offerts
+                      {t('promotions.list.free', { required: promo.required_qty ?? 0, free: promo.free_qty ?? 0 })}
                     </span>
                   ) : (
                     <>
@@ -161,7 +162,7 @@ export function PromotionsList({ promotions: initialPromotions, products }: Prom
                         <Banknote className="w-3 h-3 text-emerald-400" />
                       )}
                       <span className="text-sm font-medium text-slate-200">
-                        {promo.value} {promo.type === 'PERCENTAGE' ? '%' : 'FCFA'}
+                        {promo.type === 'PERCENTAGE' ? `${format.number(promo.value)} %` : format.money(promo.value)}
                       </span>
                     </>
                   )}
@@ -183,7 +184,7 @@ export function PromotionsList({ promotions: initialPromotions, products }: Prom
                       : "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"
                   )}
                 >
-                  {promo.is_active ? 'ACTIF' : 'INACTIF'}
+                  {promo.is_active ? t('promotions.list.active') : t('promotions.list.inactive')}
                 </button>
               </td>
               <td className="px-4 py-4 text-right">
@@ -194,31 +195,31 @@ export function PromotionsList({ promotions: initialPromotions, products }: Prom
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48 bg-slate-800 border-slate-700 text-slate-200">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t('promotions.list.actions')}</DropdownMenuLabel>
                     <DropdownMenuItem 
                       onClick={() => { setSelectedPromo(promo); setDetailOpen(true); }}
                       className="cursor-pointer"
                     >
-                      <Info className="w-4 h-4 mr-2" /> Voir Détails
+                      <Info className="w-4 h-4 mr-2" /> {t('promotions.list.details')}
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => { setSelectedPromo(promo); setEditOpen(true); }}
                       className="cursor-pointer"
                     >
-                      <Edit className="w-4 h-4 mr-2" /> Modifier
+                      <Edit className="w-4 h-4 mr-2" /> {t('common.edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => handleToggle(promo.id, promo.is_active)}
                       className="cursor-pointer text-yellow-500"
                     >
                       {promo.is_active ? <XCircle className="w-4 h-4 mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
-                      {promo.is_active ? 'Désactiver' : 'Activer'}
+                      {promo.is_active ? t('promotions.list.deactivate') : t('promotions.list.activate')}
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => handleDelete(promo.id)}
                       className="cursor-pointer text-red-500 focus:text-red-400 focus:bg-red-500/10"
                     >
-                      <Trash2 className="w-4 h-4 mr-2" /> Supprimer
+                      <Trash2 className="w-4 h-4 mr-2" /> {t('common.delete')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

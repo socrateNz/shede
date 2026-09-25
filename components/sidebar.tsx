@@ -30,6 +30,8 @@ import { useAppStore } from '@/lib/store';
 import { Structure } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
 import { getSidebarCounts } from '@/app/actions/sidebar';
+import { useT } from '@/lib/i18n/client';
+import type { TranslationKey } from '@/lib/i18n/translate';
 
 interface SidebarProps {
   session: SessionPayload;
@@ -40,6 +42,7 @@ interface SidebarProps {
 
 export function Sidebar({ session, structure, mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
+  const { t } = useT();
   const storeHasModule = useAppStore(state => state.hasModule);
   const [counts, setCounts] = useState({ orders: 0, stock: 0, bookings: 0, notifications: 0 });
 
@@ -80,20 +83,20 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
   };
 
   const superAdminItems: NavItem[] = [
-    { name: 'Tableau de bord', href: '/dashboard', icon: Home, roles: ['SUPER_ADMIN'] },
-    { name: 'Organisations', href: '/structures', icon: Network, roles: ['SUPER_ADMIN'] },
+    { name: t('nav.dashboard'), href: '/dashboard', icon: Home, roles: ['SUPER_ADMIN'] },
+    { name: t('nav.organizations'), href: '/structures', icon: Network, roles: ['SUPER_ADMIN'] },
   ];
 
   const orgAdminItems: NavItem[] = [
-    { name: 'Vue propriétaire', href: '/organization', icon: BarChart3, roles: ['ORG_ADMIN'], exact: true },
-    { name: 'Rapports de caisse', href: '/organization/cash', icon: HistoryIcon, roles: ['ORG_ADMIN'] },
-    { name: 'Points & licence', href: '/organization/points', icon: Network, roles: ['ORG_ADMIN'] },
+    { name: t('nav.ownerView'), href: '/organization', icon: BarChart3, roles: ['ORG_ADMIN'], exact: true },
+    { name: t('nav.cashReports'), href: '/organization/cash', icon: HistoryIcon, roles: ['ORG_ADMIN'] },
+    { name: t('nav.pointsLicense'), href: '/organization/points', icon: Network, roles: ['ORG_ADMIN'] },
   ];
 
   const pointItems: NavItem[] = [
     // ── Général ── (pas de tableau de bord dédié au livreur)
     {
-      name: 'Tableau de bord',
+      name: t('nav.dashboard'),
       href: '/dashboard',
       icon: Home,
       roles: ['ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR', 'RECEPTION', 'CUISINIER', 'BAR', 'COMPTABLE', 'MAGASINIER', 'RH'],
@@ -101,7 +104,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
 
     // ── Commandes ──
     {
-      name: 'Commandes',
+      name: t('nav.orders'),
       href: '/orders',
       icon: ShoppingCart,
       roles: ['ADMIN', 'CAISSE', 'SERVEUR'],
@@ -109,7 +112,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       badgeColor: 'bg-red-500',
     },
     {
-      name: 'Plan de salle',
+      name: t('nav.floorPlan'),
       href: '/floor-manager',
       icon: LayoutDashboard,
       roles: ['ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR'],
@@ -117,16 +120,16 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     },
 
     // ── Cuisine & Bar ──
-    { name: 'Cuisine (KDS)', href: '/kitchen', icon: ChefHat, roles: ['ADMIN', 'MANAGER', 'CUISINIER'], module: 'CUISINE' },
-    { name: 'Bar', href: '/bar', icon: Beer, roles: ['ADMIN', 'MANAGER', 'BAR'], module: 'BAR' },
+    { name: t('nav.kitchen'), href: '/kitchen', icon: ChefHat, roles: ['ADMIN', 'MANAGER', 'CUISINIER'], module: 'CUISINE' },
+    { name: t('nav.bar'), href: '/bar', icon: Beer, roles: ['ADMIN', 'MANAGER', 'BAR'], module: 'BAR' },
 
     // ── Catalogue ──
-    { name: 'Produits', href: '/products', icon: Package, roles: ['ADMIN'] },
-    { name: 'Accompagnements', href: '/accompaniments', icon: Package, roles: ['ADMIN', 'MANAGER'] },
+    { name: t('nav.products'), href: '/products', icon: Package, roles: ['ADMIN'] },
+    { name: t('nav.accompaniments'), href: '/accompaniments', icon: Package, roles: ['ADMIN', 'MANAGER'] },
 
     // ── Stock ──
     {
-      name: 'Stock',
+      name: t('nav.stock'),
       href: '/stock',
       icon: Boxes,
       roles: ['ADMIN', 'MANAGER', 'MAGASINIER'],
@@ -136,12 +139,12 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     },
 
     // ── Livraison ──
-    { name: 'Livraisons', href: '/delivery', icon: Truck, roles: ['ADMIN', 'MANAGER', 'LIVREUR'], module: 'LIVRAISON' },
+    { name: t('nav.deliveries'), href: '/delivery', icon: Truck, roles: ['ADMIN', 'MANAGER', 'LIVREUR'], module: 'LIVRAISON' },
 
     // ── Hôtel ──
-    { name: 'Chambres', href: '/rooms', icon: Bed, roles: ['ADMIN', 'RECEPTION'], module: 'HOTEL' },
+    { name: t('nav.rooms'), href: '/rooms', icon: Bed, roles: ['ADMIN', 'RECEPTION'], module: 'HOTEL' },
     {
-      name: 'Réservations',
+      name: t('nav.bookings'),
       href: '/bookings',
       icon: CalendarDays,
       roles: ['ADMIN', 'RECEPTION'],
@@ -151,19 +154,19 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     },
 
     // ── Marketing ──
-    { name: 'Promotions', href: '/promotions', icon: Tag, roles: ['ADMIN'], module: 'PROMOTION' },
+    { name: t('nav.promotions'), href: '/promotions', icon: Tag, roles: ['ADMIN'], module: 'PROMOTION' },
 
     // ── Équipe & CRM ──
-    { name: 'Clients (CRM)', href: '/clients', icon: Users, roles: ['ADMIN', 'MANAGER', 'CAISSE'], module: 'CRM' },
-    { name: 'Utilisateurs', href: '/users', icon: Users, roles: ['ADMIN'] },
+    { name: t('nav.crm'), href: '/clients', icon: Users, roles: ['ADMIN', 'MANAGER', 'CAISSE'], module: 'CRM' },
+    { name: t('nav.users'), href: '/users', icon: Users, roles: ['ADMIN'] },
 
     // ── Finances & Stats ──
-    { name: 'Statistiques', href: '/statistics', icon: BarChart3, roles: ['ADMIN'] },
-    { name: 'Sessions de caisse', href: '/shifts', icon: HistoryIcon, roles: ['ADMIN'] },
+    { name: t('nav.statistics'), href: '/statistics', icon: BarChart3, roles: ['ADMIN'] },
+    { name: t('nav.shifts'), href: '/shifts', icon: HistoryIcon, roles: ['ADMIN'] },
 
     // ── Global ──
     {
-      name: 'Notifications',
+      name: t('nav.notifications'),
       href: '/notifications',
       icon: Bell,
       roles: ['ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR', 'RECEPTION', 'CUISINIER', 'BAR', 'LIVREUR', 'COMPTABLE', 'MAGASINIER', 'RH'],
@@ -171,7 +174,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       badgeColor: 'bg-blue-600',
     },
     {
-      name: 'Paramètres',
+      name: t('nav.settings'),
       href: '/settings',
       icon: Settings,
       roles: ['ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR', 'RECEPTION', 'CUISINIER', 'BAR', 'LIVREUR', 'COMPTABLE', 'MAGASINIER', 'RH'],
@@ -183,22 +186,6 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
   ).filter((item) => item.roles.includes(role) && (!item.module || hasModule(item.module)));
   const homeHref = isOrgAdmin ? '/organization' : '/dashboard';
 
-  const ROLE_LABELS: Record<string, string> = {
-    SUPER_ADMIN: 'Super Admin',
-    ORG_ADMIN: 'Admin organisation',
-    ADMIN: 'Administrateur',
-    MANAGER: 'Manager',
-    CAISSE: 'Caisse',
-    SERVEUR: 'Serveur',
-    RECEPTION: 'Réception',
-    CUISINIER: 'Cuisinier',
-    BAR: 'Bar',
-    LIVREUR: 'Livreur',
-    COMPTABLE: 'Comptable',
-    MAGASINIER: 'Magasinier',
-    RH: 'RH',
-    CLIENT: 'Client',
-  };
 
   return (
     <aside
@@ -258,9 +245,9 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
           </div>
         )}
         <div className="px-4 py-2 bg-slate-700 rounded-lg">
-          <p className="text-xs text-slate-400">Rôle</p>
+          <p className="text-xs text-slate-400">{t('nav.role')}</p>
           <p className="text-sm font-medium text-slate-50">
-            {ROLE_LABELS[role] || role}
+            {t(`roles.${role}` as TranslationKey)}
           </p>
           {structure?.name && (
             <p className="text-xs text-slate-400 truncate mt-0.5" title={structure.name}>
@@ -274,7 +261,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
             className="w-full flex items-center gap-3 px-4 py-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors"
           >
             <LogOut className="w-5 h-5" />
-            <span className="font-medium">Déconnexion</span>
+            <span className="font-medium">{t('common.logout')}</span>
           </button>
         </form>
       </div>

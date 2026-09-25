@@ -1,5 +1,7 @@
 'use client';
 
+import { useT } from '@/lib/i18n/client';
+
 import { getOrders, updateOrderStatus } from '@/app/actions/orders';
 import { OrdersList } from '@/components/orders-list';
 import type { Order } from '@/lib/supabase';
@@ -14,6 +16,7 @@ interface OrdersLiveListProps {
 
 export function OrdersLiveList({ initialOrders, structureId, canManageStatus = false }: OrdersLiveListProps) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const { t } = useT();
   const [hasNewOrder, setHasNewOrder] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(true);
@@ -87,7 +90,7 @@ export function OrdersLiveList({ initialOrders, structureId, canManageStatus = f
               <Bell className="w-4 h-4 animate-pulse" />
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-ping" />
             </div>
-            <span className="font-medium">Nouvelle commande reçue !</span>
+            <span className="font-medium">{t('orders.live.newOrder')}</span>
           </div>
           <button
             type="button"
@@ -95,7 +98,7 @@ export function OrdersLiveList({ initialOrders, structureId, canManageStatus = f
             onClick={() => setHasNewOrder(false)}
           >
             <CheckCircle className="w-4 h-4" />
-            OK
+            {t('orders.live.ok')}
           </button>
         </div>
       )}
@@ -112,7 +115,7 @@ export function OrdersLiveList({ initialOrders, structureId, canManageStatus = f
               }`}
           >
             <div className={`w-1.5 h-1.5 rounded-full ${isPolling ? 'bg-green-400 animate-pulse' : 'bg-slate-500'}`} />
-            <span>{isPolling ? 'Mise à jour automatique' : 'Mise à jour manuelle'}</span>
+            <span>{isPolling ? t('orders.live.autoRefresh') : t('orders.live.manualRefresh')}</span>
           </button>
         </div>
         <button
@@ -121,7 +124,7 @@ export function OrdersLiveList({ initialOrders, structureId, canManageStatus = f
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700/50 hover:bg-slate-700 text-slate-300 hover:text-white text-sm transition-all duration-200"
         >
           <RefreshCw className="w-3.5 h-3.5" />
-          Actualiser
+          {t('orders.live.refresh')}
         </button>
       </div>
 
@@ -131,8 +134,8 @@ export function OrdersLiveList({ initialOrders, structureId, canManageStatus = f
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-700/50 flex items-center justify-center">
             <Bell className="w-8 h-8 opacity-30" />
           </div>
-          <p className="text-lg">Aucune commande pour le moment</p>
-          <p className="text-sm mt-2">Les nouvelles commandes apparaîtront ici automatiquement</p>
+          <p className="text-lg">{t('orders.live.emptyTitle')}</p>
+          <p className="text-sm mt-2">{t('orders.live.emptyText')}</p>
         </div>
       ) : (
         <OrdersList

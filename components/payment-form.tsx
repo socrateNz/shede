@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { CreditCard, Wallet, Landmark, Banknote, Loader2, CheckCircle, AlertCircle, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
+import { useT } from '@/lib/i18n/client';
 
 interface PaymentFormProps {
   orderId: string;
@@ -13,16 +14,21 @@ interface PaymentFormProps {
   onSuccess: () => void;
 }
 
-const paymentMethods = [
-  { value: 'CASH', label: 'Espèces', icon: Banknote, color: 'text-green-400', bg: 'bg-green-500/10' },
-  { value: 'CARD', label: 'Carte bancaire', icon: CreditCard, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-  { value: 'CHEQUE', label: 'Chèque', icon: Wallet, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-  { value: 'TRANSFER', label: 'Virement bancaire', icon: Landmark, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-  { value: 'MOBILE', label: 'Mobile Money', icon: Smartphone, color: 'text-orange-400', bg: 'bg-orange-500/10' },
-];
+const paymentMethodStyles = [
+  { value: 'CASH', icon: Banknote, color: 'text-green-400', bg: 'bg-green-500/10' },
+  { value: 'CARD', icon: CreditCard, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+  { value: 'CHEQUE', icon: Wallet, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+  { value: 'TRANSFER', icon: Landmark, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+  { value: 'MOBILE', icon: Smartphone, color: 'text-orange-400', bg: 'bg-orange-500/10' },
+] as const;
 
 export function PaymentForm({ orderId, amount, onSuccess }: PaymentFormProps) {
   const [paymentMethod, setPaymentMethod] = useState('CASH');
+  const { t, format } = useT();
+  const paymentMethods = paymentMethodStyles.map((method) => ({
+    ...method,
+    label: t(`common.paymentMethods.${method.value}`),
+  }));
   const [paymentAmount, setPaymentAmount] = useState(amount.toString());
   const [reference, setReference] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,11 +47,11 @@ export function PaymentForm({ orderId, amount, onSuccess }: PaymentFormProps) {
     );
 
     if (result.success) {
-      toast.success('Paiement effectué avec succès');
+      toast.success(t('orders.payment.success'));
       onSuccess();
     } else {
-      setError(result.error || 'Échec du paiement');
-      toast.error(result.error || 'Échec du paiement');
+      setError(result.error || t('orders.payment.failed'));
+      toast.error(result.error || t('orders.payment.failed'));
       setLoading(false);
     }
   };
@@ -59,7 +65,7 @@ export function PaymentForm({ orderId, amount, onSuccess }: PaymentFormProps) {
       <div className="space-y-3">
         <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
           <CreditCard className="w-4 h-4 text-blue-400" />
-          Méthode de paiement *
+          {t('orders.payment.method')}
         </label>
         <div className="grid grid-cols-2 gap-2">
           {paymentMethods.map((method) => {
@@ -89,7 +95,7 @@ export function PaymentForm({ orderId, amount, onSuccess }: PaymentFormProps) {
       <div className="space-y-2 group">
         <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
           <Wallet className="w-4 h-4 text-emerald-400" />
-          Montant *
+          {t('orders.payment.amount')}
         </label>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">FCFA</span>
@@ -103,7 +109,7 @@ export function PaymentForm({ orderId, amount, onSuccess }: PaymentFormProps) {
             required
           />
         </div>
-        <p className="text-xs text-slate-500">Montant total à payer: {amount.toLocaleString()} FCFA</p>
+        <p className="text-xs text-slate-500">{t('orders.payment.totalDue', { amount: format.money(amount) })}</p>
       </div>
 
       {/* Référence (pour les paiements non-espèces) */}
@@ -111,20 +117,20 @@ export function PaymentForm({ orderId, amount, onSuccess }: PaymentFormProps) {
         <div className="space-y-2 group">
           <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
             <Landmark className="w-4 h-4 text-amber-400" />
-            Référence
+            {t('orders.payment.reference')}
           </label>
           <Input
             type="text"
             value={reference}
             onChange={(e) => setReference(e.target.value)}
-            placeholder="Ex: N° transaction, N° chèque"
+            placeholder={t('orders.payment.referencePlaceholder')}
             className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-amber-500 focus:ring-amber-500/20"
           />
           <p className="text-xs text-slate-500">
-            {paymentMethod === 'CARD' && 'Numéro de transaction ou autorisation'}
-            {paymentMethod === 'CHEQUE' && 'Numéro de chèque'}
-            {paymentMethod === 'TRANSFER' && 'Référence du virement'}
-            {paymentMethod === 'MOBILE' && 'Numéro de téléphone ou référence transaction Mobile Money'}
+            {paymentMethod === 'CARD' && t('orders.payment.hintCard')}
+            {paymentMethod === 'CHEQUE' && t('orders.payment.hintCheque')}
+            {paymentMethod === 'TRANSFER' && t('orders.payment.hintTransfer')}
+            {paymentMethod === 'MOBILE' && t('orders.payment.hintMobile')}
           </p>
         </div>
       )}
@@ -132,16 +138,16 @@ export function PaymentForm({ orderId, amount, onSuccess }: PaymentFormProps) {
       {/* Résumé du paiement */}
       <div className="rounded-lg bg-slate-900/30 p-4 border border-slate-700">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-slate-400">Méthode</span>
+          <span className="text-sm text-slate-400">{t('orders.payment.methodLabel')}</span>
           <span className="text-sm text-slate-300 flex items-center gap-1">
             <MethodIcon className="w-3.5 h-3.5" />
             {currentMethod.label}
           </span>
         </div>
         <div className="flex items-center justify-between pt-2 border-t border-slate-700">
-          <span className="text-sm font-medium text-slate-300">Total à payer</span>
+          <span className="text-sm font-medium text-slate-300">{t('orders.payment.toPay')}</span>
           <span className="text-xl font-bold text-white">
-            {parseFloat(paymentAmount || '0').toLocaleString()} FCFA
+            {format.money(parseFloat(paymentAmount || '0'))}
           </span>
         </div>
       </div>
@@ -165,12 +171,12 @@ export function PaymentForm({ orderId, amount, onSuccess }: PaymentFormProps) {
         {loading ? (
           <div className="flex items-center justify-center gap-2">
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Traitement en cours...</span>
+            <span>{t('orders.payment.processing')}</span>
           </div>
         ) : (
           <div className="flex items-center justify-center gap-2">
             <CheckCircle className="w-4 h-4" />
-            <span>Finaliser le paiement</span>
+            <span>{t('orders.payment.submit')}</span>
           </div>
         )}
       </Button>

@@ -4,6 +4,7 @@ import { Percent, Tag, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useT } from '@/lib/i18n/client';
 
 interface Promotion {
   id: string;
@@ -19,6 +20,7 @@ interface Promotion {
 
 export function PromoBanner({ promotions, isGlobal = false }: { promotions: Promotion[], isGlobal?: boolean }) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { t, format } = useT();
 
   // For structure pages, we only show ORDER scope in the banner (products have their own badges).
   // For the global portal, we show all promotions.
@@ -66,14 +68,17 @@ export function PromoBanner({ promotions, isGlobal = false }: { promotions: Prom
               </h3>
               {isGlobal && current.structures && (
                 <p className="text-blue-200 text-sm font-semibold mb-1">
-                  Chez {current.structures.name}
+                  {t('client.promo.at', { name: current.structures.name })}
                 </p>
               )}
               <p className="text-blue-100 text-sm font-medium">
                 {current.scope === 'PRODUCT'
-                  ? (current.type === 'PERCENTAGE' ? `-${current.value}% sur ${current.products?.name || 'ce produit'} !` : `-${current.value} FCFA sur ${current.products?.name || 'ce produit'} !`)
-                  : (current.type === 'PERCENTAGE' ? `-${current.value}% sur votre commande !` : `-${current.value} FCFA offerts dès aujourd'hui !`)
-                }
+                  ? current.type === 'PERCENTAGE'
+                    ? t('client.promo.productPercent', { value: current.value, product: current.products?.name || t('client.promo.thisProduct') })
+                    : t('client.promo.productFixed', { amount: format.money(current.value), product: current.products?.name || t('client.promo.thisProduct') })
+                  : current.type === 'PERCENTAGE'
+                    ? t('client.promo.orderPercent', { value: current.value })
+                    : t('client.promo.orderFixed', { amount: format.money(current.value) })}
               </p>
             </div>
           </div>
@@ -82,8 +87,8 @@ export function PromoBanner({ promotions, isGlobal = false }: { promotions: Prom
             <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-blue-700 text-sm font-bold shadow-sm">
               <Tag className="h-4 w-4" />
               {current.min_order_amount && current.min_order_amount > 0
-                ? `Dès ${current.min_order_amount} FCFA`
-                : 'Sans minimum d\'achat'}
+                ? t('client.promo.minimum', { amount: format.money(current.min_order_amount) })
+                : t('client.promo.noMinimum')}
             </div>
             {displayPromos.length > 1 && (
               <div className="mt-3 flex gap-1.5">

@@ -7,6 +7,7 @@ import {
   DialogTitle as UIDialogTitle 
 } from "@/components/ui/dialog";
 import { PromotionFormClient } from "@/app/(main)/promotions/new/promotion-form-client";
+import { useT } from "@/lib/i18n/client";
 
 interface Product {
   id: string;
@@ -26,13 +27,14 @@ export function PromotionEditDialog({
   onOpenChange: (open: boolean) => void,
   onSuccess: () => void
 }) {
+  const { t } = useT();
   if (!promotion) return null;
 
   return (
     <UIDialog open={open} onOpenChange={onOpenChange}>
       <UIDialogContent className="bg-slate-950 border-slate-800 text-slate-100 max-w-4xl max-h-[90vh] overflow-y-auto">
         <UIDialogHeader>
-          <UIDialogTitle className="text-2xl font-bold">Modifier la Promotion</UIDialogTitle>
+          <UIDialogTitle className="text-2xl font-bold">{t('promotions.form.editTitle')}</UIDialogTitle>
         </UIDialogHeader>
         
         <div className="py-6">

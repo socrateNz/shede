@@ -3,6 +3,7 @@
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
+import { te } from '@/lib/i18n/server';
 
 export async function getRooms() {
   const session = await getSession();
@@ -30,7 +31,7 @@ export async function createRoom(
 ) {
   const session = await getSession();
   if (!session || !session.structureId || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   const number = String(formData.get('roomNumber') || '').trim();
@@ -43,7 +44,7 @@ export async function createRoom(
   const images = [image1, image2].filter(Boolean);
 
   if (!number) {
-    return { success: false, error: 'Room number is required' };
+    return { success: false, error: await te('errors.roomNumberRequired') };
   }
 
   try {
@@ -58,20 +59,20 @@ export async function createRoom(
     });
 
     if (error) {
-      return { success: false, error: 'Failed to create room' };
+      return { success: false, error: await te('errors.roomCreateFailed') };
     }
 
     revalidatePath('/rooms');
     return { success: true, error: '' };
   } catch (error) {
-    return { success: false, error: 'Failed to create room' };
+    return { success: false, error: await te('errors.roomCreateFailed') };
   }
 }
 
 export async function deleteRoom(roomId: string) {
   const session = await getSession();
   if (!session || !session.structureId || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   try {
@@ -83,20 +84,20 @@ export async function deleteRoom(roomId: string) {
       .eq('structure_id', session.structureId);
 
     if (error) {
-      return { success: false, error: 'Failed to delete room' };
+      return { success: false, error: await te('errors.roomDeleteFailed') };
     }
 
     revalidatePath('/rooms');
     return { success: true };
   } catch (error) {
-    return { success: false, error: 'Failed to delete room' };
+    return { success: false, error: await te('errors.roomDeleteFailed') };
   }
 }
 
 export async function updateRoomStatus(roomId: string, status: string) {
   const session = await getSession();
   if (!session || !session.structureId || !['ADMIN', 'SUPER_ADMIN', 'CAISSE', 'SERVEUR'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   try {
@@ -108,13 +109,13 @@ export async function updateRoomStatus(roomId: string, status: string) {
       .eq('structure_id', session.structureId);
 
     if (error) {
-      return { success: false, error: 'Failed to update status' };
+      return { success: false, error: await te('errors.statusUpdateFailed') };
     }
 
     revalidatePath('/rooms');
     return { success: true };
   } catch (error) {
-    return { success: false, error: 'Failed to update status' };
+    return { success: false, error: await te('errors.statusUpdateFailed') };
   }
 }
 
@@ -125,7 +126,7 @@ export async function updateRoom(
 ) {
   const session = await getSession();
   if (!session || !session.structureId || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   const number = String(formData.get('roomNumber') || '').trim();
@@ -138,7 +139,7 @@ export async function updateRoom(
   const images = [image1, image2].filter(Boolean);
 
   if (!number) {
-    return { success: false, error: 'Room number is required' };
+    return { success: false, error: await te('errors.roomNumberRequired') };
   }
 
   try {
@@ -150,12 +151,12 @@ export async function updateRoom(
       .eq('structure_id', session.structureId);
 
     if (error) {
-      return { success: false, error: 'Failed to update room' };
+      return { success: false, error: await te('errors.roomUpdateFailed') };
     }
 
     revalidatePath('/rooms');
     return { success: true, error: '' };
   } catch (error) {
-    return { success: false, error: 'Failed to update room' };
+    return { success: false, error: await te('errors.roomUpdateFailed') };
   }
 }

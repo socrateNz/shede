@@ -3,6 +3,7 @@
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
+import { te } from '@/lib/i18n/server';
 
 // The `structures.modules` column has drifted schema (TEXT[] vs JSONB) across
 // migrations, and has been seen holding stray stringified-JSON fragments
@@ -15,7 +16,7 @@ const KNOWN_MODULES = ['POS', 'CLIENT_APP', 'CUISINE', 'BAR', 'LIVRAISON', 'TABL
 async function getShiftTransactions(admin: any, structureId: string, windowStart: string, windowEnd: string) {
   const { data: allOrders } = await admin
     .from('orders')
-    .select('id, total, subtotal, discount_amount, status, paid_at, updated_at, table_number, room_id, guest_name, rooms(number), order_items(quantity, products(name))')
+    .select('id, total, subtotal, tax, discount_amount, status, paid_at, updated_at, table_number, room_id, guest_name, rooms(number), order_items(quantity, products(name))')
     .eq('structure_id', structureId)
     .eq('status', 'COMPLETED')
     .gte('paid_at', windowStart)
@@ -35,8 +36,12 @@ async function getShiftTransactions(admin: any, structureId: string, windowStart
   const orderRevenue = orders.reduce((sum: number, o: any) => sum + (Number(o.total) || 0), 0);
   const bookingRevenue = bookings.reduce((sum: number, b: any) => sum + (Number(b.total_amount) || 0), 0);
   const totalDiscounts = orders.reduce((sum: number, o: any) => sum + (Number(o.discount_amount) || 0), 0);
+  // TVA collectée (incluse dans les montants encaissés).
+  const totalTax =
+    orders.reduce((sum: number, o: any) => sum + (Number(o.tax) || 0), 0) +
+    bookings.reduce((sum: number, b: any) => sum + (Number(b.tax_amount) || 0), 0);
 
-  return { orders, bookings, orderRevenue, bookingRevenue, totalDiscounts };
+  return { orders, bookings, orderRevenue, bookingRevenue, totalDiscounts, totalTax };
 }
 
 export async function getActiveShift() {
@@ -77,18 +82,18 @@ export async function getStructureActiveShift(structureId: string) {
 
 export async function openShift(openingBalance: number) {
   const session = await getSession();
-  if (!session?.userId || !session?.structureId) return { success: false, error: 'Unauthorized' };
+  if (!session?.userId || !session?.structureId) return { success: false, error: await te('errors.unauthorized') };
 
   // Only Admin or Caisse can open a shift
   if (!['ADMIN', 'SUPER_ADMIN', 'CAISSE'].includes(session.role)) {
-    return { success: false, error: 'Seuls les caissiers ou administrateurs peuvent ouvrir une session de caisse.' };
+    return { success: false, error: await te('errors.openShiftRoles') };
   }
 
   const admin = getAdminSupabase();
   
   // Check if a shift is already open
   const existing = await getActiveShift();
-  if (existing) return { success: false, error: 'Une caisse est déjà ouverte pour cet utilisateur.' };
+  if (existing) return { success: false, error: await te('errors.shiftAlreadyOpen') };
 
   const { data, error } = await admin
     .from('shifts')
@@ -102,7 +107,10 @@ export async function openShift(openingBalance: number) {
     .select()
     .single();
 
-  if (error) return { success: false, error: error.message };
+  if (error) {
+    console.error('[shifts]', error.message);
+    return { success: false, error: await te('errors.unexpected') };
+  }
   
   revalidatePath('/');
   return { success: true, shift: data };
@@ -112,11 +120,11 @@ export async function closeShift(actualAmount: number, notes: string) {
   const session = await getSession();
   const activeShift = await getActiveShift();
   
-  if (!session || !activeShift) return { success: false, error: 'No active shift found' };
+  if (!session || !activeShift) return { success: false, error: await te('errors.noActiveShift') };
 
   // Only Admin or Caisse can close a shift
   if (!['ADMIN', 'SUPER_ADMIN', 'CAISSE'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   const admin = getAdminSupabase();
@@ -149,7 +157,10 @@ export async function closeShift(actualAmount: number, notes: string) {
     .select()
     .single();
 
-  if (error) return { success: false, error: error.message };
+  if (error) {
+    console.error('[shifts]', error.message);
+    return { success: false, error: await te('errors.unexpected') };
+  }
 
   revalidatePath('/');
   return { success: true, shift: data };
@@ -163,7 +174,7 @@ export async function getShiftReport(shiftId: string) {
 
   const { data: shift, error: shiftError } = await admin
     .from('shifts')
-    .select('*, users(first_name, last_name), structures(name, address, phone, modules, organization_id)')
+    .select('*, users(first_name, last_name), structures(*)')
     .eq('id', shiftId)
     .single();
 
@@ -185,7 +196,7 @@ export async function getShiftReport(shiftId: string) {
 
   // Same helper used at close-time, so the printed report can never disagree
   // with the "théorique" amount the till was actually closed against.
-  const { orders, bookings, orderRevenue, bookingRevenue, totalDiscounts } =
+  const { orders, bookings, orderRevenue, bookingRevenue, totalDiscounts, totalTax } =
     await getShiftTransactions(admin, shift.structure_id, windowStart, windowEnd);
 
   const orderIds = Array.from(new Set(orders.map((o: any) => o.id)));
@@ -229,6 +240,7 @@ export async function getShiftReport(shiftId: string) {
       bookingRevenue,
       bookingCount: bookings.length,
       totalDiscounts,
+      totalTax,
       grossSales,
       netSales,
       expectedAmount,

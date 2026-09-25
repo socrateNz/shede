@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Building2, MapPin, Store, ArrowLeft, ChevronRight, Search } from 'lucide-react';
 import { isStructureVisible, STRUCTURE_LICENSE_SELECT } from '@/lib/license';
+import { getT } from '@/lib/i18n/server';
 
 export default async function ClientStructuresPage() {
   const session = await getSession();
@@ -12,6 +13,7 @@ export default async function ClientStructuresPage() {
   }
 
   const supabase = getAdminSupabase();
+  const { t } = await getT();
 
   // Points visibles : actifs et dont l'organisation a une licence valide
   const { data: rawStructures } = await supabase
@@ -34,21 +36,21 @@ export default async function ClientStructuresPage() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-50 text-slate-600 font-medium text-sm hover:bg-slate-100 hover:text-slate-900 transition-all mb-8 w-fit"
           >
             <ArrowLeft className="w-4 h-4" />
-            Retour au tableau de bord
+            {t('client.catalogue.back')}
           </Link>
           
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
             <div className="max-w-2xl">
               <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">
-                Tous nos Établissements
+                {t('client.catalogue.title')}
               </h1>
               <p className="text-lg text-slate-500 font-medium leading-relaxed">
-                Parcourez notre collection d'hôtels prestigieux et de restaurants exquis, soigneusement sélectionnés pour vous offrir une expérience inoubliable.
+                {t('client.catalogue.text')}
               </p>
             </div>
             <div className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold text-lg shadow-lg flex items-center gap-3 whitespace-nowrap">
               <Store className="w-5 h-5 text-blue-400" />
-              {structures.length} {structures.length > 1 ? 'Partenaires' : 'Partenaire'}
+              {t('client.catalogue.partners', { count: structures.length })}
             </div>
           </div>
         </div>
@@ -87,12 +89,12 @@ export default async function ClientStructuresPage() {
                       <div className="absolute top-4 left-4 flex gap-2">
                         {isRestaurant && (
                           <span className="text-[10px] uppercase tracking-wider font-bold bg-white text-orange-600 px-3 py-1.5 rounded-full shadow-lg">
-                            Restaurant
+                            {t('client.types.RESTAURANT')}
                           </span>
                         )}
                         {isHotel && (
                           <span className="text-[10px] uppercase tracking-wider font-bold bg-white text-purple-600 px-3 py-1.5 rounded-full shadow-lg">
-                            Hôtel
+                            {t('client.types.HOTEL')}
                           </span>
                         )}
                       </div>
@@ -114,7 +116,7 @@ export default async function ClientStructuresPage() {
 
                       <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
                         <span className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
-                          Voir la fiche détaillée
+                          {t('client.catalogue.seeDetails')}
                         </span>
                         <div className="w-10 h-10 rounded-full bg-slate-50 group-hover:bg-blue-600 flex items-center justify-center transition-all duration-300 shadow-sm group-hover:shadow-blue-200">
                           <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
@@ -132,10 +134,10 @@ export default async function ClientStructuresPage() {
               <Search className="w-10 h-10 text-slate-300" />
             </div>
             <h3 className="text-xl font-bold text-slate-800 mb-2">
-              Aucun établissement disponible
+              {t('client.home.noneTitle')}
             </h3>
             <p className="text-slate-500 max-w-md mx-auto">
-              De nouveaux partenaires arrivent bientôt ! Revenez consulter cette page plus tard.
+              {t('client.catalogue.noneText')}
             </p>
           </div>
         )}

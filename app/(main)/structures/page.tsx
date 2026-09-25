@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Network, Plus, Edit2, Trash2, Calendar, CheckCircle, XCircle, AlertTriangle, Building2, ShieldCheck } from 'lucide-react';
 import { firstOf, isLicenseValid } from '@/lib/license';
+import { getT } from '@/lib/i18n/server';
+
+type I18n = Awaited<ReturnType<typeof getT>>;
 
 function toLocalDateTimeInput(isoDate?: string | null) {
   if (!isoDate) return '';
@@ -13,23 +16,23 @@ function toLocalDateTimeInput(isoDate?: string | null) {
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
 }
 
-function getLicenseStatus(expiresAt: string | null) {
-  if (!expiresAt) return { status: 'inactive', label: 'Non définie', color: 'text-slate-400', bg: 'bg-slate-500/10' };
+function getLicenseStatus({ t, format }: I18n, expiresAt: string | null) {
+  if (!expiresAt) return { status: 'inactive', label: t('business.list.statusUndefined'), color: 'text-slate-400', bg: 'bg-slate-500/10' };
 
   const now = new Date();
   const expiry = new Date(expiresAt);
 
   if (expiry < now) {
-    return { status: 'expired', label: 'Expirée', color: 'text-red-400', bg: 'bg-red-500/10' };
+    return { status: 'expired', label: t('business.list.statusExpired'), color: 'text-red-400', bg: 'bg-red-500/10' };
   }
 
   const daysLeft = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
   if (daysLeft <= 7) {
-    return { status: 'warning', label: `Expire dans ${daysLeft}j`, color: 'text-yellow-400', bg: 'bg-yellow-500/10' };
+    return { status: 'warning', label: t('business.list.statusExpiresIn', { days: daysLeft }), color: 'text-yellow-400', bg: 'bg-yellow-500/10' };
   }
 
-  return { status: 'active', label: `Valable jusqu'au ${expiry.toLocaleDateString('fr-FR')}`, color: 'text-green-400', bg: 'bg-green-500/10' };
+  return { status: 'active', label: t('business.list.statusValidUntil', { date: format.date(expiry) }), color: 'text-green-400', bg: 'bg-green-500/10' };
 }
 
 function getOrganizationsStats(organizations: any[]) {
@@ -48,14 +51,16 @@ function getOrganizationsStats(organizations: any[]) {
 
 export default async function StructuresPage() {
   await requireRole('SUPER_ADMIN');
+  const i18n = await getT();
+  const { t, format } = i18n;
   const organizations = await getAllOrganizations();
   const stats = getOrganizationsStats(organizations);
 
   const statCards = [
-    { label: 'Organisations', value: stats.total, icon: Network, color: 'text-white', iconColor: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { label: 'Points', value: stats.points, icon: Building2, color: 'text-white', iconColor: 'text-purple-400', bg: 'bg-purple-500/10' },
-    { label: 'Licences actives', value: stats.active, icon: CheckCircle, color: 'text-green-400', iconColor: 'text-green-400', bg: 'bg-green-500/10' },
-    { label: 'Expiration proche', value: stats.expiringSoon, icon: AlertTriangle, color: 'text-yellow-400', iconColor: 'text-yellow-400', bg: 'bg-yellow-500/10' },
+    { label: t('business.list.statOrganizations'), value: stats.total, icon: Network, color: 'text-white', iconColor: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { label: t('business.list.statPoints'), value: stats.points, icon: Building2, color: 'text-white', iconColor: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { label: t('business.list.statActiveLicenses'), value: stats.active, icon: CheckCircle, color: 'text-green-400', iconColor: 'text-green-400', bg: 'bg-green-500/10' },
+    { label: t('business.list.statExpiringSoon'), value: stats.expiringSoon, icon: AlertTriangle, color: 'text-yellow-400', iconColor: 'text-yellow-400', bg: 'bg-yellow-500/10' },
   ];
 
   return (
@@ -71,17 +76,17 @@ export default async function StructuresPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
               <Network className="w-4 h-4 text-blue-400" />
-              <span className="text-sm text-blue-400 font-medium">Gestion des organisations</span>
+              <span className="text-sm text-blue-400 font-medium">{t('business.list.badge')}</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
-              Organisations
+              {t('business.list.title')}
             </h1>
-            <p className="text-slate-400">Licences, modules et administrateurs des organisations partenaires</p>
+            <p className="text-slate-400">{t('business.list.subtitle')}</p>
           </div>
           <Link href="/structures/new">
             <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg">
               <Plus className="w-4 h-4 mr-2" />
-              Nouvelle organisation
+              {t('business.list.newOrganization')}
             </Button>
           </Link>
         </div>
@@ -108,22 +113,22 @@ export default async function StructuresPage() {
           <CardHeader className="border-b border-slate-700/50">
             <CardTitle className="text-slate-50 flex items-center gap-2">
               <Network className="w-5 h-5 text-blue-400" />
-              Toutes les organisations ({organizations.length})
+              {t('business.list.allTitle', { count: organizations.length })}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {organizations.length === 0 ? (
               <div className="text-center py-16 text-slate-400">
                 <Network className="w-10 h-10 mx-auto mb-4 opacity-30" />
-                <p className="text-lg">Aucune organisation</p>
-                <p className="text-sm mt-2">Commencez par créer votre première organisation</p>
+                <p className="text-lg">{t('business.list.emptyTitle')}</p>
+                <p className="text-sm mt-2">{t('business.list.emptyText')}</p>
               </div>
             ) : (
               <div className="divide-y divide-slate-700">
                 {organizations.map((organization: any) => {
                   const license = firstOf<any>(organization.licenses);
                   const isActive = license?.is_active === true;
-                  const licenseStatus = getLicenseStatus(license?.expires_at);
+                  const licenseStatus = getLicenseStatus(i18n, license?.expires_at);
                   const points: any[] = organization.structures ?? [];
                   const orgAdmins: any[] = organization.orgAdmins ?? [];
 
@@ -143,10 +148,10 @@ export default async function StructuresPage() {
                         <div className="flex items-center gap-2">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${isLicenseValid(license) ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
                             {isLicenseValid(license) ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                            {isLicenseValid(license) ? 'Active' : 'Inactive'}
+                            {isLicenseValid(license) ? t('business.list.active') : t('business.list.inactive')}
                           </span>
                           <p className="text-xs text-slate-500">
-                            Créée le {new Date(organization.created_at).toLocaleDateString('fr-FR')}
+                            {t('business.list.createdOn', { date: format.date(organization.created_at) })}
                           </p>
                         </div>
                       </div>
@@ -156,23 +161,23 @@ export default async function StructuresPage() {
                         <div className="rounded-lg bg-slate-900/40 border border-slate-700 p-3">
                           <p className="text-xs text-slate-400 mb-1 flex items-center gap-1">
                             <Building2 className="w-3 h-3" />
-                            Points ({points.length} / {license?.max_points ?? 1})
+                            {t('business.list.points', { count: points.length, max: license?.max_points ?? 1 })}
                           </p>
                           {points.length === 0 ? (
-                            <p className="text-slate-500">Aucun point créé</p>
+                            <p className="text-slate-500">{t('business.list.noPoints')}</p>
                           ) : (
                             <p className="text-slate-200">
-                              {points.map((p) => `${p.name}${p.is_active === false ? ' (désactivé)' : ''}`).join(' · ')}
+                              {points.map((p) => (p.is_active === false ? `${p.name} ${t('business.list.pointDisabled')}` : p.name)).join(' · ')}
                             </p>
                           )}
                         </div>
                         <div className="rounded-lg bg-slate-900/40 border border-slate-700 p-3">
                           <p className="text-xs text-slate-400 mb-1 flex items-center gap-1">
                             <ShieldCheck className="w-3 h-3" />
-                            Administrateur(s) de l&apos;organisation
+                            {t('business.list.orgAdmins')}
                           </p>
                           {orgAdmins.length === 0 ? (
-                            <p className="text-amber-400">Aucun — à créer depuis « Modifier »</p>
+                            <p className="text-amber-400">{t('business.list.noOrgAdmin')}</p>
                           ) : (
                             <p className="text-slate-200">{orgAdmins.map((a) => a.email).join(' · ')}</p>
                           )}
@@ -191,22 +196,22 @@ export default async function StructuresPage() {
                         <div className="space-y-1">
                           <label className="text-xs font-medium text-slate-400 flex items-center gap-1">
                             <CheckCircle className="w-3 h-3" />
-                            Statut licence
+                            {t('business.list.licenseStatus')}
                           </label>
                           <select
                             name="isActive"
                             defaultValue={String(isActive)}
                             className="w-full bg-slate-900/50 border border-slate-600 text-slate-100 rounded-lg px-3 py-2 text-sm cursor-pointer"
                           >
-                            <option value="true">✓ Active</option>
-                            <option value="false">✗ Désactivée</option>
+                            <option value="true">{t('business.list.licenseActive')}</option>
+                            <option value="false">{t('business.list.licenseDisabled')}</option>
                           </select>
                         </div>
 
                         <div className="space-y-1">
                           <label className="text-xs font-medium text-slate-400 flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
-                            Expiration licence
+                            {t('business.list.licenseExpiry')}
                           </label>
                           <input
                             type="datetime-local"
@@ -219,7 +224,7 @@ export default async function StructuresPage() {
                         <div className="space-y-1">
                           <label className="text-xs font-medium text-slate-400 flex items-center gap-1">
                             <Building2 className="w-3 h-3" />
-                            Points max.
+                            {t('business.list.maxPoints')}
                           </label>
                           <input
                             type="number"
@@ -232,7 +237,7 @@ export default async function StructuresPage() {
 
                         <div className="flex items-end">
                           <Button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
-                            Mettre à jour
+                            {t('business.list.update')}
                           </Button>
                         </div>
                       </form>
@@ -249,7 +254,7 @@ export default async function StructuresPage() {
                         <Link href={`/structures/${organization.id}/edit`}>
                           <Button variant="outline" size="sm" className="border-slate-600 text-slate-200 hover:bg-slate-700 hover:text-white">
                             <Edit2 className="w-4 h-4 mr-2" />
-                            Modifier
+                            {t('common.edit')}
                           </Button>
                         </Link>
 
@@ -265,7 +270,7 @@ export default async function StructuresPage() {
                             className="bg-red-900/40 text-red-400 hover:bg-red-900/60 hover:text-red-300"
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
-                            Supprimer
+                            {t('common.delete')}
                           </Button>
                         </form>
                       </div>
@@ -279,7 +284,7 @@ export default async function StructuresPage() {
 
         <div className="mt-6 text-center">
           <p className="text-xs text-slate-500">
-            Supprimer une organisation supprime tous ses points et leurs données
+            {t('business.list.deleteWarning')}
           </p>
         </div>
       </div>

@@ -16,6 +16,7 @@ import type {
   TopProduct,
   LowStockItem,
 } from '@/app/actions/dashboard';
+import { useT } from '@/lib/i18n/client';
 
 interface DashboardAdminChartsProps {
   dailyRevenue: DailyRevenuePoint[];
@@ -24,11 +25,6 @@ interface DashboardAdminChartsProps {
   currency: string;
 }
 
-function formatAmount(value: number, currency: string) {
-  return new Intl.NumberFormat('fr-FR', {
-    maximumFractionDigits: 0,
-  }).format(value) + ' ' + currency;
-}
 
 const CustomTooltip = ({
   active,
@@ -36,12 +32,13 @@ const CustomTooltip = ({
   label,
   currency,
 }: any) => {
+  const { format } = useT();
   if (active && payload && payload.length) {
     return (
       <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 shadow-xl text-sm">
         <p className="text-slate-400 mb-1">{label}</p>
         <p className="font-bold text-white">
-          {formatAmount(payload[0].value, currency)}
+          {format.money(payload[0].value, currency)}
         </p>
       </div>
     );
@@ -55,6 +52,7 @@ export function DashboardAdminCharts({
   lowStockItems,
   currency,
 }: DashboardAdminChartsProps) {
+  const { t } = useT();
   const maxQty = Math.max(...topProducts.map((p) => p.quantity), 1);
 
   return (
@@ -64,13 +62,13 @@ export function DashboardAdminCharts({
         <CardHeader className="border-b border-slate-700/50 pb-4">
           <CardTitle className="text-slate-50 flex items-center gap-2 text-base">
             <TrendingUp className="w-4 h-4 text-blue-400" />
-            Chiffre d&apos;affaires — 7 derniers jours
+            {t('dashboard.charts.revenue7Days')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           {dailyRevenue.every((d) => d.revenue === 0) ? (
             <div className="flex items-center justify-center h-48 text-slate-500 text-sm">
-              Aucune vente sur les 7 derniers jours
+              {t('dashboard.charts.noSales7Days')}
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
@@ -125,13 +123,13 @@ export function DashboardAdminCharts({
         <CardHeader className="border-b border-slate-700/50 pb-4">
           <CardTitle className="text-slate-50 flex items-center gap-2 text-base">
             <Package className="w-4 h-4 text-emerald-400" />
-            Top 5 produits (30 j)
+            {t('dashboard.charts.top5')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           {topProducts.length === 0 ? (
             <p className="text-slate-500 text-sm text-center py-6">
-              Aucune vente enregistrée
+              {t('dashboard.charts.noSales')}
             </p>
           ) : (
             <div className="space-y-3">
@@ -145,7 +143,7 @@ export function DashboardAdminCharts({
                       {product.name}
                     </span>
                     <span className="text-slate-400 tabular-nums shrink-0">
-                      {product.quantity} vendus
+                      {t('dashboard.charts.sold', { count: product.quantity })}
                     </span>
                   </div>
                   <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
@@ -168,7 +166,7 @@ export function DashboardAdminCharts({
         <CardHeader className="border-b border-slate-700/50 pb-4">
           <CardTitle className="text-slate-50 flex items-center gap-2 text-base">
             <AlertTriangle className="w-4 h-4 text-amber-400" />
-            Alertes stock bas
+            {t('dashboard.charts.lowStock')}
             {lowStockItems.length > 0 && (
               <span className="ml-auto text-xs font-normal bg-amber-500/15 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">
                 {lowStockItems.length}
@@ -182,7 +180,7 @@ export function DashboardAdminCharts({
               <div className="p-3 bg-emerald-500/10 rounded-full">
                 <Package className="w-5 h-5 text-emerald-400" />
               </div>
-              <p className="text-slate-500 text-sm">Stock en ordre ✓</p>
+              <p className="text-slate-500 text-sm">{t('dashboard.charts.stockOk')}</p>
             </div>
           ) : (
             <div className="space-y-2">

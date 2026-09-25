@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { te } from '@/lib/i18n/server';
 
 export async function getProducts() {
   const session = await getSession();
@@ -119,7 +120,7 @@ async function syncProductAccompaniments(input: {
         .single();
 
       if (createdError || !createdAcc) {
-        throw new Error('Failed to create new accompaniment');
+        throw new Error(await te('errors.accompanimentCreateFailed'));
       }
 
       createdNewAccompIds.push({ accompanimentId: createdAcc.id as string, quantity: n.quantity });
@@ -138,7 +139,7 @@ async function syncProductAccompaniments(input: {
     .eq('structure_id', input.structureId);
 
   if (accompError || !accompaniments) {
-    throw new Error('Failed to validate accompaniments');
+    throw new Error(await te('errors.accompanimentsValidationFailed'));
   }
 
   const validIds = new Set(accompaniments.filter((a) => a.is_available && !a.is_deleted).map((a) => a.id as string));
@@ -165,7 +166,7 @@ async function syncProductAccompaniments(input: {
   }));
 
   const { error: insertError } = await input.admin.from('product_accompaniments').insert(rows);
-  if (insertError) throw new Error(`Failed to save product accompaniments: ${insertError.message}`);
+  if (insertError) throw new Error(await te('errors.productAccompanimentsFailed'));
 }
 
 // CREATE PRODUCT - Version avec FormData (pour useActionState si nécessaire)
@@ -180,12 +181,12 @@ export async function createProductWithFormData(
   const accompanimentsRaw = formData.get('accompaniments');
 
   if (!name || Number.isNaN(priceValue) || priceValue <= 0) {
-    return { success: false, error: 'Please provide valid product data' };
+    return { success: false, error: await te('errors.productInvalidData') };
   }
 
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   try {
@@ -205,10 +206,10 @@ export async function createProductWithFormData(
       .single();
 
     if (error) {
-      return { success: false, error: error.message || 'Failed to create product' };
+      return { success: false, error: await te('errors.productCreateFailed') };
     }
     if (!product) {
-      return { success: false, error: 'Failed to create product' };
+      return { success: false, error: await te('errors.productCreateFailed') };
     }
 
     const accompaniments = parseAccompaniments(accompanimentsRaw);
@@ -228,7 +229,7 @@ export async function createProductWithFormData(
       throw error;
     }
     console.error('Create product error:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to create product' };
+    return { success: false, error: error instanceof Error ? error.message : await te('errors.productCreateFailed') };
   }
 }
 
@@ -245,12 +246,12 @@ export async function createProduct(params: {
   threshold?: number;
 }) {
   if (!params.name || Number.isNaN(params.price) || params.price <= 0) {
-    return { success: false, error: 'Please provide valid product data' };
+    return { success: false, error: await te('errors.productInvalidData') };
   }
 
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   try {
@@ -272,10 +273,10 @@ export async function createProduct(params: {
       .single();
 
     if (error) {
-      return { success: false, error: error.message || 'Failed to create product' };
+      return { success: false, error: await te('errors.productCreateFailed') };
     }
     if (!product) {
-      return { success: false, error: 'Failed to create product' };
+      return { success: false, error: await te('errors.productCreateFailed') };
     }
 
     await syncProductAccompaniments({
@@ -299,7 +300,7 @@ export async function createProduct(params: {
     return { success: true, error: '' };
   } catch (error) {
     console.error('Create product error:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to create product' };
+    return { success: false, error: error instanceof Error ? error.message : await te('errors.productCreateFailed') };
   }
 }
 
@@ -318,7 +319,7 @@ export async function updateProduct(params: {
 }) {
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   try {
@@ -339,7 +340,7 @@ export async function updateProduct(params: {
       .eq('structure_id', session.structureId);
 
     if (error) {
-      return { success: false, error: error.message || 'Failed to update product' };
+      return { success: false, error: await te('errors.productUpdateFailed') };
     }
 
     await syncProductAccompaniments({
@@ -364,14 +365,14 @@ export async function updateProduct(params: {
     return { success: true };
   } catch (error) {
     console.error('Update product error:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to update product' };
+    return { success: false, error: error instanceof Error ? error.message : await te('errors.productUpdateFailed') };
   }
 }
 
 export async function deleteProduct(productId: string) {
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   try {
@@ -384,12 +385,12 @@ export async function deleteProduct(productId: string) {
       .eq('structure_id', session.structureId);
 
     if (error) {
-      return { success: false, error: error.message || 'Failed to delete product' };
+      return { success: false, error: await te('errors.productDeleteFailed') };
     }
 
     return { success: true };
   } catch (error) {
     console.error('Delete product error:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to delete product' };
+    return { success: false, error: error instanceof Error ? error.message : await te('errors.productDeleteFailed') };
   }
 }

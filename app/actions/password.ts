@@ -4,6 +4,7 @@ import { hashPassword } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { consumePasswordToken, createPasswordToken, hasRecentResetToken } from '@/lib/password-tokens';
 import { buildPasswordChangedMail, buildPasswordResetMail, queueMail } from '@/lib/emails';
+import { getT } from '@/lib/i18n/server';
 
 type State = { success: boolean; error: string };
 
@@ -16,7 +17,8 @@ const RESET_REQUEST_COOLDOWN_MS = 2 * 60 * 1000;
  */
 export async function requestPasswordReset(_prev: State, formData: FormData): Promise<State> {
   const email = String(formData.get('email') || '').trim().toLowerCase();
-  if (!email) return { success: false, error: 'Veuillez saisir votre email.' };
+  const { t, locale } = await getT();
+  if (!email) return { success: false, error: t('auth.forgot.emailRequired') };
 
   try {
     const admin = getAdminSupabase();
@@ -31,7 +33,7 @@ export async function requestPasswordReset(_prev: State, formData: FormData): Pr
     if (user?.is_active && !(await hasRecentResetToken(user.id, RESET_REQUEST_COOLDOWN_MS))) {
       const token = await createPasswordToken(user.id, 'RESET');
       if (token) {
-        queueMail(async () => buildPasswordResetMail({ email: user.email, firstName: user.first_name, token }));
+        queueMail(async () => buildPasswordResetMail({ email: user.email, firstName: user.first_name, token, locale }));
       }
     }
   } catch (error) {
@@ -46,18 +48,19 @@ export async function resetPassword(_prev: State, formData: FormData): Promise<S
   const token = String(formData.get('token') || '');
   const password = String(formData.get('password') || '');
   const confirm = String(formData.get('confirm') || '');
+  const { t, locale } = await getT();
 
   if (password.length < 8) {
-    return { success: false, error: 'Le mot de passe doit contenir au moins 8 caractères.' };
+    return { success: false, error: t('auth.reset.tooShort') };
   }
   if (password !== confirm) {
-    return { success: false, error: 'Les deux mots de passe ne correspondent pas.' };
+    return { success: false, error: t('auth.reset.mismatch') };
   }
 
   try {
     const userId = await consumePasswordToken(token);
     if (!userId) {
-      return { success: false, error: 'Ce lien est invalide ou a expiré. Faites une nouvelle demande.' };
+      return { success: false, error: t('auth.reset.expired') };
     }
 
     const admin = getAdminSupabase();
@@ -69,13 +72,13 @@ export async function resetPassword(_prev: State, formData: FormData): Promise<S
       .single();
 
     if (error || !user) {
-      return { success: false, error: 'Impossible de modifier le mot de passe.' };
+      return { success: false, error: t('auth.reset.failed') };
     }
 
-    queueMail(async () => buildPasswordChangedMail({ email: user.email, firstName: user.first_name }));
+    queueMail(async () => buildPasswordChangedMail({ email: user.email, firstName: user.first_name, locale }));
     return { success: true, error: '' };
   } catch (error) {
     console.error('[resetPassword] error:', error);
-    return { success: false, error: 'Impossible de modifier le mot de passe.' };
+    return { success: false, error: t('auth.reset.failed') };
   }
 }

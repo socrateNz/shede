@@ -8,18 +8,27 @@ import { fetchClientAnalyticsData } from '@/app/actions/analytics';
 import { exportToExcel, exportToCSV } from '@/lib/export';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { useT } from '@/lib/i18n/client';
 
-const rangeOptions = [
-  { label: '7 jours', value: '7' },
-  { label: '30 jours', value: '30' },
-  { label: '90 jours', value: '90' },
-  { label: 'Tout', value: 'all' },
-];
 
 export function AnalyticsDashboardClient({ initialData, initialRange }: { initialData: any, initialRange: string }) {
   const [data, setData] = useState(initialData);
   const [range, setRange] = useState(initialRange);
   const [loading, setLoading] = useState(false);
+  const { t, format } = useT();
+
+  const rangeOptions = [
+    { label: t('analytics.stats.range7'), value: '7' },
+    { label: t('analytics.stats.range30'), value: '30' },
+    { label: t('analytics.stats.range90'), value: '90' },
+    { label: t('analytics.stats.rangeAll'), value: 'all' },
+  ];
+  const paymentMethodLabel = (method: string) =>
+    ['CASH', 'CARD', 'CHEQUE', 'TRANSFER', 'MOBILE', 'AUTRE'].includes(method)
+      ? t(`common.paymentMethods.${method as 'CASH'}`)
+      : method;
+  const share = (part: number) =>
+    format.number(data.totalRevenue > 0 ? (part / data.totalRevenue) * 100 : 0, { maximumFractionDigits: 1, minimumFractionDigits: 1 });
 
   useEffect(() => {
     let mounted = true;
@@ -42,22 +51,23 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
     return () => { mounted = false; };
   }, [range]);
 
-  const rangeLabel = rangeOptions.find(r => r.value === range)?.label || '30 jours';
+  const rangeLabel = rangeOptions.find(r => r.value === range)?.label || t('analytics.stats.range30');
+  const withRange = (label: string) => t('analytics.stats.withRange', { label, range: rangeLabel });
 
   let statCards: any[] = [];
 
   if (data.type === 'SUPER_ADMIN') {
     statCards = [
       {
-        title: `Revenu total (${rangeLabel})`,
-        value: `${data.totalRevenue.toLocaleString()} FCFA`,
+        title: withRange(t('analytics.stats.totalRevenue')),
+        value: format.money(data.totalRevenue),
         icon: DollarSign,
         color: 'text-green-400',
         bgColor: 'bg-green-500/10',
         gradient: 'from-green-500/20 to-emerald-500/20',
       },
       {
-        title: `Commandes (${rangeLabel})`,
+        title: withRange(t('analytics.stats.orders')),
         value: data.completedOrdersCount.toString(),
         icon: ShoppingCart,
         color: 'text-blue-400',
@@ -65,7 +75,7 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
         gradient: 'from-blue-500/20 to-cyan-500/20',
       },
       {
-        title: `Réservations (${rangeLabel})`,
+        title: withRange(t('analytics.stats.bookings')),
         value: data.totalBookingsCount?.toString() || '0',
         icon: Calendar,
         color: 'text-purple-400',
@@ -73,7 +83,7 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
         gradient: 'from-purple-500/20 to-pink-500/20',
       },
       {
-        title: `Nouvelles structures (${rangeLabel})`,
+        title: withRange(t('analytics.stats.newStructures')),
         value: data.newStructuresCount?.toString() || '0',
         icon: Users,
         color: 'text-orange-400',
@@ -84,15 +94,15 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
   } else {
     statCards = [
       {
-        title: 'Revenu total',
-        value: `${data.totalRevenue.toLocaleString()} FCFA`,
+        title: t('analytics.stats.totalRevenue'),
+        value: format.money(data.totalRevenue),
         icon: DollarSign,
         color: 'text-green-400',
         bgColor: 'bg-green-500/10',
         gradient: 'from-green-500/20 to-emerald-500/20',
       },
       {
-        title: 'Commandes',
+        title: t('analytics.stats.orders'),
         value: data.completedOrdersCount.toString(),
         icon: ShoppingCart,
         color: 'text-blue-400',
@@ -100,7 +110,7 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
         gradient: 'from-blue-500/20 to-cyan-500/20',
       },
       {
-        title: 'Réservations',
+        title: t('analytics.stats.bookings'),
         value: data.totalBookingsCount?.toString() || '0',
         icon: Calendar,
         color: 'text-purple-400',
@@ -108,8 +118,8 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
         gradient: 'from-purple-500/20 to-pink-500/20',
       },
       {
-        title: 'Panier moyen',
-        value: `${data.averageOrderValue.toLocaleString()} FCFA`,
+        title: t('analytics.stats.averageBasket'),
+        value: format.money(data.averageOrderValue),
         icon: TrendingUp,
         color: 'text-orange-400',
         bgColor: 'bg-orange-500/10',
@@ -119,21 +129,26 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
   }
 
   const handleExport = (type: 'excel' | 'csv') => {
+    const row = (metric: string, value: number, currency = '') => ({
+      [t('analytics.stats.exportMetric')]: metric,
+      [t('analytics.stats.exportValue')]: value,
+      [t('analytics.stats.exportCurrency')]: currency,
+    });
     const exportData = [
-      { Metrique: 'Revenu Total', Valeur: data.totalRevenue, Devise: 'FCFA' },
-      { Metrique: 'Revenu Restaurant', Valeur: data.orderRevenue, Devise: 'FCFA' },
-      { Metrique: 'Revenu Hôtel', Valeur: data.hotelRevenue, Devise: 'FCFA' },
-      { Metrique: 'Commandes Complétées', Valeur: data.completedOrdersCount, Devise: '' },
-      { Metrique: 'Réservations', Valeur: data.totalBookingsCount || 0, Devise: '' },
-      { Metrique: 'Nouvelles Structures', Valeur: data.newStructuresCount || 0, Devise: '' },
-      { Metrique: 'Panier Moyen', Valeur: data.averageOrderValue || 0, Devise: 'FCFA' },
+      row(t('analytics.stats.totalRevenue'), data.totalRevenue, 'FCFA'),
+      row(t('analytics.stats.restaurantRevenue'), data.orderRevenue, 'FCFA'),
+      row(t('analytics.stats.hotelRevenue'), data.hotelRevenue, 'FCFA'),
+      row(t('analytics.stats.orders'), data.completedOrdersCount),
+      row(t('analytics.stats.bookings'), data.totalBookingsCount || 0),
+      row(t('analytics.stats.newStructures'), data.newStructuresCount || 0),
+      row(t('analytics.stats.averageBasket'), data.averageOrderValue || 0, 'FCFA'),
     ];
 
     Object.entries(data.paymentsByMethod || {}).forEach(([method, count]) => {
-      exportData.push({ Metrique: `Paiement (${method})`, Valeur: count as number, Devise: '' });
+      exportData.push(row(t('analytics.stats.exportPayment', { method: paymentMethodLabel(method) }), count as number));
     });
 
-    const filename = `Rapport_Statistiques_${rangeLabel.replace(' ', '_')}`;
+    const filename = t('analytics.stats.exportFile', { range: rangeLabel.replace(/\s+/g, '_') });
     
     if (type === 'excel') {
       exportToExcel(exportData, filename);
@@ -158,16 +173,16 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
               <BarChart3 className="w-4 h-4 text-blue-400" />
               <span className="text-sm text-blue-400 font-medium">
-                {data.type === 'SUPER_ADMIN' ? 'Vue globale' : 'Statistiques de performance'}
+                {data.type === 'SUPER_ADMIN' ? t('analytics.stats.globalBadge') : t('analytics.stats.badge')}
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
-              Statistiques
+              {t('analytics.stats.title')}
             </h1>
             <p className="text-slate-400">
               {data.type === 'SUPER_ADMIN'
-                ? `Performance globale sur ${rangeLabel.toLowerCase()}`
-                : `Statistiques de votre établissement sur ${rangeLabel.toLowerCase()}`}
+                ? t('analytics.stats.globalSubtitle', { range: rangeLabel.toLowerCase() })
+                : t('analytics.stats.subtitle', { range: rangeLabel.toLowerCase() })}
             </p>
           </div>
 
@@ -196,15 +211,15 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-slate-800/50 backdrop-blur-sm">
                   <Download className="w-4 h-4 mr-2" />
-                  Exporter
+                  {t('analytics.stats.export')}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-slate-200">
                 <DropdownMenuItem onClick={() => handleExport('excel')} className="hover:bg-slate-700 cursor-pointer">
-                  Export Excel (.xlsx)
+                  {t('analytics.stats.exportExcel')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleExport('csv')} className="hover:bg-slate-700 cursor-pointer">
-                  Export CSV (.csv)
+                  {t('analytics.stats.exportCsv')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -251,16 +266,16 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
                   <div className="p-2 bg-blue-500/20 rounded-lg">
                     <UtensilsCrossed className="w-5 h-5 text-blue-400" />
                   </div>
-                  <span className="text-lg">Revenus Restaurant</span>
+                  <span className="text-lg">{t('analytics.stats.restaurantRevenue')}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-white mb-2">
-                  {data.orderRevenue.toLocaleString()} FCFA
+                  {format.money(data.orderRevenue)}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-slate-400">
                   <ShoppingCart className="w-4 h-4" />
-                  <span>{data.completedOrdersCount} commandes complétées</span>
+                  <span>{t('analytics.stats.completedOrders', { count: data.completedOrdersCount })}</span>
                 </div>
                 <div className="mt-4 h-2 bg-slate-700 rounded-full overflow-hidden">
                   <div
@@ -269,7 +284,7 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
                   />
                 </div>
                 <p className="text-xs text-slate-500 mt-2">
-                  {((data.orderRevenue / data.totalRevenue) * 100 || 0).toFixed(1)}% du revenu total
+                  {t('analytics.stats.shareOfTotal', { percent: share(data.orderRevenue) })}
                 </p>
               </CardContent>
             </Card>
@@ -281,16 +296,16 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
                   <div className="p-2 bg-purple-500/20 rounded-lg">
                     <Hotel className="w-5 h-5 text-purple-400" />
                   </div>
-                  <span className="text-lg">Revenus Hôtel</span>
+                  <span className="text-lg">{t('analytics.stats.hotelRevenue')}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-white mb-2">
-                  {data.hotelRevenue.toLocaleString()} FCFA
+                  {format.money(data.hotelRevenue)}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-slate-400">
                   <Calendar className="w-4 h-4" />
-                  <span>{data.totalBookingsCount} réservations</span>
+                  <span>{t('analytics.stats.bookingCount', { count: data.totalBookingsCount ?? 0 })}</span>
                 </div>
                 <div className="mt-4 h-2 bg-slate-700 rounded-full overflow-hidden">
                   <div
@@ -299,7 +314,7 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
                   />
                 </div>
                 <p className="text-xs text-slate-500 mt-2">
-                  {((data.hotelRevenue / data.totalRevenue) * 100 || 0).toFixed(1)}% du revenu total
+                  {t('analytics.stats.shareOfTotal', { percent: share(data.hotelRevenue) })}
                 </p>
               </CardContent>
             </Card>
@@ -321,7 +336,7 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5" />
             <CardHeader>
               <CardTitle className="text-slate-50 flex items-center gap-2">
-                Informations sur les statistiques
+                {t('analytics.stats.infoTitle')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -329,39 +344,39 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-slate-400">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                    <span>Période des statistiques :</span>
+                    <span>{t('analytics.stats.period')}</span>
                     <span className="text-white font-medium">{rangeLabel}</span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-400">
                     <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                    <span>Données mises à jour :</span>
-                    <span className="text-white font-medium">À l'instant</span>
+                    <span>{t('analytics.stats.updated')}</span>
+                    <span className="text-white font-medium">{t('analytics.stats.justNow')}</span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-400">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    <span>Revenu Restaurant :</span>
-                    <span className="text-white font-medium">{data.orderRevenue.toLocaleString()} FCFA</span>
+                    <span>{t('analytics.stats.restaurantRevenueLabel')}</span>
+                    <span className="text-white font-medium">{format.money(data.orderRevenue)}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-slate-400">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                    <span>Méthodes de paiement :</span>
+                    <span>{t('analytics.stats.paymentMethods')}</span>
                     <span className="text-white font-medium">
-                      {Object.keys(data.paymentsByMethod).length} active(s)
+                      {t('analytics.stats.activeCount', { count: Object.keys(data.paymentsByMethod).length })}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-400">
                     <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                    <span>Statuts des commandes :</span>
+                    <span>{t('analytics.stats.orderStatuses')}</span>
                     <span className="text-white font-medium">
-                      {Object.keys(data.ordersByStatus).length} type(s)
+                      {t('analytics.stats.typeCount', { count: Object.keys(data.ordersByStatus).length })}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-400">
                     <div className="w-1.5 h-1.5 rounded-full bg-pink-400" />
-                    <span>Revenu Hôtel :</span>
-                    <span className="text-white font-medium">{data.hotelRevenue.toLocaleString()} FCFA</span>
+                    <span>{t('analytics.stats.hotelRevenueLabel')}</span>
+                    <span className="text-white font-medium">{format.money(data.hotelRevenue)}</span>
                   </div>
                 </div>
               </div>

@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { getBarOrders, updateOrderStatusFromBar } from '@/app/actions/kitchen';
 import type { KitchenOrder } from '@/app/actions/kitchen';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n/client';
 
 const supabasePublic = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,6 +25,7 @@ export function BarDisplay({ initialOrders, structureId }: BarDisplayProps) {
   const [orders, setOrders] = useState<KitchenOrder[]>(initialOrders);
   const [isConnected, setIsConnected] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const { t } = useT();
 
   const refreshOrders = useCallback(() => {
     startTransition(async () => {
@@ -46,10 +48,10 @@ export function BarDisplay({ initialOrders, structureId }: BarDisplayProps) {
   const handleReady = async (orderId: string) => {
     const result = await updateOrderStatusFromBar(orderId, 'READY');
     if (result.success) {
-      toast.success('Commande marquée comme prête !');
+      toast.success(t('displays.bar.markedReady'));
       refreshOrders();
     } else {
-      toast.error(result.error || 'Erreur');
+      toast.error(result.error || t('displays.updateError'));
     }
   };
 
@@ -63,8 +65,8 @@ export function BarDisplay({ initialOrders, structureId }: BarDisplayProps) {
               <Beer className="w-6 h-6 text-amber-400" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white">Bar Display</h1>
-              <p className="text-xs text-slate-400">Boissons & commandes bar</p>
+              <h1 className="text-lg font-bold text-white">{t('displays.bar.title')}</h1>
+              <p className="text-xs text-slate-400">{t('displays.bar.subtitle')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -73,7 +75,7 @@ export function BarDisplay({ initialOrders, structureId }: BarDisplayProps) {
               isConnected ? 'border-emerald-500/20 text-emerald-400 bg-emerald-500/10' : 'border-slate-600 text-slate-500 bg-slate-700/30'
             )}>
               {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-              {isConnected ? 'Temps réel' : 'Connexion...'}
+              {isConnected ? t('displays.realtime') : t('displays.connecting')}
             </div>
             <Button variant="outline" size="sm" onClick={refreshOrders} disabled={isPending} className="border-slate-600 text-slate-400 hover:text-white gap-1.5">
               <RefreshCw className={cn('w-3.5 h-3.5', isPending && 'animate-spin')} />
@@ -89,12 +91,12 @@ export function BarDisplay({ initialOrders, structureId }: BarDisplayProps) {
             <div className="p-6 bg-slate-800/50 rounded-full mb-4">
               <Beer className="w-16 h-16 text-slate-600" />
             </div>
-            <h2 className="text-xl font-bold text-slate-400">Aucune commande bar</h2>
+            <h2 className="text-xl font-bold text-slate-400">{t('displays.bar.emptyTitle')}</h2>
             <p className="text-slate-600 text-sm mt-2">
-              Les commandes de boissons apparaîtront ici
+              {t('displays.bar.emptyText')}
             </p>
             <p className="text-xs text-slate-700 mt-1">
-              Astuce : les produits doivent avoir une catégorie contenant &quot;BAR&quot; ou &quot;BOISSON&quot;
+              {t('displays.bar.tip')}
             </p>
           </div>
         ) : (
@@ -107,10 +109,10 @@ export function BarDisplay({ initialOrders, structureId }: BarDisplayProps) {
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-400">
-                      {order.table_number ? `Table ${order.table_number}` : order.phone || 'À emporter'}
+                      {order.table_number ? t('displays.table', { number: order.table_number }) : order.phone || t('displays.takeaway')}
                     </span>
                     <Badge variant="outline" className="border-amber-500/40 text-amber-400 text-[10px] h-5">
-                      {order.status === 'PENDING' ? 'NOUVEAU' : 'EN COURS'}
+                      {order.status === 'PENDING' ? t('displays.new') : t('displays.inProgress')}
                     </Badge>
                   </div>
                 </div>
@@ -127,7 +129,7 @@ export function BarDisplay({ initialOrders, structureId }: BarDisplayProps) {
                 <div className="px-4 pb-4">
                   <Button onClick={() => handleReady(order.id)} className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold gap-2">
                     <CheckCircle2 className="w-4 h-4" />
-                    Servi
+                    {t('displays.bar.served')}
                   </Button>
                 </div>
               </div>

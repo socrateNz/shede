@@ -4,11 +4,10 @@ import { registerBusiness } from '@/app/actions/structures';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import {
-  BUSINESS_TRIAL_MONTHS,
-  formatTrialDateFr,
-  getBusinessTrialEndDate,
-} from '@/lib/trial';
+import { BUSINESS_TRIAL_MONTHS, getBusinessTrialEndDate } from '@/lib/trial';
+import { MODULE_OPTIONS, moduleDescription, moduleLabel } from '@/lib/modules';
+import { useT } from '@/lib/i18n/client';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -25,26 +24,12 @@ import {
 import { useActionState, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const MODULE_OPTIONS = [
-  { value: 'POS', label: '💳 Caisse (POS)', description: 'Gestion des ventes' },
-  { value: 'STOCK', label: '📦 Stock (Inventaire)', description: 'Gestion des stocks et mouvements' },
-  { value: 'HOTEL', label: '🏨 Hôtel (PMS)', description: 'Gestion des chambres et réservations' },
-  {
-    value: 'PROMOTION',
-    label: '🎟️ Promotion (Marketing)',
-    description: 'Gestion des remises et codes promo',
-  },
-  {
-    value: 'CLIENT_APP',
-    label: '📱 Application Client (B2C)',
-    description: "Visibilité sur l'app client",
-  },
-];
-
 export default function RegisterBusinessPage() {
   const router = useRouter();
+  const { t, format } = useT();
   const trialEndDate = useMemo(() => getBusinessTrialEndDate(), []);
-  const trialEndLabel = useMemo(() => formatTrialDateFr(trialEndDate), [trialEndDate]);
+  const trialEndLabel = format.date(trialEndDate, { dateStyle: 'long' });
+  const months = BUSINESS_TRIAL_MONTHS;
 
   const [state, formAction, isPending] = useActionState(registerBusiness, {
     success: false,
@@ -81,18 +66,19 @@ export default function RegisterBusinessPage() {
           className="group mb-6 inline-flex cursor-pointer items-center gap-2 text-slate-400 transition-all duration-300 hover:text-blue-400"
         >
           <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-          <span>Retour à l&apos;accueil</span>
+          <span>{t('common.backToHome')}</span>
         </Link>
 
         <div className="mb-8 text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-gradient-to-r from-blue-500/10 to-purple-500/10 px-4 py-2 backdrop-blur-sm">
-            <span className="text-sm font-medium text-blue-400">Inscription professionnelle</span>
+            <span className="text-sm font-medium text-blue-400">{t('business.register.badge')}</span>
+            <LanguageSwitcher className="ml-2" />
           </div>
           <h1 className="mb-2 bg-gradient-to-r from-white to-slate-400 bg-clip-text text-4xl font-bold text-transparent md:text-5xl">
-            Créer votre compte business
+            {t('business.register.title')}
           </h1>
           <p className="text-slate-400">
-            Enregistrez votre organisation, puis créez vos points et leurs administrateurs
+            {t('business.register.subtitle')}
           </p>
         </div>
 
@@ -106,19 +92,14 @@ export default function RegisterBusinessPage() {
             </div>
             <div className="min-w-0 space-y-1">
               <p className="font-semibold text-emerald-300">
-                {BUSINESS_TRIAL_MONTHS} mois d&apos;essai gratuit inclus
+                {t('business.register.trialTitle', { months })}
               </p>
               <p className="text-sm text-slate-300">
-                À l&apos;inscription, votre organisation bénéficie automatiquement d&apos;une
-                période d&apos;essai de <strong>{BUSINESS_TRIAL_MONTHS} mois</strong>, sans carte
-                bancaire. Accès complet à la plateforme pendant toute la durée de l&apos;essai.
+                {t('business.register.trialText', { months })}
               </p>
               <p className="flex flex-wrap items-center gap-1.5 text-sm text-emerald-200/90">
                 <Calendar className="h-4 w-4 shrink-0" />
-                <span>
-                  Fin de l&apos;essai prévue le{' '}
-                  <strong>{trialEndLabel}</strong> (à compter d&apos;aujourd&apos;hui)
-                </span>
+                <span>{t('business.register.trialEnd', { date: trialEndLabel })}</span>
               </p>
             </div>
           </div>
@@ -130,7 +111,7 @@ export default function RegisterBusinessPage() {
               <div className="rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 p-2">
                 <Building2 className="h-5 w-5 text-white" />
               </div>
-              Informations de votre organisation
+              {t('business.register.cardTitle')}
             </CardTitle>
           </CardHeader>
 
@@ -141,19 +122,19 @@ export default function RegisterBusinessPage() {
               <div className="space-y-6">
                 <div className="flex items-center gap-2 border-b border-slate-700 pb-2 text-slate-300">
                   <Building2 className="h-4 w-4 text-blue-400" />
-                  <h3 className="font-semibold">Détails de l&apos;organisation</h3>
+                  <h3 className="font-semibold">{t('business.form.sectionOrganization')}</h3>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="group space-y-2">
                     <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
                       <Building2 className="h-4 w-4 text-blue-400" />
-                      Nom de l&apos;organisation *
+                      {t('business.form.organizationName')}
                     </label>
                     <Input
                       name="organizationName"
                       type="text"
-                      placeholder="Restaurant Lumière"
+                      placeholder={t('business.form.organizationNamePlaceholder')}
                       className="border-slate-600 bg-slate-900/50 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
                       required
                     />
@@ -162,12 +143,12 @@ export default function RegisterBusinessPage() {
                   <div className="group space-y-2">
                     <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
                       <Mail className="h-4 w-4 text-blue-400" />
-                      Email de l&apos;organisation *
+                      {t('business.form.organizationEmail')}
                     </label>
                     <Input
                       name="organizationEmail"
                       type="email"
-                      placeholder="contact@restaurant.com"
+                      placeholder={t('business.form.organizationEmailPlaceholder')}
                       className="border-slate-600 bg-slate-900/50 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
                       required
                     />
@@ -178,12 +159,12 @@ export default function RegisterBusinessPage() {
                   <div className="group space-y-2">
                     <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
                       <MapPin className="h-4 w-4 text-blue-400" />
-                      Lieu / Ville *
+                      {t('business.form.city')}
                     </label>
                     <Input
                       name="city"
                       type="text"
-                      placeholder="Douala, Akwa"
+                      placeholder={t('business.form.cityPlaceholder')}
                       className="border-slate-600 bg-slate-900/50 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
                       required
                     />
@@ -194,7 +175,7 @@ export default function RegisterBusinessPage() {
                 <div className="space-y-3">
                   <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
                     <ChevronRight className="h-4 w-4 text-blue-400" />
-                    Modules à activer (disponibles dans tous vos points)
+                    {t('business.form.modulesToEnable')}
                   </label>
                   <div className="grid gap-3">
                     {MODULE_OPTIONS.map((module) => (
@@ -221,14 +202,14 @@ export default function RegisterBusinessPage() {
                           </div>
                         </div>
                         <div className="flex-1">
-                          <div className="font-medium text-slate-200">{module.label}</div>
-                          <div className="text-sm text-slate-400">{module.description}</div>
+                          <div className="font-medium text-slate-200">{moduleLabel(t, module.value)}</div>
+                          <div className="text-sm text-slate-400">{moduleDescription(t, module.value)}</div>
                         </div>
                       </label>
                     ))}
                   </div>
                   <p className="mt-2 text-xs text-slate-500">
-                    {selectedModules.length} module(s) sélectionné(s)
+                    {t('business.form.modulesSelected', { count: selectedModules.length })}
                   </p>
                 </div>
               </div>
@@ -236,19 +217,19 @@ export default function RegisterBusinessPage() {
               <div className="space-y-6 pt-4">
                 <div className="flex items-center gap-2 border-b border-slate-700 pb-2 text-slate-300">
                   <User className="h-4 w-4 text-purple-400" />
-                  <h3 className="font-semibold">Administrateur de l&apos;organisation</h3>
+                  <h3 className="font-semibold">{t('business.form.sectionAdmin')}</h3>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="group space-y-2">
                     <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
                       <User className="h-4 w-4 text-purple-400" />
-                      Prénom *
+                      {t('business.form.firstName')}
                     </label>
                     <Input
                       name="adminFirstName"
                       type="text"
-                      placeholder="Jean"
+                      placeholder={t('business.form.firstNamePlaceholder')}
                       className="border-slate-600 bg-slate-900/50 text-slate-50 placeholder:text-slate-500 focus:border-purple-500 focus:ring-purple-500/20"
                       required
                     />
@@ -257,12 +238,12 @@ export default function RegisterBusinessPage() {
                   <div className="group space-y-2">
                     <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
                       <User className="h-4 w-4 text-purple-400" />
-                      Nom *
+                      {t('business.form.lastName')}
                     </label>
                     <Input
                       name="adminLastName"
                       type="text"
-                      placeholder="Dupont"
+                      placeholder={t('business.form.lastNamePlaceholder')}
                       className="border-slate-600 bg-slate-900/50 text-slate-50 placeholder:text-slate-500 focus:border-purple-500 focus:ring-purple-500/20"
                       required
                     />
@@ -273,12 +254,12 @@ export default function RegisterBusinessPage() {
                   <div className="group space-y-2">
                     <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
                       <Mail className="h-4 w-4 text-purple-400" />
-                      Email admin *
+                      {t('business.form.adminEmail')}
                     </label>
                     <Input
                       name="adminEmail"
                       type="email"
-                      placeholder="admin@restaurant.com"
+                      placeholder={t('business.form.adminEmailPlaceholder')}
                       className="border-slate-600 bg-slate-900/50 text-slate-50 placeholder:text-slate-500 focus:border-purple-500 focus:ring-purple-500/20"
                       required
                     />
@@ -287,7 +268,7 @@ export default function RegisterBusinessPage() {
                   <div className="group space-y-2">
                     <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
                       <Lock className="h-4 w-4 text-purple-400" />
-                      Mot de passe *
+                      {t('business.form.password')}
                     </label>
                     <Input
                       name="adminPassword"
@@ -297,7 +278,7 @@ export default function RegisterBusinessPage() {
                       required
                       minLength={8}
                     />
-                    <p className="mt-1 text-xs text-slate-500">Minimum 8 caractères</p>
+                    <p className="mt-1 text-xs text-slate-500">{t('business.form.passwordHint')}</p>
                   </div>
                 </div>
               </div>
@@ -320,10 +301,10 @@ export default function RegisterBusinessPage() {
                   {isPending ? (
                     <span className="flex items-center gap-2">
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                      Création en cours…
+                      {t('business.register.submitting')}
                     </span>
                   ) : (
-                    <span>Créer mon compte — {BUSINESS_TRIAL_MONTHS} mois offerts</span>
+                    <span>{t('business.register.submit', { months })}</span>
                   )}
                 </Button>
 
@@ -333,7 +314,7 @@ export default function RegisterBusinessPage() {
                     variant="outline"
                     className="w-full cursor-pointer border-slate-600 text-slate-300 transition-all duration-300 hover:bg-slate-700 hover:text-white"
                   >
-                    J&apos;ai déjà un compte
+                    {t('business.register.hasAccount')}
                   </Button>
                 </Link>
               </div>
@@ -342,8 +323,7 @@ export default function RegisterBusinessPage() {
         </Card>
 
         <p className="mt-8 text-center text-xs text-slate-500">
-          En créant votre compte, vous acceptez une licence d&apos;essai de {BUSINESS_TRIAL_MONTHS}{' '}
-          mois (plan TRIAL). Après cette date, contactez le support pour prolonger votre abonnement.
+          {t('business.register.footer', { months })}
         </p>
       </div>
     </div>

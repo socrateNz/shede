@@ -5,11 +5,3 @@ export function getBusinessTrialEndDate(from = new Date()): Date {
   end.setMonth(end.getMonth() + BUSINESS_TRIAL_MONTHS);
   return end;
 }
-
-export function formatTrialDateFr(date: Date): string {
-  return new Intl.DateTimeFormat('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(date);
-}

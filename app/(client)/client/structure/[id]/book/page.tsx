@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ArrowLeft, Calendar, BedDouble, Users, Phone, CheckCircle, Clock, Wifi, Shield, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { createClientBooking, getRoomsForClient } from '@/app/actions/client-bookings';
-import { formatFCFA } from '@/lib/utils';
+import { useT } from '@/lib/i18n/client';
 
 interface Room {
   id: string;
@@ -24,6 +24,7 @@ interface Room {
 export default function ClientBookRoomPage() {
   const params = useParams();
   const router = useRouter();
+  const { t, format } = useT();
   const structureId = params.id as string;
 
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -78,7 +79,7 @@ export default function ClientBookRoomPage() {
         router.push(`/client/structure/${structureId}`);
       }, 3000);
     } else {
-      setErrorStr(res.error || 'Une erreur est survenue');
+      setErrorStr(res.error || t('client.booking.genericError'));
     }
   };
 
@@ -92,33 +93,33 @@ export default function ClientBookRoomPage() {
               <CheckCircle className="w-16 h-16 text-green-500" />
             </div>
           </div>
-          <h2 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">Réservation Confirmée !</h2>
+          <h2 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">{t('client.booking.confirmedTitle')}</h2>
           <p className="text-slate-500 font-medium mb-8">
-            Votre demande a été envoyée à la réception. Nous vous attendons avec impatience.
+            {t('client.booking.confirmedText')}
           </p>
           
           <div className="bg-slate-50 rounded-2xl p-6 text-left space-y-4 mb-8 border border-slate-100">
             <div className="flex justify-between items-center border-b border-slate-200 pb-4">
-              <span className="text-slate-500 font-medium">Chambre</span>
-              <span className="font-bold text-slate-900">N° {selectedRoomData?.number} <span className="text-slate-400 font-normal">({selectedRoomData?.type})</span></span>
+              <span className="text-slate-500 font-medium">{t('client.booking.room')}</span>
+              <span className="font-bold text-slate-900">{t('client.booking.roomNumber', { number: selectedRoomData?.number ?? '' })} <span className="text-slate-400 font-normal">({selectedRoomData?.type})</span></span>
             </div>
             <div className="flex justify-between items-center border-b border-slate-200 pb-4">
-              <span className="text-slate-500 font-medium">Dates</span>
+              <span className="text-slate-500 font-medium">{t('client.booking.dates')}</span>
               <span className="font-bold text-slate-900">
-                {new Date(checkIn).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} 
+                {format.date(checkIn, { day: 'numeric', month: 'short' })}
                 <ArrowRight className="inline w-3 h-3 mx-2 text-slate-400" /> 
-                {new Date(checkOut).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                {format.date(checkOut, { day: 'numeric', month: 'short' })}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-slate-500 font-medium">Total</span>
-              <span className="font-black text-xl text-green-600">{formatFCFA(totalPrice)}</span>
+              <span className="text-slate-500 font-medium">{t('client.booking.total')}</span>
+              <span className="font-black text-xl text-green-600">{format.money(totalPrice)}</span>
             </div>
           </div>
           
           <div className="flex items-center justify-center gap-2 text-sm font-bold text-blue-600 animate-pulse">
             <div className="w-4 h-4 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
-            Retour à l'établissement...
+            {t('client.booking.returning')}
           </div>
         </div>
       </div>
@@ -139,7 +140,7 @@ export default function ClientBookRoomPage() {
             className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors mb-8 group bg-white/10 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md w-fit"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span className="font-medium text-sm">Retour à l'établissement</span>
+            <span className="font-medium text-sm">{t('client.booking.back')}</span>
           </Link>
           
           <div className="flex items-center gap-4">
@@ -147,8 +148,8 @@ export default function ClientBookRoomPage() {
               <BedDouble className="w-8 h-8 text-blue-300" />
             </div>
             <div>
-              <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white mb-2">Réserver votre séjour</h1>
-              <p className="text-blue-100 text-lg md:text-xl font-medium">Sélectionnez vos dates et la chambre de vos rêves.</p>
+              <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white mb-2">{t('client.booking.title')}</h1>
+              <p className="text-blue-100 text-lg md:text-xl font-medium">{t('client.booking.subtitle')}</p>
             </div>
           </div>
         </div>
@@ -165,11 +166,11 @@ export default function ClientBookRoomPage() {
                   <div>
                     <h3 className="text-lg font-black text-slate-900 flex items-center gap-2 mb-6">
                       <Calendar className="w-5 h-5 text-blue-600" />
-                      Dates de séjour
+                      {t('client.booking.datesTitle')}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-600">Arrivée</label>
+                        <label className="text-sm font-bold text-slate-600">{t('client.booking.checkIn')}</label>
                         <Input
                           type="date"
                           value={checkIn}
@@ -180,7 +181,7 @@ export default function ClientBookRoomPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-600">Départ</label>
+                        <label className="text-sm font-bold text-slate-600">{t('client.booking.checkOut')}</label>
                         <Input
                           type="date"
                           value={checkOut}
@@ -197,7 +198,7 @@ export default function ClientBookRoomPage() {
                   <div>
                     <h3 className="text-lg font-black text-slate-900 flex items-center gap-2 mb-6">
                       <BedDouble className="w-5 h-5 text-blue-600" />
-                      Choisissez votre chambre
+                      {t('client.booking.chooseRoom')}
                     </h3>
 
                     {loading ? (
@@ -206,8 +207,8 @@ export default function ClientBookRoomPage() {
                       </div>
                     ) : rooms.length === 0 ? (
                       <div className="bg-orange-50 border border-orange-100 rounded-2xl p-8 text-center">
-                        <p className="text-orange-800 font-bold text-lg">Aucune chambre disponible.</p>
-                        <p className="text-orange-600/80 mt-1">L'établissement affiche complet pour le moment.</p>
+                        <p className="text-orange-800 font-bold text-lg">{t('client.booking.noRooms')}</p>
+                        <p className="text-orange-600/80 mt-1">{t('client.booking.noRoomsText')}</p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -225,10 +226,10 @@ export default function ClientBookRoomPage() {
                               {/* Optionnel: Si la chambre a des images (selon demande), on les affichera ici */}
                               {room.images && room.images.length > 0 ? (
                                 <div className="h-32 w-full bg-slate-200 relative">
-                                  <img src={room.images[0]} alt={`Chambre ${room.number}`} className="w-full h-full object-cover" />
+                                  <img src={room.images[0]} alt={t('client.booking.roomLabel', { number: room.number })} className="w-full h-full object-cover" />
                                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                                   <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                                    <span className="text-white font-black text-lg">N° {room.number}</span>
+                                    <span className="text-white font-black text-lg">{t('client.booking.roomNumber', { number: room.number })}</span>
                                   </div>
                                 </div>
                               ) : (
@@ -236,14 +237,14 @@ export default function ClientBookRoomPage() {
                                   <div className="absolute inset-0 bg-gradient-to-r from-slate-200 to-slate-100 opacity-50" />
                                   <div className="relative z-10 flex items-center gap-2">
                                     <BedDouble className="w-5 h-5 text-slate-400" />
-                                    <span className="text-slate-700 font-black text-lg">Chambre {room.number}</span>
+                                    <span className="text-slate-700 font-black text-lg">{t('client.booking.roomLabel', { number: room.number })}</span>
                                   </div>
                                 </div>
                               )}
                               
                               <div className="p-4">
                                 <div className="flex items-center justify-between mb-3">
-                                  <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">{room.type || 'Standard'}</span>
+                                  <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">{room.type || t('client.booking.standard')}</span>
                                   {isSelected && (
                                     <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-sm">
                                       <CheckCircle className="w-4 h-4" />
@@ -252,8 +253,8 @@ export default function ClientBookRoomPage() {
                                 </div>
                                 <div className="flex items-end justify-between">
                                   <div>
-                                    <span className={`text-2xl font-black ${isSelected ? 'text-blue-700' : 'text-slate-900'}`}>{formatFCFA(room.price)}</span>
-                                    <span className="text-sm font-medium text-slate-400"> / nuit</span>
+                                    <span className={`text-2xl font-black ${isSelected ? 'text-blue-700' : 'text-slate-900'}`}>{format.money(room.price)}</span>
+                                    <span className="text-sm font-medium text-slate-400">{t('client.booking.perNight')}</span>
                                   </div>
                                 </div>
                               </div>
@@ -268,14 +269,14 @@ export default function ClientBookRoomPage() {
                   <div>
                     <h3 className="text-lg font-black text-slate-900 flex items-center gap-2 mb-6">
                       <Users className="w-5 h-5 text-blue-600" />
-                      Vos Coordonnées
+                      {t('client.booking.contactTitle')}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-600">Nom complet</label>
+                        <label className="text-sm font-bold text-slate-600">{t('client.booking.fullName')}</label>
                         <Input
                           type="text"
-                          placeholder="Jean Dupont"
+                          placeholder={t('client.booking.fullNamePlaceholder')}
                           value={guestName}
                           onChange={e => setGuestName(e.target.value)}
                           required
@@ -283,10 +284,10 @@ export default function ClientBookRoomPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-600">Téléphone</label>
+                        <label className="text-sm font-bold text-slate-600">{t('common.phone')}</label>
                         <Input
                           type="tel"
-                          placeholder="06 12 34 56 78"
+                          placeholder={t('client.booking.phonePlaceholder')}
                           value={phone}
                           onChange={e => setPhone(e.target.value)}
                           required
@@ -310,11 +311,11 @@ export default function ClientBookRoomPage() {
                     {isSubmitting ? (
                       <div className="flex items-center gap-3">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white" />
-                        Traitement en cours...
+                        {t('client.booking.submitting')}
                       </div>
                     ) : (
                       <div className="flex items-center justify-center gap-2">
-                        Confirmer la réservation
+                        {t('client.booking.submit')}
                         <ArrowRight className="w-5 h-5" />
                       </div>
                     )}
@@ -330,7 +331,7 @@ export default function ClientBookRoomPage() {
               <Card className="border border-slate-100 shadow-xl rounded-3xl overflow-hidden bg-white">
                 <div className="bg-slate-900 p-6 text-white">
                   <h3 className="font-black text-xl flex items-center gap-2">
-                    Votre Séjour
+                    {t('client.booking.summaryTitle')}
                   </h3>
                 </div>
                 <CardContent className="p-6">
@@ -339,33 +340,33 @@ export default function ClientBookRoomPage() {
                       <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
                         <Calendar className="w-6 h-6 text-slate-300" />
                       </div>
-                      <p className="text-slate-500 font-medium">Sélectionnez vos dates et une chambre pour voir le récapitulatif.</p>
+                      <p className="text-slate-500 font-medium">{t('client.booking.summaryEmpty')}</p>
                     </div>
                   ) : (
                     <div className="space-y-6">
                       <div>
-                        <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Chambre sélectionnée</p>
-                        <p className="font-black text-slate-900 text-xl">N° {selectedRoomData.number}</p>
+                        <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">{t('client.booking.selectedRoom')}</p>
+                        <p className="font-black text-slate-900 text-xl">{t('client.booking.roomNumber', { number: selectedRoomData.number })}</p>
                         <p className="text-sm font-medium text-slate-500">{selectedRoomData.type}</p>
                       </div>
                       
                       <div className="space-y-3 pt-4 border-t border-slate-100">
                         <div className="flex justify-between items-center text-sm font-medium text-slate-600">
-                          <span>Tarif journalier</span>
-                          <span>{formatFCFA(selectedRoomData.price)}</span>
+                          <span>{t('client.booking.nightlyRate')}</span>
+                          <span>{format.money(selectedRoomData.price)}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm font-medium text-slate-600">
-                          <span>Durée du séjour</span>
-                          <span className="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">{nights} nuit{nights > 1 ? 's' : ''}</span>
+                          <span>{t('client.booking.duration')}</span>
+                          <span className="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">{t('client.booking.nights', { count: nights })}</span>
                         </div>
                       </div>
                       
                       <div className="pt-4 border-t-2 border-dashed border-slate-200">
                         <div className="flex justify-between items-center">
-                          <span className="text-lg font-black text-slate-900">Total</span>
-                          <span className="text-2xl font-black text-blue-600">{formatFCFA(totalPrice)}</span>
+                          <span className="text-lg font-black text-slate-900">{t('client.booking.total')}</span>
+                          <span className="text-2xl font-black text-blue-600">{format.money(totalPrice)}</span>
                         </div>
-                        <p className="text-xs text-right text-slate-400 mt-1 font-medium">Taxes incluses</p>
+                        <p className="text-xs text-right text-slate-400 mt-1 font-medium">{t('client.booking.estimate')}</p>
                       </div>
                     </div>
                   )}
@@ -380,8 +381,8 @@ export default function ClientBookRoomPage() {
                       <Clock className="w-5 h-5 text-blue-500" />
                     </div>
                     <div>
-                      <p className="font-bold text-slate-900">Arrivée & Départ</p>
-                      <p className="text-sm text-slate-500 mt-0.5 font-medium">Check-in à partir de 14h00. Check-out avant 12h00.</p>
+                      <p className="font-bold text-slate-900">{t('client.booking.arrivalTitle')}</p>
+                      <p className="text-sm text-slate-500 mt-0.5 font-medium">{t('client.booking.arrivalText')}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -389,8 +390,8 @@ export default function ClientBookRoomPage() {
                       <Shield className="w-5 h-5 text-green-500" />
                     </div>
                     <div>
-                      <p className="font-bold text-slate-900">Paiement Sécurisé</p>
-                      <p className="text-sm text-slate-500 mt-0.5 font-medium">Le paiement s'effectue à l'arrivée à la réception de l'établissement.</p>
+                      <p className="font-bold text-slate-900">{t('client.booking.paymentTitle')}</p>
+                      <p className="text-sm text-slate-500 mt-0.5 font-medium">{t('client.booking.paymentText')}</p>
                     </div>
                   </div>
                 </CardContent>

@@ -3,6 +3,8 @@
 import { getSession } from '@/lib/auth';
 import { sendWebPush, getVapidPublicKey } from '@/lib/push';
 import { getAdminSupabase } from '@/lib/supabase';
+import { getT, te } from '@/lib/i18n/server';
+import { notifyUser } from '@/lib/notifications';
 
 export async function getPublicKey() {
   return getVapidPublicKey();
@@ -41,11 +43,11 @@ async function createNotificationsForUsers(input: {
 export async function subscribePush(subscription: PushSubscriptionPayload) {
   const session = await getSession();
   if (!session) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   if (!subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
-    return { success: false, error: 'Invalid subscription payload' };
+    return { success: false, error: await te('errors.invalidSubscription') };
   }
 
   try {
@@ -64,19 +66,19 @@ export async function subscribePush(subscription: PushSubscriptionPayload) {
       );
 
     if (error) {
-      return { success: false, error: 'Failed to save subscription' };
+      return { success: false, error: await te('errors.subscriptionSaveFailed') };
     }
 
     return { success: true };
   } catch (error) {
-    return { success: false, error: 'Push subscription failed' };
+    return { success: false, error: await te('errors.subscriptionFailed') };
   }
 }
 
 export async function unsubscribePush(endpoint: string) {
   const session = await getSession();
   if (!session) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   try {
@@ -89,7 +91,7 @@ export async function unsubscribePush(endpoint: string) {
 
     return { success: true };
   } catch (error) {
-    return { success: false, error: 'Failed to unsubscribe' };
+    return { success: false, error: await te('errors.unsubscribeFailed') };
   }
 }
 
@@ -112,7 +114,7 @@ export async function getMyPushSubscriptionsCount() {
 
 export async function sendTestPushNotification() {
   const session = await getSession();
-  if (!session) return { success: false, error: 'Unauthorized' };
+  if (!session) return { success: false, error: await te('errors.unauthorized') };
 
   try {
     const admin = getAdminSupabase();
@@ -122,14 +124,15 @@ export async function sendTestPushNotification() {
       .eq('user_id', session.userId);
 
     if (!subscriptions?.length) {
-      return { success: false, error: 'Aucun appareil abonne pour ce compte.' };
+      return { success: false, error: await te('errors.noSubscribedDevice') };
     }
 
+    const { t } = await getT();
+    const content = { title: t('notify.test.title'), body: t('notify.test.body') };
     await createNotificationsForUsers({
       structureId: session.structureId!,
       userIds: [session.userId],
-      title: 'Test notification',
-      body: 'Les notifications push fonctionnent correctement.',
+      ...content,
       url: '/notifications',
     });
 
@@ -144,11 +147,7 @@ export async function sendTestPushNotification() {
                 auth: sub.auth,
               },
             },
-            {
-              title: 'Test notification',
-              body: 'Les notifications push fonctionnent correctement.',
-              url: '/notifications',
-            }
+            { ...content, url: '/notifications' }
           );
         } catch (error) {
           // Ignore individual endpoint failures to keep test resilient.
@@ -158,130 +157,7 @@ export async function sendTestPushNotification() {
 
     return { success: true };
   } catch (error) {
-    return { success: false, error: 'Echec de l envoi du test push.' };
-  }
-}
-
-export async function notifyStructureStaff(input: {
-  structureId: string;
-  title: string;
-  body: string;
-  url?: string;
-  roles?: string[];
-}) {
-  try {
-    const admin = getAdminSupabase();
-    const { data: recipients } = await admin
-      .from('users')
-      .select('id')
-      .eq('structure_id', input.structureId)
-      .in('role', input.roles || ['ADMIN', 'CAISSE', 'SUPER_ADMIN', 'RECEPTION'])
-      .eq('is_active', true);
-
-    if (!recipients?.length) return;
-
-    const recipientIds = recipients.map((r) => r.id);
-    await createNotificationsForUsers({
-      structureId: input.structureId,
-      userIds: recipientIds,
-      title: input.title,
-      body: input.body,
-      url: input.url,
-    });
-
-    const { data: subscriptions } = await admin
-      .from('push_subscriptions')
-      .select('endpoint, p256dh, auth')
-      .in('user_id', recipientIds)
-      .eq('structure_id', input.structureId);
-
-    if (!subscriptions?.length) return;
-
-    await Promise.all(
-      subscriptions.map(async (sub) => {
-        try {
-          await sendWebPush(
-            {
-              endpoint: sub.endpoint,
-              keys: {
-                p256dh: sub.p256dh,
-                auth: sub.auth,
-              },
-            },
-            {
-              title: input.title,
-              body: input.body,
-              url: input.url,
-            }
-          );
-        } catch (error: any) {
-          const code = Number(error?.statusCode || 0);
-          if (code === 404 || code === 410) {
-            await admin.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
-          }
-        }
-      })
-    );
-  } catch (error) {
-    // Keep order flow resilient; push failures should not block transactions.
-    console.error('Push notification error:', error);
-  }
-}
-
-export async function notifyUser(input: {
-  userId: string;
-  structureId: string;
-  title: string;
-  body: string;
-  url?: string;
-}) {
-  try {
-    const admin = getAdminSupabase();
-    
-    // Create in-app notification
-    await createNotificationsForUsers({
-      structureId: input.structureId,
-      userIds: [input.userId],
-      title: input.title,
-      body: input.body,
-      url: input.url,
-    });
-
-    // Send push if subscription exists
-    const { data: subscriptions } = await admin
-      .from('push_subscriptions')
-      .select('endpoint, p256dh, auth')
-      .eq('user_id', input.userId);
-
-    if (subscriptions?.length) {
-      await Promise.all(
-        subscriptions.map(async (sub) => {
-          try {
-            await sendWebPush(
-              {
-                endpoint: sub.endpoint,
-                keys: {
-                  p256dh: sub.p256dh,
-                  auth: sub.auth,
-                },
-              },
-              {
-                title: input.title,
-                body: input.body,
-                url: input.url,
-              }
-            );
-          } catch (error: any) {
-            const code = Number(error?.statusCode || 0);
-            if (code === 404 || code === 410) {
-              await admin.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
-            }
-          }
-        })
-      );
-    }
-  } catch (error) {
-    console.error('Notify user error:', error);
+    return { success: false, error: await te('errors.pushTestFailed') };
   }
 }
 
@@ -336,7 +212,7 @@ export async function markNotificationAsRead(notificationId: string) {
       .eq('id', notificationId)
       .eq('user_id', session.userId);
 
-    if (error) return { success: false, error: 'Failed to mark as read' };
+    if (error) return { success: false, error: await te('errors.markReadFailed') };
     return { success: true };
   } catch (error) {
     return { success: false };
@@ -356,7 +232,7 @@ export async function markAllNotificationsAsRead() {
       .eq('structure_id', session.structureId!)
       .eq('is_read', false);
 
-    if (error) return { success: false, error: 'Failed to mark all as read' };
+    if (error) return { success: false, error: await te('errors.markAllReadFailed') };
     return { success: true };
   } catch (error) {
     return { success: false };
@@ -370,8 +246,7 @@ export async function sendTestNotification() {
   await notifyUser({
     userId: session.userId,
     structureId: session.structureId!,
-    title: 'Notification de Test',
-    body: 'Ceci est une notification de test pour vérifier vos réglages.',
+    message: ({ t }) => ({ title: t('notify.test.title'), body: t('notify.test.settingsBody') }),
     url: '/settings',
   });
 

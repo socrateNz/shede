@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, Edit, Trash2, Calendar, Phone, Mail, User } from 'lucide-react';
 import Link from 'next/link';
+import { useT } from '@/lib/i18n/client';
 
 export function ClientsList({ clients }: { clients: any[] }) {
   const [search, setSearch] = useState('');
+  const { t, format } = useT();
 
   const filteredClients = clients.filter(client => {
     const term = search.toLowerCase();
@@ -20,11 +22,11 @@ export function ClientsList({ clients }: { clients: any[] }) {
     <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50">
       <CardHeader className="border-b border-slate-700/50 pb-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <CardTitle className="text-xl font-bold text-white">Liste des clients</CardTitle>
+          <CardTitle className="text-xl font-bold text-white">{t('crm.list.listTitle')}</CardTitle>
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
-              placeholder="Rechercher (nom, téléphone, email)..."
+              placeholder={t('crm.list.search')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-pink-500 focus:ring-pink-500/20"
@@ -37,10 +39,10 @@ export function ClientsList({ clients }: { clients: any[] }) {
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-slate-400 uppercase bg-slate-900/50 border-b border-slate-700/50">
               <tr>
-                <th className="px-6 py-4 font-medium">Client</th>
-                <th className="px-6 py-4 font-medium">Contact</th>
-                <th className="px-6 py-4 font-medium">Anniversaire</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
+                <th className="px-6 py-4 font-medium">{t('crm.list.colClient')}</th>
+                <th className="px-6 py-4 font-medium">{t('crm.list.colContact')}</th>
+                <th className="px-6 py-4 font-medium">{t('crm.list.colBirthday')}</th>
+                <th className="px-6 py-4 font-medium text-right">{t('crm.list.colActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700/50">
@@ -49,8 +51,8 @@ export function ClientsList({ clients }: { clients: any[] }) {
                   <td colSpan={4} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center justify-center text-slate-500">
                       <User className="w-12 h-12 mb-3 text-slate-600" />
-                      <p className="text-lg font-medium text-slate-400">Aucun client trouvé</p>
-                      <p className="text-sm">Modifiez votre recherche ou ajoutez un nouveau client</p>
+                      <p className="text-lg font-medium text-slate-400">{t('crm.list.emptyTitle')}</p>
+                      <p className="text-sm">{t('crm.list.emptyText')}</p>
                     </div>
                   </td>
                 </tr>
@@ -84,7 +86,7 @@ export function ClientsList({ clients }: { clients: any[] }) {
                             {client.phone}
                           </div>
                         ) : (
-                          <span className="text-slate-600 text-xs italic">Pas de téléphone</span>
+                          <span className="text-slate-600 text-xs italic">{t('crm.list.noPhone')}</span>
                         )}
                         {client.email && (
                           <div className="flex items-center gap-2 text-slate-400 text-xs">
@@ -98,7 +100,7 @@ export function ClientsList({ clients }: { clients: any[] }) {
                       {client.birthday ? (
                         <div className="flex items-center gap-2 text-slate-300">
                           <Calendar className="w-4 h-4 text-pink-400" />
-                          {new Date(client.birthday).toLocaleDateString('fr-FR')}
+                          {format.date(client.birthday)}
                         </div>
                       ) : (
                         <span className="text-slate-600 text-xs italic">-</span>
@@ -107,7 +109,7 @@ export function ClientsList({ clients }: { clients: any[] }) {
                     <td className="px-6 py-4 text-right">
                         <Button asChild variant="outline" size="sm" className="bg-slate-900/50 border-slate-600 hover:bg-slate-700 text-slate-300 hover:text-white">
                           <Link href={`/clients/${client.id}`}>
-                            Voir détails
+                            {t('crm.list.details')}
                           </Link>
                         </Button>
                     </td>

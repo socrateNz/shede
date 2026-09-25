@@ -9,6 +9,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { useT } from "@/lib/i18n/client";
 
 interface TablePaginationProps {
   currentPage: number;
@@ -21,6 +22,7 @@ export function TablePagination({
   totalPages,
   onPageChange,
 }: TablePaginationProps) {
+  const { t } = useT();
   if (totalPages <= 1) return null;
 
   const getPageNumbers = () => {
@@ -52,6 +54,8 @@ export function TablePagination({
         <PaginationContent>
           <PaginationItem>
             <PaginationPrevious
+              label={t('common.pagination.previous')}
+              ariaLabel={t('common.pagination.previousAria')}
               onClick={(e) => {
                 e.preventDefault();
                 if (currentPage > 1) onPageChange(currentPage - 1);
@@ -117,6 +121,8 @@ export function TablePagination({
 
           <PaginationItem>
             <PaginationNext
+              label={t('common.pagination.next')}
+              ariaLabel={t('common.pagination.nextAria')}
               onClick={(e) => {
                 e.preventDefault();
                 if (currentPage < totalPages) onPageChange(currentPage + 1);

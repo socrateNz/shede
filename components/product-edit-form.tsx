@@ -12,6 +12,7 @@ import type { Product } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useT } from '@/lib/i18n/client';
 
 import { useAppStore } from '@/lib/store';
 import { ImageUpload } from '@/components/image-upload';
@@ -40,6 +41,7 @@ export function ProductEditForm({
   initialThreshold?: number;
 }) {
   const router = useRouter();
+  const { t, format } = useT();
   const queryClient = useQueryClient();
   const productId = product.id;
   const hasModule = useAppStore(state => state.hasModule);
@@ -76,7 +78,7 @@ export function ProductEditForm({
       const result = await updateProduct(params);
 
       if (!result.success) {
-        throw new Error(result.error || 'Échec de la mise à jour du produit');
+        throw new Error(result.error || t('products.form.updateFailed'));
       }
 
       return result;
@@ -85,7 +87,7 @@ export function ProductEditForm({
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['product', productId] });
 
-      toast.success('Produit mis à jour avec succès !');
+      toast.success(t('products.form.updated'));
 
       setTimeout(() => {
         router.push('/products');
@@ -102,14 +104,14 @@ export function ProductEditForm({
       const result = await deleteProduct(id);
 
       if (!result.success) {
-        throw new Error(result.error || 'Échec de la suppression du produit');
+        throw new Error(result.error || t('products.form.deleteFailed'));
       }
 
       return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Produit supprimé avec succès !');
+      toast.success(t('products.form.deleted'));
       router.push('/products');
     },
     onError: (error: Error) => {
@@ -171,12 +173,12 @@ export function ProductEditForm({
     ]);
     setNewAccompName('');
     setNewAccompPrice(0);
-    toast.success('Accompagnement ajouté');
+    toast.success(t('products.form.accompanimentAdded'));
   };
 
   const removeNewAccomp = (clientId: string) => {
     setNewAccompItems((prev) => prev.filter((x) => x.clientId !== clientId));
-    toast.success('Accompagnement retiré');
+    toast.success(t('products.form.accompanimentRemoved'));
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -186,7 +188,7 @@ export function ProductEditForm({
   };
 
   const handleDelete = () => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
+    if (confirm(t('products.form.confirmDelete'))) {
       deleteMutation.mutate(productId);
     }
   };
@@ -208,19 +210,19 @@ export function ProductEditForm({
           className="inline-flex items-center gap-2 text-slate-400 hover:text-blue-400 mb-6 transition-all duration-300 group"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span>Retour aux produits</span>
+          {t('products.form.back')}
         </Link>
 
         {/* Header */}
         <div className="mb-8 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
             <Package className="w-4 h-4 text-blue-400" />
-            <span className="text-sm text-blue-400 font-medium">Modification du produit</span>
+            <span className="text-sm text-blue-400 font-medium">{t('products.form.editBadge')}</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
             {product.name}
           </h1>
-          <p className="text-slate-400">Mettez à jour les informations de votre produit</p>
+          <p className="text-slate-400">{t('products.form.editSubtitle')}</p>
         </div>
 
         <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-xl overflow-hidden">
@@ -241,20 +243,20 @@ export function ProductEditForm({
               <div className="space-y-6">
                 <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
                   <Package className="w-4 h-4 text-blue-400" />
-                  <h3 className="font-semibold">Informations générales</h3>
+                  <h3 className="font-semibold">{t('products.form.general')}</h3>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <Tag className="w-4 h-4 text-blue-400" />
-                      Nom du produit *
+                      {t('products.form.name')}
                     </label>
                     <Input
                       type="text"
                       name="name"
                       defaultValue={product.name}
-                      placeholder="Ex: Burger Deluxe"
+                      placeholder={t('products.form.namePlaceholder')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300 group-hover:border-slate-500"
                       required
                       disabled={isPending}
@@ -264,7 +266,7 @@ export function ProductEditForm({
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-purple-400" />
-                      Prix *
+                      {t('products.form.price')}
                     </label>
                     <Input
                       type="number"
@@ -272,18 +274,18 @@ export function ProductEditForm({
                       defaultValue={product.price}
                       step="10"
                       min="0"
-                      placeholder="Ex: 2500"
+                      placeholder={t('products.form.pricePlaceholder')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300 group-hover:border-slate-500"
                       required
                       disabled={isPending}
                     />
-                    <p className="text-xs text-slate-500 mt-1">Prix en FCFA</p>
+                    <p className="text-xs text-slate-500 mt-1">{t('products.form.priceHint')}</p>
                   </div>
 
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <Package className="w-4 h-4 text-emerald-400" />
-                      Image du produit
+                      {t('products.form.image')}
                     </label>
                     <ImageUpload 
                       value={imageUrl} 
@@ -295,12 +297,12 @@ export function ProductEditForm({
 
                 <div className="space-y-2 group">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                    Description
+                    {t('products.form.description')}
                   </label>
                   <textarea
                     name="description"
                     defaultValue={product.description || ''}
-                    placeholder="Description du produit..."
+                    placeholder={t('products.form.descriptionPlaceholder')}
                     className="w-full bg-slate-900/50 border border-slate-600 text-slate-50 placeholder:text-slate-500 rounded-lg p-3 h-24 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300"
                     disabled={isPending}
                   />
@@ -310,7 +312,7 @@ export function ProductEditForm({
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <Tag className="w-4 h-4 text-orange-400" />
-                      Destination
+                      {t('products.form.destination')}
                     </label>
                     <select
                       name="destination"
@@ -318,23 +320,23 @@ export function ProductEditForm({
                       className="w-full bg-slate-900/50 border border-slate-600 text-slate-50 rounded-lg py-2 px-3 h-10 focus:border-orange-500 focus:ring-orange-500/20 transition-all duration-300"
                       disabled={isPending}
                     >
-                      <option value="CUISINE">Cuisine</option>
-                      <option value="BAR">Bar</option>
+                      <option value="CUISINE">{t('products.destination.CUISINE')}</option>
+                      <option value="BAR">{t('products.destination.BAR')}</option>
                     </select>
-                    <p className="text-xs text-slate-500 mt-1">Où le produit est-il préparé ?</p>
+                    <p className="text-xs text-slate-500 mt-1">{t('products.form.destinationHint')}</p>
                   </div>
 
 
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <Tag className="w-4 h-4 text-amber-400" />
-                      Catégorie
+                      {t('products.form.category')}
                     </label>
                     <Input
                       type="text"
                       name="category"
                       defaultValue={product.category || ''}
-                      placeholder="Ex: Plat principal, Boisson, Dessert"
+                      placeholder={t('products.form.categoryPlaceholder')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-amber-500 focus:ring-amber-500/20 transition-all duration-300 group-hover:border-slate-500"
                       disabled={isPending}
                     />
@@ -343,7 +345,7 @@ export function ProductEditForm({
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-green-400" />
-                      Disponibilité
+                      {t('products.form.availability')}
                     </label>
                     <div className="flex items-center gap-4 pt-2">
                       <label className="flex items-center gap-2 cursor-pointer">
@@ -355,7 +357,7 @@ export function ProductEditForm({
                           className="w-4 h-4 text-green-500 focus:ring-green-500"
                           disabled={isPending}
                         />
-                        <span className="text-sm text-slate-300">Disponible</span>
+                        <span className="text-sm text-slate-300">{t('products.form.available')}</span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -366,7 +368,7 @@ export function ProductEditForm({
                           className="w-4 h-4 text-red-500 focus:ring-red-500"
                           disabled={isPending}
                         />
-                        <span className="text-sm text-slate-300">Indisponible</span>
+                        <span className="text-sm text-slate-300">{t('products.form.unavailable')}</span>
                       </label>
                     </div>
                   </div>
@@ -377,11 +379,11 @@ export function ProductEditForm({
                   <div className="space-y-6 pt-4">
                     <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
                       <AlertTriangle className="w-4 h-4 text-amber-500" />
-                      <h3 className="font-semibold">Gestion du Stock</h3>
+                      <h3 className="font-semibold">{t('products.form.stock')}</h3>
                     </div>
                     <div className="max-w-xs space-y-2 group">
                       <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                        Seuil d'alerte *
+                        {t('products.form.threshold')}
                       </label>
                       <Input
                         type="number"
@@ -392,7 +394,7 @@ export function ProductEditForm({
                         required
                         disabled={isPending}
                       />
-                      <p className="text-[10px] text-slate-500">Une alerte sera affichée si le stock tombe en dessous de cette valeur.</p>
+                      <p className="text-[10px] text-slate-500">{t('products.form.thresholdHint')}</p>
                     </div>
                   </div>
                 )}
@@ -402,14 +404,14 @@ export function ProductEditForm({
               <div className="space-y-6">
                 <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
                   <Plus className="w-4 h-4 text-purple-400" />
-                  <h3 className="font-semibold">Accompagnements & extras</h3>
+                  <h3 className="font-semibold">{t('products.form.accompaniments')}</h3>
                 </div>
 
                 {accompanimentOptions.length === 0 ? (
                   <div className="text-center py-8 text-slate-400 bg-slate-900/30 rounded-lg border border-slate-700">
                     <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                    <p>Aucun accompagnement disponible</p>
-                    <p className="text-sm mt-1">Créez d'abord des accompagnements</p>
+                    <p>{t('products.form.noAccompaniments')}</p>
+                    <p className="text-sm mt-1">{t('products.form.createAccompanimentsFirst')}</p>
                   </div>
                 ) : (
                   <div className="grid gap-3">
@@ -435,12 +437,12 @@ export function ProductEditForm({
                             />
                             <div className="flex-1">
                               <div className="font-medium text-slate-200">{option.name}</div>
-                              <div className="text-sm text-slate-400">{option.price.toLocaleString()} FCFA</div>
+                              <div className="text-sm text-slate-400">{format.money(option.price)}</div>
                             </div>
                           </div>
                           {isSelected && (
                             <div className="flex items-center gap-2">
-                              <label className="text-sm text-slate-400">Qté:</label>
+                              <label className="text-sm text-slate-400">{t('products.form.qty')}</label>
                               <input
                                 type="number"
                                 min="1"
@@ -462,14 +464,14 @@ export function ProductEditForm({
                 <div className="pt-4 border-t border-slate-700 space-y-4">
                   <p className="text-slate-100 font-medium flex items-center gap-2">
                     <Plus className="w-4 h-4 text-green-400" />
-                    Ajouter un nouvel accompagnement
+                    {t('products.form.addNewAccompaniment')}
                   </p>
                   <div className="grid grid-cols-2 gap-3">
                     <Input
                       type="text"
                       value={newAccompName}
                       onChange={(e) => setNewAccompName(e.target.value)}
-                      placeholder="Nom"
+                      placeholder={t('products.form.accompanimentName')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500"
                       disabled={isPending}
                     />
@@ -477,7 +479,7 @@ export function ProductEditForm({
                       type="number"
                       value={Number.isFinite(newAccompPrice) ? newAccompPrice : 0}
                       onChange={(e) => setNewAccompPrice(Number(e.target.value))}
-                      placeholder="Prix"
+                      placeholder={t('products.form.accompanimentPrice')}
                       step="10"
                       min="0"
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500"
@@ -491,17 +493,17 @@ export function ProductEditForm({
                     disabled={isPending}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Ajouter l'accompagnement
+                    {t('products.form.addAccompaniment')}
                   </Button>
 
                   {newAccompItems.length > 0 && (
                     <div className="space-y-2 mt-4">
-                      <p className="text-sm text-slate-400">Nouveaux accompagnements :</p>
+                      <p className="text-sm text-slate-400">{t('products.form.newAccompaniments')}</p>
                       {newAccompItems.map((n) => (
                         <div key={n.clientId} className="flex items-center justify-between p-3 rounded-lg bg-slate-700/50">
                           <div>
                             <p className="text-slate-50 font-medium">{n.name}</p>
-                            <p className="text-slate-400 text-sm">{n.price.toLocaleString()} FCFA</p>
+                            <p className="text-slate-400 text-sm">{format.money(n.price)}</p>
                           </div>
                           <Button
                             type="button"
@@ -533,7 +535,7 @@ export function ProductEditForm({
                 <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-4 text-sm text-green-400 animate-in slide-in-from-top-2">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4" />
-                    Produit mis à jour avec succès ! Redirection...
+                    {t('products.form.updatedRedirect')}
                   </div>
                 </div>
               )}
@@ -553,7 +555,7 @@ export function ProductEditForm({
                   ) : (
                     <div className="flex items-center gap-2">
                       <Save className="w-4 h-4" />
-                      Enregistrer les modifications
+                      {t('products.form.saveChanges')}
                     </div>
                   )}
                 </Button>
@@ -566,7 +568,7 @@ export function ProductEditForm({
                     disabled={isPending}
                   >
                     <X className="w-4 h-4 mr-2" />
-                    Annuler
+                    {t('common.cancel')}
                   </Button>
                 </Link>
               </div>
@@ -576,12 +578,12 @@ export function ProductEditForm({
             <div className="border-t border-red-500/20 mt-8 pt-8">
               <div className="flex items-center gap-2 mb-4">
                 <AlertTriangle className="w-4 h-4 text-red-400" />
-                <p className="text-sm font-medium text-red-400">Zone de danger</p>
+                <p className="text-sm font-medium text-red-400">{t('products.form.dangerZone')}</p>
               </div>
 
               {deleteMutation.isError && (
                 <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400 mb-4">
-                  {deleteMutation.error instanceof Error ? deleteMutation.error.message : 'Échec de la suppression'}
+                  {deleteMutation.error instanceof Error ? deleteMutation.error.message : t('products.form.deleteFailed')}
                 </div>
               )}
 
@@ -592,10 +594,10 @@ export function ProductEditForm({
                 className="bg-red-600 hover:bg-red-700 text-white"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                {deleteMutation.isPending ? 'Suppression...' : 'Supprimer le produit'}
+                {deleteMutation.isPending ? t('products.form.deleting') : t('products.form.delete')}
               </Button>
               <p className="text-xs text-slate-500 mt-2">
-                Cette action est irréversible. Toutes les données associées seront supprimées.
+                {t('products.form.deleteWarning')}
               </p>
             </div>
           </CardContent>

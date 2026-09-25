@@ -2,9 +2,12 @@
 
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
-import { notifyStructureStaff, notifyUser } from '@/app/actions/push';
+import { notifyStructureStaff, notifyUser } from '@/lib/notifications';
 import { validatePromoCode, recordPromoUsage } from './promotions';
 import { getActiveShift, getStructureActiveShift } from './shifts';
+import { computeTax } from '@/lib/tax';
+import { getStructureTaxSettings, saveTaxSnapshot } from '@/lib/fiscal';
+import { resolveDelivery } from '@/lib/delivery';
 
 type ProductAccompanimentMapping = {
   product_id: string;
@@ -25,13 +28,13 @@ export async function createOrder(
 ) {
   const session = await getSession();
   if (!session || !['ADMIN', 'CAISSE', 'SERVEUR', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   // Check if shift is open for structure
   const activeShift = await getStructureActiveShift(session.structureId as string);
   if (!activeShift) {
-    return { success: false, error: 'La caisse doit être ouverte pour effectuer cette opération.' };
+    return { success: false, error: await te('errors.registerClosed') };
   }
 
   try {
@@ -52,13 +55,15 @@ export async function createOrder(
       .single();
 
     if (error || !order) {
-      return { success: false, error: 'Failed to create order' };
+      return { success: false, error: await te('errors.orderCreateFailed') };
     }
 
     await notifyStructureStaff({
       structureId: session.structureId as string,
-      title: 'Nouvelle commande',
-      body: `Commande ${order.id.slice(0, 8)} creee`,
+      message: ({ t }) => ({
+        title: t('notify.newOrder.title'),
+        body: t('notify.newOrder.body', { ref: order.id.slice(0, 8) }),
+      }),
       url: `/orders/${order.id}`,
       roles: ['ADMIN', 'CAISSE', 'SERVEUR', 'SUPER_ADMIN'],
     });
@@ -66,7 +71,7 @@ export async function createOrder(
     return { success: true, orderId: order.id };
   } catch (error) {
     console.error('Create order error:', error);
-    return { success: false, error: 'Failed to create order' };
+    return { success: false, error: await te('errors.orderCreateFailed') };
   }
 }
 
@@ -76,13 +81,13 @@ export async function createOrderWithItems(
 ) {
   const session = await getSession();
   if (!session || !['ADMIN', 'CAISSE', 'SERVEUR', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   // Check if shift is open for structure
   const activeShift = await getStructureActiveShift(session.structureId as string);
   if (!activeShift) {
-    return { success: false, error: 'La caisse doit être ouverte pour effectuer cette opération.' };
+    return { success: false, error: await te('errors.registerClosed') };
   }
 
   const tableNumberRaw = String(formData.get('tableNumber') || '').trim();
@@ -114,7 +119,7 @@ export async function createOrderWithItems(
       parsedItems = json;
     }
   } catch {
-    return { success: false, error: 'Invalid order items format' };
+    return { success: false, error: await te('errors.invalidOrderItems') };
   }
 
   const normalizedItems = parsedItems
@@ -135,11 +140,11 @@ export async function createOrderWithItems(
     );
 
   if (normalizedItems.length === 0) {
-    return { success: false, error: 'Please add at least one product' };
+    return { success: false, error: await te('errors.addAtLeastOneProduct') };
   }
   
   if (!phone) {
-    return { success: false, error: 'Phone number is required' };
+    return { success: false, error: await te('errors.phoneRequired') };
   }
 
   // Consolidate quantities per product_id + merge accompaniment choices.
@@ -192,7 +197,7 @@ export async function createOrderWithItems(
       .eq('structure_id', session.structureId);
 
     if (productsError || !products) {
-      return { success: false, error: 'Failed to validate products' };
+      return { success: false, error: await te('errors.productsValidationFailed') };
     }
 
     const validProducts = new Map(
@@ -202,19 +207,32 @@ export async function createOrderWithItems(
     );
 
     if (validProducts.size !== uniqueProductIds.length) {
-      return { success: false, error: 'One or more products are invalid or unavailable' };
+      return { success: false, error: await te('errors.productsUnavailable') };
     }
 
     let verifiedPromo = null;
     if (promoCode) {
       const validation = await validatePromoCode(promoCode, session.structureId as string, session.userId);
       if (!validation.valid) {
-        return { success: false, error: validation.error || 'Invalid promo code' };
+        return { success: false, error: validation.error || await te('errors.invalidPromoCode') };
       }
       verifiedPromo = validation;
     } else if (promotionId) {
       // Manual selection from POS
       verifiedPromo = { promotionId };
+    }
+
+    // Commande à livrer : zone, frais et adresse vérifiés côté serveur.
+    let deliveryFields = {};
+    if (formData.get('isDelivery') === 'true') {
+      const delivery = await resolveDelivery(session.structureId as string, {
+        zoneId: String(formData.get('deliveryZoneId') || ''),
+        district: String(formData.get('deliveryDistrict') || ''),
+        landmark: String(formData.get('deliveryLandmark') || ''),
+        phone,
+      });
+      if ('error' in delivery) return { success: false, error: delivery.error };
+      deliveryFields = delivery.fields;
     }
 
     const { data: order, error: orderError } = await admin
@@ -235,12 +253,13 @@ export async function createOrderWithItems(
         tip_amount: tipAmount,
         discount_amount: discountAmount,
         discount_reason: discountReason || null,
+        ...deliveryFields,
       })
       .select()
       .single();
 
     if (orderError || !order) {
-      return { success: false, error: 'Failed to create order' };
+      return { success: false, error: await te('errors.orderCreateFailed') };
     }
 
     const createdOrderId = order.id as string;
@@ -269,7 +288,7 @@ export async function createOrderWithItems(
         .delete()
         .eq('id', createdOrderId)
         .eq('structure_id', session.structureId);
-      return { success: false, error: 'Failed to save order items' };
+      return { success: false, error: await te('errors.orderItemsSaveFailed') };
     }
 
     const parentItemByProductId = new Map<string, { id: string; quantity: number }>(
@@ -309,7 +328,7 @@ export async function createOrderWithItems(
           .delete()
           .eq('id', createdOrderId)
           .eq('structure_id', session.structureId);
-        return { success: false, error: 'Failed to validate accompaniment mappings' };
+        return { success: false, error: await te('errors.accompanimentMappingsFailed') };
       }
 
       const mappingMultiplierByKey = new Map<string, number>(
@@ -333,7 +352,7 @@ export async function createOrderWithItems(
               .eq('structure_id', session.structureId);
             return {
               success: false,
-              error: 'One or more accompaniments are not configured for selected products',
+              error: await te('errors.accompanimentsNotConfigured'),
             };
           }
         }
@@ -351,7 +370,7 @@ export async function createOrderWithItems(
           .delete()
           .eq('id', createdOrderId)
           .eq('structure_id', session.structureId);
-        return { success: false, error: 'Failed to validate accompaniments' };
+        return { success: false, error: await te('errors.accompanimentsValidationFailed') };
       }
 
       const accMap = new Map<string, { price: number }>(
@@ -367,7 +386,7 @@ export async function createOrderWithItems(
             .delete()
             .eq('id', createdOrderId)
             .eq('structure_id', session.structureId);
-          return { success: false, error: 'One or more accompaniments are invalid/unavailable' };
+          return { success: false, error: await te('errors.accompanimentsUnavailable') };
         }
       }
 
@@ -415,7 +434,7 @@ export async function createOrderWithItems(
             .delete()
             .eq('id', createdOrderId)
             .eq('structure_id', session.structureId);
-          return { success: false, error: 'Failed to save order accompaniments' };
+          return { success: false, error: await te('errors.orderAccompanimentsSaveFailed') };
         }
       }
     }
@@ -428,8 +447,10 @@ export async function createOrderWithItems(
 
     await notifyStructureStaff({
       structureId: session.structureId as string,
-      title: 'Nouvelle commande',
-      body: `Commande ${createdOrderId.slice(0, 8)} creee`,
+      message: ({ t }) => ({
+        title: t('notify.newOrder.title'),
+        body: t('notify.newOrder.body', { ref: createdOrderId.slice(0, 8) }),
+      }),
       url: `/orders/${createdOrderId}`,
       roles: ['ADMIN', 'CAISSE', 'SERVEUR', 'SUPER_ADMIN'],
     });
@@ -437,7 +458,7 @@ export async function createOrderWithItems(
     return { success: true, orderId: createdOrderId, error: '' };
   } catch (error) {
     console.error('Create order with items error:', error);
-    return { success: false, error: 'Failed to create order' };
+    return { success: false, error: await te('errors.orderCreateFailed') };
   }
 }
 
@@ -449,13 +470,13 @@ export async function addOrderItem(
 ) {
   const session = await getSession();
   if (!session) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
   
   // Check if shift is open for structure
   const activeShift = await getStructureActiveShift(session.structureId as string);
   if (!activeShift) {
-    return { success: false, error: 'La caisse doit être ouverte pour ajouter des articles.' };
+    return { success: false, error: await te('errors.registerClosedItems') };
   }
 
   try {
@@ -478,7 +499,7 @@ export async function addOrderItem(
       .single();
 
     if (error || !item) {
-      return { success: false, error: 'Failed to add item' };
+      return { success: false, error: await te('errors.itemAddFailed') };
     }
 
     // Update order totals (respecting price_included)
@@ -487,7 +508,7 @@ export async function addOrderItem(
     return { success: true };
   } catch (error) {
     console.error('Add order item error:', error);
-    return { success: false, error: 'Failed to add item' };
+    return { success: false, error: await te('errors.itemAddFailed') };
   }
 }
 
@@ -607,7 +628,7 @@ export async function addOrderAccompaniment(
   priceCounted: boolean
 ) {
   const session = await getSession();
-  if (!session) return { success: false, error: 'Unauthorized' };
+  if (!session) return { success: false, error: await te('errors.unauthorized') };
 
   const admin = getAdminSupabase();
 
@@ -619,7 +640,7 @@ export async function addOrderAccompaniment(
     .eq('structure_id', session.structureId)
     .single();
 
-  if (orderError || !order) return { success: false, error: 'Order not found' };
+  if (orderError || !order) return { success: false, error: await te('errors.orderNotFound') };
 
   // Parent order item (product line).
   const { data: parentItem, error: parentError } = await admin
@@ -630,7 +651,7 @@ export async function addOrderAccompaniment(
     .single();
 
   if (parentError || !parentItem || parentItem.parent_order_item_id) {
-    return { success: false, error: 'Parent item not found' };
+    return { success: false, error: await te('errors.parentItemNotFound') };
   }
 
   // Mapping product -> accompaniment
@@ -643,7 +664,7 @@ export async function addOrderAccompaniment(
     .single();
 
   if (mappingError || !mapping) {
-    return { success: false, error: 'Accompaniment not configured' };
+    return { success: false, error: await te('errors.accompanimentNotConfigured') };
   }
 
   // Accompaniment price snapshot
@@ -655,7 +676,7 @@ export async function addOrderAccompaniment(
     .single();
 
   if (accError || !acc || !acc.is_available || acc.is_deleted) {
-    return { success: false, error: 'Accompaniment invalid/unavailable' };
+    return { success: false, error: await te('errors.accompanimentUnavailable') };
   }
 
   const unitPrice = Number(acc.price);
@@ -683,7 +704,7 @@ export async function addOrderAccompaniment(
       })
       .eq('id', existing.id);
 
-    if (updateErr) return { success: false, error: 'Failed to update accompaniment' };
+    if (updateErr) return { success: false, error: await te('errors.accompanimentUpdateFailed') };
   } else {
     const { data: inserted, error: insertErr } = await admin
       .from('order_accompaniments')
@@ -699,7 +720,7 @@ export async function addOrderAccompaniment(
       .select('id')
       .single();
 
-    if (insertErr || !inserted) return { success: false, error: 'Failed to add accompaniment' };
+    if (insertErr || !inserted) return { success: false, error: await te('errors.accompanimentAddFailed') };
   }
 
   await updateOrderTotal(orderId);
@@ -708,7 +729,7 @@ export async function addOrderAccompaniment(
 
 export async function setOrderItemPriceCounted(itemId: string, priceCounted: boolean) {
   const session = await getSession();
-  if (!session) return { success: false, error: 'Unauthorized' };
+  if (!session) return { success: false, error: await te('errors.unauthorized') };
 
   const admin = getAdminSupabase();
 
@@ -719,7 +740,7 @@ export async function setOrderItemPriceCounted(itemId: string, priceCounted: boo
     .eq('id', itemId)
     .single();
 
-  if (itemError || !item) return { success: false, error: 'Item not found' };
+  if (itemError || !item) return { success: false, error: await te('errors.itemNotFound') };
 
   const { data: order, error: orderError } = await admin
     .from('orders')
@@ -728,14 +749,14 @@ export async function setOrderItemPriceCounted(itemId: string, priceCounted: boo
     .eq('structure_id', session.structureId)
     .single();
 
-  if (orderError || !order) return { success: false, error: 'Order not found' };
+  if (orderError || !order) return { success: false, error: await te('errors.orderNotFound') };
 
   const { error: updateErr } = await admin
     .from('order_accompaniments')
     .update({ is_price_counted: priceCounted })
     .eq('id', itemId);
 
-  if (updateErr) return { success: false, error: 'Failed to update price flag' };
+  if (updateErr) return { success: false, error: await te('errors.priceFlagFailed') };
 
   await updateOrderTotal(item.order_id);
   return { success: true };
@@ -774,7 +795,8 @@ export async function updateOrderTotal(orderId: string) {
   // 3. Handle Promotions Logic & Tip & Manual Discount
   const { data: order } = await admin
     .from('orders')
-    .select('structure_id, promotion_id, tip_amount, discount_amount, takeaway_fee')
+    // * : tolère l'absence de delivery_fee avant docs/phase10-delivery.sql
+    .select('*')
     .eq('id', orderId)
     .single();
 
@@ -867,25 +889,35 @@ export async function updateOrderTotal(orderId: string) {
   const manualDiscount = Number(order.discount_amount) || 0;
   const tipAmount = Number(order.tip_amount) || 0;
   const takeawayFee = Number(order.takeaway_fee) || 0;
+  const deliveryFee = Number(order.delivery_fee) || 0;
   
   // Le total de la remise globale est la somme de la remise promo et de la remise manuelle
   const promoDiscountAmount = subtotal - runningSubtotal;
   const totalDiscount = promoDiscountAmount + manualDiscount;
   
-  // Le total final inclut le pourboire et les frais d'emballage
-  const finalTotal = Math.round(Math.max(0, runningSubtotal - manualDiscount)) + tipAmount + takeawayFee;
+  // TVA selon le régime du point (prix TTC : extraite ; prix HT : ajoutée).
+  // Base taxable : ventes nettes de remises + frais d'emballage et de livraison.
+  // Le pourboire n'est pas une recette taxable : il s'ajoute après la TVA.
+  const taxSettings = await getStructureTaxSettings(order.structure_id);
+  const taxable = Math.max(0, runningSubtotal - manualDiscount) + takeawayFee + deliveryFee;
+  const { tax, total: taxedTotal } = computeTax(taxable, taxSettings);
+  const finalTotal = taxedTotal + tipAmount;
 
   await admin
     .from('orders')
     .update({
       subtotal,
       discount_amount: totalDiscount,
+      tax,
       total: finalTotal,
     })
     .eq('id', orderId);
+
+  await saveTaxSnapshot('orders', orderId, taxSettings);
 }
 
 import { processOrderStock } from './stock';
+import { te } from '@/lib/i18n/server';
 
 export async function updateOrderStatus(
   orderId: string,
@@ -893,23 +925,23 @@ export async function updateOrderStatus(
 ) {
   const session = await getSession();
   if (!session) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   // Check if shift is open for structure
   const activeShift = await getStructureActiveShift(session.structureId as string);
   if (!activeShift) {
-    return { success: false, error: 'La caisse doit être ouverte pour traiter une commande.' };
+    return { success: false, error: await te('errors.registerClosedOrder') };
   }
 
   // ROLE ENFORCEMENT: Server cannot validate (COMPLETED) or cancel
   if (session.role === 'SERVEUR' && ['COMPLETED', 'CANCELLED'].includes(status)) {
-    return { success: false, error: 'Seuls les administrateurs ou caissiers peuvent effectuer cette opération.' };
+    return { success: false, error: await te('errors.cashierOnly') };
   }
 
   // General unauthorized check for non-management
   if (!['ADMIN', 'CAISSE', 'SUPER_ADMIN', 'SERVEUR'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   try {
@@ -927,7 +959,7 @@ export async function updateOrderStatus(
       .eq('structure_id', session.structureId);
 
     if (error) {
-      return { success: false, error: 'Failed to update order' };
+      return { success: false, error: await te('errors.orderUpdateFailed') };
     }
 
     // REDUIRE LE STOCK SI COMMANDE TERMINEE
@@ -942,8 +974,13 @@ export async function updateOrderStatus(
       await notifyUser({
         userId: targetUserId,
         structureId: session.structureId!,
-        title: `Mise à jour de votre commande`,
-        body: `Votre commande ${orderId.slice(0, 8)} est maintenant : ${status}`,
+        message: ({ t }) => ({
+          title: t('notify.orderUpdated.title'),
+          body: t('notify.orderUpdated.body', {
+            ref: orderId.slice(0, 8),
+            status: t(`orders.status.${status as 'PENDING'}`),
+          }),
+        }),
         url: `/history`,
       });
     }
@@ -951,14 +988,14 @@ export async function updateOrderStatus(
     return { success: true };
   } catch (error) {
     console.error('Update order status error:', error);
-    return { success: false, error: 'Failed to update order' };
+    return { success: false, error: await te('errors.orderUpdateFailed') };
   }
 }
 
 export async function removeOrderItem(itemId: string) {
   const session = await getSession();
   if (!session) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   try {
@@ -977,7 +1014,7 @@ export async function removeOrderItem(itemId: string) {
       .eq('id', itemId);
 
     if (error) {
-      return { success: false, error: 'Failed to remove item' };
+      return { success: false, error: await te('errors.itemRemoveFailed') };
     }
 
     if (item) {
@@ -987,14 +1024,14 @@ export async function removeOrderItem(itemId: string) {
     return { success: true };
   } catch (error) {
     console.error('Remove order item error:', error);
-    return { success: false, error: 'Failed to remove item' };
+    return { success: false, error: await te('errors.itemRemoveFailed') };
   }
 }
 
 export async function removeOrderAccompaniment(orderAccompanimentId: string) {
   const session = await getSession();
   if (!session) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   try {
@@ -1007,7 +1044,7 @@ export async function removeOrderAccompaniment(orderAccompanimentId: string) {
       .single();
 
     if (existingErr || !existing) {
-      return { success: false, error: 'Accompaniment choice not found' };
+      return { success: false, error: await te('errors.accompanimentChoiceNotFound') };
     }
 
     const { data: order, error: orderErr } = await admin
@@ -1018,7 +1055,7 @@ export async function removeOrderAccompaniment(orderAccompanimentId: string) {
       .single();
 
     if (orderErr || !order) {
-      return { success: false, error: 'Order not found' };
+      return { success: false, error: await te('errors.orderNotFound') };
     }
 
     const { error: deleteErr } = await admin
@@ -1027,14 +1064,14 @@ export async function removeOrderAccompaniment(orderAccompanimentId: string) {
       .eq('id', orderAccompanimentId);
 
     if (deleteErr) {
-      return { success: false, error: 'Failed to remove accompaniment' };
+      return { success: false, error: await te('errors.accompanimentRemoveFailed') };
     }
 
     await updateOrderTotal(existing.order_id);
     return { success: true };
   } catch (error) {
     console.error('Remove order accompaniment error:', error);
-    return { success: false, error: 'Failed to remove item' };
+    return { success: false, error: await te('errors.itemRemoveFailed') };
   }
 }
 
@@ -1049,7 +1086,7 @@ export async function getOrder(orderId: string) {
 
     const { data: order } = await admin
       .from('orders')
-      .select('*, structures(name), rooms(number), tables(name, floor_name), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))')
+      .select('*, structures(*), rooms(number), tables(name, floor_name), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))')
       .eq('id', orderId)
       .eq('structure_id', session.structureId)
       .single();
@@ -1070,7 +1107,7 @@ export async function getOrders(
 
     let query = admin
       .from('orders')
-      .select('*, structures(name), rooms(number), tables(name, floor_name), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))')
+      .select('*, structures(*), rooms(number), tables(name, floor_name), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))')
       .eq('structure_id', structureId)
       .order('created_at', { ascending: false })
       .limit(limit);

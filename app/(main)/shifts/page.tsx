@@ -4,9 +4,11 @@ import { ShiftsHistoryTable } from '@/components/shifts-history-table';
 import { History, BarChart3, Receipt, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { getT } from '@/lib/i18n/server';
 
 export default async function ShiftsHistoryPage() {
   const session = await requireRole('ADMIN', 'SUPER_ADMIN');
+  const { t } = await getT();
   const shifts = await getAllShifts(session.structureId!);
 
   return (
@@ -23,18 +25,18 @@ export default async function ShiftsHistoryPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
               <History className="w-4 h-4 text-blue-400" />
-              <span className="text-sm text-blue-400 font-medium">Audit financier</span>
+              <span className="text-sm text-blue-400 font-medium">{t('analytics.shifts.badge')}</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
-              Historique des Sessions
+              {t('analytics.shifts.title')}
             </h1>
-            <p className="text-slate-400">Archives de toutes les ouvertures et clôtures de caisse</p>
+            <p className="text-slate-400">{t('analytics.shifts.subtitle')}</p>
           </div>
           <div className="flex items-center gap-2">
             <Link href="/statistics">
               <Button variant="ghost" className="text-slate-400 hover:text-white">
                 <BarChart3 className="w-4 h-4 mr-2" />
-                Statistiques
+                {t('analytics.shifts.statistics')}
               </Button>
             </Link>
           </div>
@@ -47,10 +49,10 @@ export default async function ShiftsHistoryPage() {
                 <div className="p-3 rounded-xl bg-blue-500/10 text-blue-400">
                    <Receipt className="w-6 h-6" />
                 </div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900/50 px-2 py-1 rounded">Volume</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900/50 px-2 py-1 rounded">{t('analytics.shifts.volume')}</span>
              </div>
              <p className="text-3xl font-black text-white">{shifts.length}</p>
-             <p className="text-sm text-slate-500">Sessions enregistrées</p>
+             <p className="text-sm text-slate-500">{t('analytics.shifts.recorded')}</p>
           </div>
 
           <div className="p-6 rounded-2xl bg-slate-800/40 border border-slate-700/50 backdrop-blur-xl group hover:border-red-500/30 transition-all duration-300">
@@ -58,12 +60,12 @@ export default async function ShiftsHistoryPage() {
                 <div className="p-3 rounded-xl bg-red-500/10 text-red-400">
                    <TrendingDown className="w-6 h-6" />
                 </div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900/50 px-2 py-1 rounded">Audit</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900/50 px-2 py-1 rounded">{t('analytics.shifts.audit')}</span>
              </div>
              <p className="text-3xl font-black text-red-400">
                {shifts.filter(s => Number(s.difference) < 0).length}
              </p>
-             <p className="text-sm text-slate-500">Sessions avec écart négatif</p>
+             <p className="text-sm text-slate-500">{t('analytics.shifts.negative')}</p>
           </div>
 
           <div className="p-6 rounded-2xl bg-slate-800/40 border border-slate-700/50 backdrop-blur-xl group hover:border-green-500/30 transition-all duration-300">
@@ -71,12 +73,12 @@ export default async function ShiftsHistoryPage() {
                 <div className="p-3 rounded-xl bg-green-500/10 text-green-400">
                    <CheckCircle className="w-6 h-6" />
                 </div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900/50 px-2 py-1 rounded">Opérationnel</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900/50 px-2 py-1 rounded">{t('analytics.shifts.operational')}</span>
              </div>
              <p className="text-3xl font-black text-green-400">
                 {shifts.filter(s => s.status === 'OPEN').length}
              </p>
-             <p className="text-sm text-slate-500">Session(s) actuellement ouverte(s)</p>
+             <p className="text-sm text-slate-500">{t('analytics.shifts.open')}</p>
           </div>
         </div>
 
@@ -87,7 +89,7 @@ export default async function ShiftsHistoryPage() {
         <div className="mt-8 p-4 rounded-lg bg-blue-500/5 border border-blue-500/10 flex items-center gap-3 text-sm text-blue-300/80">
           <History className="w-5 h-5 text-blue-400 shrink-0" />
           <p>
-            Toutes les données de session sont sécurisées et ne peuvent pas être modifiées après clôture.
+            {t('analytics.shifts.footer')}
           </p>
         </div>
       </div>

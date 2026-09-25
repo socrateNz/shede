@@ -1,0 +1,56 @@
+import type fr from '../fr/displays';
+
+const displays: typeof fr = {
+  meta: {
+    kitchenTitle: 'Kitchen — Shede',
+    kitchenDescription: 'Kitchen display',
+    barTitle: 'Bar — Shede',
+    barDescription: 'Bar display',
+  },
+  noStructure: 'No establishment is linked to this account.',
+  realtime: 'Real time',
+  connecting: 'Connecting…',
+  refresh: 'Refresh',
+  new: 'NEW',
+  inProgress: 'IN PROGRESS',
+  table: 'Table {number}',
+  room: 'Room',
+  takeaway: 'Takeaway',
+  updateError: 'The order could not be updated',
+  kitchen: {
+    title: 'Kitchen display',
+    subtitle: 'Orders to prepare in the kitchen',
+    pendingCount: '{count} waiting',
+    inProgressCount: '{count} in progress',
+    start: 'Start',
+    ready: 'Ready!',
+    started: 'Order in preparation',
+    markedReady: 'Order ready',
+    emptyTitle: 'No active orders',
+    emptyText: 'New orders will appear here automatically',
+    pendingColumn: 'Waiting ({count})',
+    noPending: 'No orders waiting',
+    inProgressColumn: 'In preparation ({count})',
+    noInProgress: 'No orders in progress',
+  },
+  bar: {
+    title: 'Bar display',
+    subtitle: 'Drinks and bar orders',
+    served: 'Served',
+    markedReady: 'Order marked as ready',
+    emptyTitle: 'No bar orders',
+    emptyText: 'Drink orders will appear here',
+    tip: 'Tip: products must have “Bar” as their destination.',
+  },
+  notifications: {
+    title: 'Notification centre',
+    subtitle: 'Stay informed about your establishment’s activity',
+    markAllRead: 'Mark all as read',
+    recent: 'Recent history',
+    empty: 'No notifications yet.',
+    view: 'View details',
+    markRead: 'Mark as read',
+  },
+};
+
+export default displays;

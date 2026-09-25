@@ -23,6 +23,7 @@ import {
 import { deleteProduct } from '@/app/actions/products';
 import { useState, useMemo } from 'react';
 import { TablePagination } from './table-pagination';
+import { useT } from '@/lib/i18n/client';
 
 interface ProductsListProps {
   products: Product[];
@@ -31,6 +32,7 @@ interface ProductsListProps {
 
 export function ProductsList({ products, onProductDeleted }: ProductsListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { t, format } = useT();
   const [currentPage, setCurrentPage] = useState(1);
   const [destinationFilter, setDestinationFilter] = useState<string>('ALL');
   const itemsPerPage = 10;
@@ -51,7 +53,7 @@ export function ProductsList({ products, onProductDeleted }: ProductsListProps) 
   }
 
   const handleDelete = async (productId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) return;
+    if (!confirm(t('products.list.confirmDelete'))) return;
 
     setDeletingId(productId);
     const res = await deleteProduct(productId);
@@ -87,21 +89,21 @@ export function ProductsList({ products, onProductDeleted }: ProductsListProps) 
           }}
           className="bg-slate-900/50 border border-slate-600 text-slate-50 rounded-lg py-2 px-3 text-sm focus:border-blue-500 focus:ring-blue-500/20"
         >
-          <option value="ALL">Toutes les destinations</option>
-          <option value="CUISINE">Cuisine</option>
-          <option value="BAR">Bar</option>
+          <option value="ALL">{t('products.list.allDestinations')}</option>
+          <option value="CUISINE">{t('products.destination.CUISINE')}</option>
+          <option value="BAR">{t('products.destination.BAR')}</option>
         </select>
       </div>
       <div className="rounded-xl border border-slate-700/50 overflow-hidden bg-slate-800/30">
         <Table>
           <TableHeader>
             <TableRow className="border-slate-700 hover:bg-transparent bg-slate-800/50">
-              <TableHead className="text-slate-300 font-semibold">Nom</TableHead>
-              <TableHead className="text-slate-300 font-semibold">Catégorie</TableHead>
-              <TableHead className="text-slate-300 font-semibold">Destination</TableHead>
-              <TableHead className="text-slate-300 font-semibold text-right">Prix</TableHead>
-            <TableHead className="text-slate-300 font-semibold">Disponibilité</TableHead>
-            <TableHead className="text-slate-300 font-semibold text-right">Actions</TableHead>
+              <TableHead className="text-slate-300 font-semibold">{t('products.list.colName')}</TableHead>
+              <TableHead className="text-slate-300 font-semibold">{t('products.list.colCategory')}</TableHead>
+              <TableHead className="text-slate-300 font-semibold">{t('products.list.colDestination')}</TableHead>
+              <TableHead className="text-slate-300 font-semibold text-right">{t('products.list.colPrice')}</TableHead>
+            <TableHead className="text-slate-300 font-semibold">{t('products.list.colAvailability')}</TableHead>
+            <TableHead className="text-slate-300 font-semibold text-right">{t('products.list.colActions')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -145,11 +147,11 @@ export function ProductsList({ products, onProductDeleted }: ProductsListProps) 
                     ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' 
                     : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
                 }`}>
-                  {(product.destination || 'CUISINE') === 'CUISINE' ? 'Cuisine' : 'Bar'}
+                  {(product.destination || 'CUISINE') === 'CUISINE' ? t('products.destination.CUISINE') : t('products.destination.BAR')}
                 </span>
               </TableCell>
               <TableCell className="text-slate-50 text-right font-bold">
-                {product.price.toLocaleString()} FCFA
+                {format.money(product.price)}
               </TableCell>
               <TableCell>
                 <span
@@ -161,12 +163,12 @@ export function ProductsList({ products, onProductDeleted }: ProductsListProps) 
                   {product.is_available ? (
                     <>
                       <CheckCircle className="w-3 h-3" />
-                      Disponible
+                      {t('products.list.available')}
                     </>
                   ) : (
                     <>
                       <XCircle className="w-3 h-3" />
-                      Indisponible
+                      {t('products.list.unavailable')}
                     </>
                   )}
                 </span>
@@ -189,7 +191,7 @@ export function ProductsList({ products, onProductDeleted }: ProductsListProps) 
                     <Link href={`/products/${product.id}`}>
                       <DropdownMenuItem className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700 gap-2">
                         <Edit2 className="w-4 h-4 text-blue-400" />
-                        <span>Modifier</span>
+                        <span>{t('common.edit')}</span>
                       </DropdownMenuItem>
                     </Link>
                     <DropdownMenuSeparator className="bg-slate-700" />
@@ -203,7 +205,7 @@ export function ProductsList({ products, onProductDeleted }: ProductsListProps) 
                       ) : (
                         <Trash2 className="w-4 h-4" />
                       )}
-                      <span>Supprimer</span>
+                      <span>{t('common.delete')}</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

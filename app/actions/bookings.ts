@@ -3,8 +3,10 @@
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
-import { notifyUser } from '@/app/actions/push';
+import { notifyUser } from '@/lib/notifications';
 import { getActiveShift, getStructureActiveShift } from './shifts';
+import { assignInvoiceNumber, priceBooking, saveBookingTax } from '@/lib/fiscal';
+import { te } from '@/lib/i18n/server';
 
 export async function getBookings(structureId: string) {
   const session = await getSession();
@@ -18,7 +20,7 @@ export async function getBookings(structureId: string) {
       .from('bookings')
       .select(`
         *,
-        rooms!inner(id, number, type, structure_id, price),
+        rooms!inner(id, number, type, structure_id, price, structures(*)),
         users!bookings_client_id_fkey(id, first_name, last_name, email)
       `)
       .eq('rooms.structure_id', structureId)
@@ -30,7 +32,7 @@ export async function getBookings(structureId: string) {
         .from('bookings')
         .select(`
           *,
-          rooms!inner(id, number, type, structure_id),
+          rooms!inner(id, number, type, structure_id, price, structures(*)),
           users:client_id(id, first_name, last_name, email)
         `)
         .eq('rooms.structure_id', structureId)
@@ -55,13 +57,13 @@ export async function createBooking(
 ) {
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN', 'RECEPTION'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   // Check if shift is open
   const activeShift = await getActiveShift();
   if (!activeShift && ['ADMIN', 'RECEPTION'].includes(session.role)) {
-    return { success: false, error: 'La caisse doit être ouverte pour effectuer cette opération.' };
+    return { success: false, error: await te('errors.registerClosed') };
   }
 
   const roomId = String(formData.get('roomId') || '');
@@ -72,7 +74,7 @@ export async function createBooking(
   const checkOut = String(formData.get('checkOut') || '');
 
   if (!roomId || !checkIn || !checkOut || !phone) {
-    return { success: false, error: 'Room, dates, and phone number are required' };
+    return { success: false, error: await te('errors.roomDatesPhoneRequired') };
   }
 
   try {
@@ -86,7 +88,7 @@ export async function createBooking(
       .single();
 
     if (!room || room.structure_id !== session.structureId) {
-      return { success: false, error: 'Invalid room' };
+      return { success: false, error: await te('errors.invalidRoom') };
     }
 
     // Checking for overlapping bookings
@@ -103,7 +105,7 @@ export async function createBooking(
 
     if (overlapError) {
        console.error('Overlap check error:', overlapError);
-       return { success: false, error: 'Erreur lors de la vérification des disponibilités' };
+       return { success: false, error: await te('errors.availabilityCheckFailed') };
     }
 
     if (overlappingBookings && overlappingBookings.length > 0) {
@@ -111,15 +113,15 @@ export async function createBooking(
          `du ${new Date(c.check_in).toLocaleDateString('fr-FR')} au ${new Date(c.check_out).toLocaleDateString('fr-FR')}`
        );
        const message = periods.length === 1 
-         ? `Cette chambre est déjà prise pour la période ${periods[0]}.`
-         : `Cette chambre est déjà prise pour les dates suivantes : ${periods.join(', ')}.`;
+         ? await te('errors.roomTakenPeriod', { period: periods[0] })
+         : await te('errors.roomTakenDates', { dates: periods.join(', ') });
        return { success: false, error: message };
     }
 
     const nights = Math.max(1, Math.ceil((new Date(parsedCheckOut).getTime() - new Date(parsedCheckIn).getTime()) / (1000 * 60 * 60 * 24)));
-    const totalAmount = nights * (room.price || 0);
+    const pricing = await priceBooking(session.structureId as string, nights, room.price || 0);
 
-    const { error } = await admin.from('bookings').insert({
+    const { data: created, error } = await admin.from('bookings').insert({
       room_id: roomId,
       client_id: clientId,
       check_in: parsedCheckIn,
@@ -127,12 +129,13 @@ export async function createBooking(
       status: 'CONFIRMED',
       phone: phone || null,
       guest_name: clientName || null,
-      total_amount: totalAmount
-    });
+      total_amount: pricing.total
+    }).select('id').single();
 
-    if (error) {
-      return { success: false, error: 'Failed to create booking' };
+    if (error || !created) {
+      return { success: false, error: await te('errors.bookingCreateFailed') };
     }
+    await saveBookingTax(created.id, pricing.tax, pricing.settings);
 
     // Mark room as occupied if it's currently check-in date
     // Simple logic: if check-in is today, mark occupied.
@@ -144,20 +147,20 @@ export async function createBooking(
     return { success: true, error: '' };
   } catch (error) {
     console.error('Create booking error:', error);
-    return { success: false, error: 'An unexpected error occurred' };
+    return { success: false, error: await te('errors.unexpected') };
   }
 }
 
 export async function updateBookingStatus(bookingId: string, status: string, roomId: string) {
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN', 'RECEPTION'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   // Check if shift is open for structure
   const activeShift = await getStructureActiveShift(session.structureId as string);
   if (!activeShift) {
-    return { success: false, error: 'La caisse doit être ouverte pour modifier le statut d\'une réservation.' };
+    return { success: false, error: await te('errors.registerClosedBooking') };
   }
 
   try {
@@ -169,7 +172,7 @@ export async function updateBookingStatus(bookingId: string, status: string, roo
       .eq('id', bookingId);
 
     if (error) {
-      return { success: false, error: 'Failed to update status' };
+      return { success: false, error: await te('errors.statusUpdateFailed') };
     }
 
     // Auto-update room status based on booking status
@@ -185,8 +188,13 @@ export async function updateBookingStatus(bookingId: string, status: string, roo
       await notifyUser({
         userId: booking.client_id,
         structureId: session.structureId!,
-        title: `Mise à jour de votre réservation`,
-        body: `Votre réservation ${bookingId.slice(0, 8)} est désormais : ${status}`,
+        message: ({ t }) => ({
+          title: t('notify.bookingUpdated.title'),
+          body: t('notify.bookingUpdated.body', {
+            ref: bookingId.slice(0, 8),
+            status: t(`hotel.bookingStatus.${status as 'PENDING'}`),
+          }),
+        }),
         url: `/history`,
       });
     }
@@ -194,20 +202,20 @@ export async function updateBookingStatus(bookingId: string, status: string, roo
     revalidatePath('/bookings');
     return { success: true };
   } catch (error) {
-    return { success: false, error: 'An unexpected error occurred' };
+    return { success: false, error: await te('errors.unexpected') };
   }
 }
 
 export async function markBookingAsPaid(bookingId: string) {
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN', 'RECEPTION'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   // Check if shift is open for structure
   const activeShift = await getStructureActiveShift(session.structureId as string);
   if (!activeShift) {
-    return { success: false, error: 'La caisse doit être ouverte pour effectuer cette opération.' };
+    return { success: false, error: await te('errors.registerClosed') };
   }
 
   try {
@@ -221,13 +229,16 @@ export async function markBookingAsPaid(bookingId: string) {
 
     if (error) {
       console.error('markBookingAsPaid error:', error);
-      return { success: false, error: 'Failed to record payment' };
+      return { success: false, error: await te('errors.bookingPaymentFailed') };
     }
+
+    // Numéro de facture continu du point (idempotent).
+    await assignInvoiceNumber('BOOKING', bookingId);
 
     revalidatePath('/bookings');
     return { success: true };
   } catch (error) {
-    return { success: false, error: 'An unexpected error occurred' };
+    return { success: false, error: await te('errors.unexpected') };
   }
 }
 

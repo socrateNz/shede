@@ -1,4 +1,5 @@
 import { requireRole } from '@/app/actions/auth';
+import { getT } from '@/lib/i18n/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import type { Product } from '@/lib/supabase';
 import { ProductEditForm } from '@/components/product-edit-form';
@@ -12,6 +13,7 @@ export default async function EditProductPage({
   params: { id: string };
 }) {
   const session = await requireRole('ADMIN');
+  const { t, format } = await getT();
   const admin = getAdminSupabase();
 
   const productId = (await params).id;
@@ -30,7 +32,7 @@ export default async function EditProductPage({
           <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-red-400">
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 bg-red-400 rounded-full" />
-              Produit non trouvé
+              {t('products.form.notFound')}
             </div>
           </div>
         </div>
@@ -81,19 +83,19 @@ export default async function EditProductPage({
           className="inline-flex items-center gap-2 text-slate-400 hover:text-blue-400 mb-6 transition-all duration-300 group"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span>Retour aux produits</span>
+          <span>{t('products.form.back')}</span>
         </Link>
 
         {/* Header */}
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
             <Package className="w-4 h-4 text-blue-400" />
-            <span className="text-sm text-blue-400 font-medium">Modification du produit</span>
+            <span className="text-sm text-blue-400 font-medium">{t('products.form.editBadge')}</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
-            Modifier le produit
+            {t('products.form.editTitle')}
           </h1>
-          <p className="text-slate-400">Mettez à jour les informations de votre produit</p>
+          <p className="text-slate-400">{t('products.form.editSubtitle')}</p>
         </div>
 
         {/* Info Card */}
@@ -102,20 +104,20 @@ export default async function EditProductPage({
           <CardHeader className="border-b border-slate-700/50 pb-4">
             <CardTitle className="text-slate-50 flex items-center gap-2 text-lg">
 
-              Informations générales
+              {t('products.form.general')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div className="flex items-center gap-2 text-slate-400">
                 <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                <span>Produit :</span>
+                <span>{t('products.form.currentProduct')}</span>
                 <span className="text-white font-medium">{product.name}</span>
               </div>
               <div className="flex items-center gap-2 text-slate-400">
                 <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                <span>Prix actuel :</span>
-                <span className="text-white font-medium">{product.price.toLocaleString()} FCFA</span>
+                <span>{t('products.form.currentPrice')}</span>
+                <span className="text-white font-medium">{format.money(product.price)}</span>
               </div>
             </div>
           </CardContent>

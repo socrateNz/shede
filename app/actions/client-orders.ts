@@ -2,20 +2,22 @@
 
 import { getAdminSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
-import { notifyStructureStaff } from '@/app/actions/push';
+import { notifyStructureStaff } from '@/lib/notifications';
 import { validatePromoCode, recordPromoUsage } from './promotions';
 import { updateOrderTotal } from './orders';
+import { resolveDelivery, type DeliveryRequest } from '@/lib/delivery';
+import { te } from '@/lib/i18n/server';
 
 export async function createClientOrder(
   structureId: string, 
   items: { id: string, productId: string, name: string, quantity: number, price: number, selectedAccompaniments?: any[] }[],
-  options?: { roomId?: string, tableNumber?: string | number, tableId?: string, consumptionType?: string, takeawayFee?: number, notes?: string, clientId?: string, phone?: string, promoCode?: string }
+  options?: { roomId?: string, tableNumber?: string | number, tableId?: string, consumptionType?: string, takeawayFee?: number, notes?: string, clientId?: string, phone?: string, promoCode?: string, delivery?: DeliveryRequest }
 ) {
   if (!structureId || items.length === 0) {
-    return { success: false, error: 'Structure ID and items are required' };
+    return { success: false, error: await te('errors.orderStructureItemsRequired') };
   }
   if (!options?.phone) {
-    return { success: false, error: 'Phone number is required' };
+    return { success: false, error: await te('errors.phoneRequired') };
   }
 
   try {
@@ -30,11 +32,27 @@ export async function createClientOrder(
     if (options?.promoCode) {
        const validation = await validatePromoCode(options.promoCode, structureId, clientId || undefined, options.phone);
        if (!validation.valid) {
-          return { success: false, error: validation.error || 'Code promo invalide' };
+          return { success: false, error: validation.error || await te('errors.invalidPromoCode') };
        }
        verifiedPromo = validation;
     }
     
+    // Livraison : zone, frais et adresse vérifiés côté serveur.
+    const isDelivery = options?.consumptionType === 'DELIVERY';
+    let deliveryFields = {};
+    if (isDelivery) {
+      const delivery = await resolveDelivery(structureId, { ...options?.delivery, phone: options?.phone });
+      if ('error' in delivery) return { success: false, error: delivery.error };
+      deliveryFields = delivery.fields;
+    }
+
+    // Frais d'emballage : toujours le tarif du point, jamais la valeur envoyée par le navigateur.
+    let takeawayFee = 0;
+    if (options?.consumptionType === 'TAKEAWAY') {
+      const { data: structureFees } = await admin.from('structures').select('takeaway_fee').eq('id', structureId).maybeSingle();
+      takeawayFee = Number(structureFees?.takeaway_fee) || 0;
+    }
+
     const { data: order, error: orderError } = await admin
       .from('orders')
       .insert({
@@ -49,17 +67,18 @@ export async function createClientOrder(
         notes: options?.notes || null,
         status: 'PENDING',
         consumption_type: options?.consumptionType || 'DINE_IN',
-        takeaway_fee: options?.takeawayFee || 0,
+        takeaway_fee: takeawayFee,
         subtotal: 0,
         total: 0,
         promotion_id: verifiedPromo?.promotionId || null,
+        ...deliveryFields,
       })
       .select('id')
       .single();
 
     if (orderError || !order) {
       console.error('Order creation error:', orderError);
-      return { success: false, error: 'Failed to create order' };
+      return { success: false, error: await te('errors.orderCreateFailed') };
     }
 
     // 2. Fetch real original prices from the database
@@ -119,7 +138,7 @@ export async function createClientOrder(
 
     if (itemsError || !insertedItems) {
       console.error('Order items error:', itemsError);
-      return { success: false, error: 'Failed to add items to order' };
+      return { success: false, error: await te('errors.itemsAddFailed') };
     }
 
     // 3. Insert specific order accompaniments
@@ -164,8 +183,10 @@ export async function createClientOrder(
 
     await notifyStructureStaff({
       structureId: structureId,
-      title: 'Nouvelle commande (Web)',
-      body: `Commande ${order.id.slice(0, 8)} reçue du client en ligne.`,
+      message: ({ t }) => ({
+        title: t('notify.webOrder.title'),
+        body: t('notify.webOrder.body', { ref: order.id.slice(0, 8) }),
+      }),
       url: `/orders/${order.id}`,
       roles: ['ADMIN', 'CAISSE', 'SERVEUR', 'SUPER_ADMIN'],
     });
@@ -173,6 +194,6 @@ export async function createClientOrder(
     return { success: true, orderId: order.id };
   } catch (error) {
     console.error('Create client order exception:', error);
-    return { success: false, error: 'Unexpected error occurred' };
+    return { success: false, error: await te('errors.unexpected') };
   }
 }

@@ -6,6 +6,7 @@ import type { Structure } from '@/lib/supabase';
 import { Sidebar } from '@/components/sidebar';
 import { TopNav } from '@/components/top-nav';
 import { useAppStore } from '@/lib/store';
+import { useT } from '@/lib/i18n/client';
 
 export function MainShell({
   session,
@@ -17,6 +18,7 @@ export function MainShell({
   children: React.ReactNode;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { t } = useT();
   const setActiveStructure = useAppStore(state => state.setActiveStructure);
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export function MainShell({
       {mobileNavOpen ? (
         <button
           type="button"
-          aria-label="Fermer le menu"
+          aria-label={t('nav.closeMenu')}
           className="fixed inset-0 z-40 bg-black/60 lg:hidden print:hidden"
           onClick={() => setMobileNavOpen(false)}
         />

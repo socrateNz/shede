@@ -9,11 +9,12 @@ import Link from 'next/link';
 import { FloorManagerClient } from '@/components/floor-manager-client';
 import { AddTableDialog } from '@/components/add-table-dialog';
 import { revalidatePath } from 'next/cache';
+import { getT } from '@/lib/i18n/server';
 
-export const metadata = {
-  title: 'Plan de salle — Shede',
-  description: 'Gestion interactive des tables',
-};
+export async function generateMetadata() {
+  const { t } = await getT();
+  return { title: t('floor.meta.title'), description: t('floor.meta.description') };
+}
 
 async function getActiveOrders(structureId: string) {
   const admin = getAdminSupabase();
@@ -27,6 +28,7 @@ async function getActiveOrders(structureId: string) {
 
 export default async function FloorManagerPage() {
   const session = await requireRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SERVEUR', 'CAISSE');
+  const { t } = await getT();
 
   const tables = await getTables();
   const floors = await getFloors();
@@ -45,19 +47,19 @@ export default async function FloorManagerPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-indigo-500/10 to-blue-500/10 border border-indigo-500/20 mb-4 backdrop-blur-sm">
               <LayoutDashboard className="w-4 h-4 text-indigo-400" />
-              <span className="text-sm text-indigo-400 font-medium">Floor Manager</span>
+              <span className="text-sm text-indigo-400 font-medium">{t('floor.page.badge')}</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
-              Plan de salle
+              {t('floor.page.title')}
             </h1>
-            <p className="text-slate-400">Gérez la disposition de vos tables et surveillez l'occupation</p>
+            <p className="text-slate-400">{t('floor.page.subtitle')}</p>
           </div>
 
           <div className="flex items-center gap-3">
             <Link href="/floor-manager/qrcodes">
               <Button variant="outline" className="border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/10">
                 <QrCode className="w-4 h-4 mr-2" />
-                Imprimer QR Codes
+                {t('floor.page.printQr')}
               </Button>
             </Link>
             <AddTableDialog floors={floors} />

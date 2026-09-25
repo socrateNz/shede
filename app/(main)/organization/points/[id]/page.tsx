@@ -13,9 +13,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PointForm } from '@/components/organization/point-form';
 import { AdminAccountForm } from '@/components/organization/admin-account-form';
+import { getT } from '@/lib/i18n/server';
 
 export default async function PointPage({ params }: { params: Promise<{ id: string }> }) {
   await requireRole('ORG_ADMIN');
+  const { t } = await getT();
   const { id } = await params;
   const point = await getMyPoint(id);
   if (!point) notFound();
@@ -30,14 +32,14 @@ export default async function PointPage({ params }: { params: Promise<{ id: stri
           className="inline-flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Retour aux points</span>
+          <span>{t('org.newPoint.back')}</span>
         </Link>
 
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{point.name}</h1>
             <p className={isActive ? 'text-green-400' : 'text-red-400'}>
-              {isActive ? 'Point actif' : 'Point désactivé — son personnel ne peut plus se connecter'}
+              {isActive ? t('org.pointDetail.active') : t('org.pointDetail.disabled')}
             </p>
           </div>
           <form
@@ -56,7 +58,7 @@ export default async function PointPage({ params }: { params: Promise<{ id: stri
               }
             >
               <Power className="w-4 h-4 mr-2" />
-              {isActive ? 'Désactiver le point' : 'Réactiver le point'}
+              {isActive ? t('org.pointDetail.disable') : t('org.pointDetail.reactivate')}
             </Button>
           </form>
         </div>
@@ -65,14 +67,14 @@ export default async function PointPage({ params }: { params: Promise<{ id: stri
           <CardHeader className="border-b border-slate-700/50">
             <CardTitle className="text-xl text-white flex items-center gap-3">
               <Building2 className="w-5 h-5 text-blue-400" />
-              Informations du point
+              {t('org.pointDetail.infoTitle')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-8">
             <PointForm
               action={updatePoint.bind(null, point.id)}
               defaultValues={point}
-              submitLabel="Enregistrer"
+              submitLabel={t('common.save')}
             />
           </CardContent>
         </Card>
@@ -81,13 +83,13 @@ export default async function PointPage({ params }: { params: Promise<{ id: stri
           <CardHeader className="border-b border-slate-700/50">
             <CardTitle className="text-xl text-white flex items-center gap-3">
               <ShieldCheck className="w-5 h-5 text-purple-400" />
-              Administrateurs du point
+              {t('org.pointDetail.adminsTitle')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6 space-y-6">
             {point.admins.length === 0 ? (
               <p className="text-sm text-amber-400">
-                Ce point n&apos;a aucun administrateur. Ajoutez-en un pour qu&apos;il puisse être géré.
+                {t('org.pointDetail.noAdmins')}
               </p>
             ) : (
               <ul className="divide-y divide-slate-700 rounded-lg border border-slate-700">
@@ -111,7 +113,7 @@ export default async function PointPage({ params }: { params: Promise<{ id: stri
                         size="sm"
                         className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
                       >
-                        {user.is_active ? 'Désactiver' : 'Réactiver'}
+                        {user.is_active ? t('common.disable') : t('common.reactivate')}
                       </Button>
                     </form>
                   </li>
@@ -120,10 +122,10 @@ export default async function PointPage({ params }: { params: Promise<{ id: stri
             )}
 
             <div className="pt-2">
-              <p className="text-sm font-medium text-slate-300 mb-3">Ajouter un administrateur</p>
+              <p className="text-sm font-medium text-slate-300 mb-3">{t('org.pointDetail.addAdmin')}</p>
               <AdminAccountForm
                 action={addPointAdmin.bind(null, point.id)}
-                submitLabel="Ajouter l'administrateur"
+                submitLabel={t('org.pointDetail.addAdminSubmit')}
               />
             </div>
           </CardContent>

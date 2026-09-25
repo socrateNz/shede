@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Building2, Mail, MapPin, Briefcase, Phone, Home, User, Lock, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useT } from '@/lib/i18n/client';
 
 type ActionState = { success: boolean; error: string; pointId?: string };
 
@@ -58,6 +59,7 @@ export function PointForm({
   successHref = '/organization/points',
 }: PointFormProps) {
   const router = useRouter();
+  const { t } = useT();
   const [state, formAction, isPending] = useActionState(action, { success: false, error: '' });
 
   useEffect(() => {
@@ -72,42 +74,42 @@ export function PointForm({
       <div className="space-y-6">
         <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
           <Building2 className="w-4 h-4 text-blue-400" />
-          <h3 className="font-semibold">Informations du point</h3>
+          <h3 className="font-semibold">{t('org.pointForm.sectionPoint')}</h3>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          <Field icon={Building2} label="Nom du point *">
-            <Input name="pointName" defaultValue={defaultValues?.name} placeholder="Restaurant Lumière — Akwa" className={inputClass} required />
+          <Field icon={Building2} label={t('org.pointForm.name')}>
+            <Input name="pointName" defaultValue={defaultValues?.name} placeholder={t('org.pointForm.namePlaceholder')} className={inputClass} required />
           </Field>
-          <Field icon={Mail} label="Email du point *">
-            <Input name="pointEmail" type="email" defaultValue={defaultValues?.email} placeholder="akwa@restaurant.com" className={inputClass} required />
+          <Field icon={Mail} label={t('org.pointForm.email')}>
+            <Input name="pointEmail" type="email" defaultValue={defaultValues?.email} placeholder={t('org.pointForm.emailPlaceholder')} className={inputClass} required />
           </Field>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          <Field icon={MapPin} label="Ville *">
-            <Input name="city" defaultValue={defaultValues?.city} placeholder="Douala" className={inputClass} required />
+          <Field icon={MapPin} label={t('org.pointForm.city')}>
+            <Input name="city" defaultValue={defaultValues?.city} placeholder={t('org.pointForm.cityPlaceholder')} className={inputClass} required />
           </Field>
-          <Field icon={Briefcase} label="Type de point *">
+          <Field icon={Briefcase} label={t('org.pointForm.type')}>
             <select
               name="pointType"
               defaultValue={defaultValues?.type || 'RESTAURANT'}
               className="w-full bg-slate-900/50 border border-slate-600 text-slate-50 rounded-lg px-3 py-2 text-sm focus:border-blue-500 cursor-pointer"
               required
             >
-              <option value="RESTAURANT">🍽️ Restaurant</option>
-              <option value="HOTEL">🏨 Hôtel</option>
-              <option value="MIXTE">🍽️🏨 Mixte (Restaurant + Hôtel)</option>
+              <option value="RESTAURANT">{t('org.pointTypes.RESTAURANT')}</option>
+              <option value="HOTEL">{t('org.pointTypes.HOTEL')}</option>
+              <option value="MIXTE">{t('org.pointTypes.MIXTE_LONG')}</option>
             </select>
           </Field>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          <Field icon={Phone} label="Téléphone">
-            <Input name="phone" defaultValue={defaultValues?.phone ?? ''} placeholder="+237 6 00 00 00 00" className={inputClass} />
+          <Field icon={Phone} label={t('org.pointForm.phone')}>
+            <Input name="phone" defaultValue={defaultValues?.phone ?? ''} placeholder={t('org.pointForm.phonePlaceholder')} className={inputClass} />
           </Field>
-          <Field icon={Home} label="Adresse">
-            <Input name="address" defaultValue={defaultValues?.address ?? ''} placeholder="Rue de la Joie" className={inputClass} />
+          <Field icon={Home} label={t('org.pointForm.address')}>
+            <Input name="address" defaultValue={defaultValues?.address ?? ''} placeholder={t('org.pointForm.addressPlaceholder')} className={inputClass} />
           </Field>
         </div>
       </div>
@@ -116,28 +118,28 @@ export function PointForm({
         <div className="space-y-6">
           <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
             <User className="w-4 h-4 text-purple-400" />
-            <h3 className="font-semibold">Administrateur du point</h3>
+            <h3 className="font-semibold">{t('org.pointForm.sectionAdmin')}</h3>
           </div>
           <p className="text-xs text-slate-500 -mt-3">
-            Il gérera ce point de façon indépendante : équipe, produits, commandes, stock…
+            {t('org.pointForm.adminHint')}
           </p>
 
           <div className="grid md:grid-cols-2 gap-6">
-            <Field icon={User} label="Prénom *">
-              <Input name="adminFirstName" placeholder="Jean" className={inputClass} required />
+            <Field icon={User} label={t('org.pointForm.adminFirstName')}>
+              <Input name="adminFirstName" placeholder={t('org.pointForm.adminFirstNamePlaceholder')} className={inputClass} required />
             </Field>
-            <Field icon={User} label="Nom *">
-              <Input name="adminLastName" placeholder="Dupont" className={inputClass} required />
+            <Field icon={User} label={t('org.pointForm.adminLastName')}>
+              <Input name="adminLastName" placeholder={t('org.pointForm.adminLastNamePlaceholder')} className={inputClass} required />
             </Field>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
-            <Field icon={Mail} label="Email de connexion *">
-              <Input name="adminEmail" type="email" placeholder="admin.akwa@restaurant.com" className={inputClass} required />
+            <Field icon={Mail} label={t('org.pointForm.adminEmail')}>
+              <Input name="adminEmail" type="email" placeholder={t('org.pointForm.adminEmailPlaceholder')} className={inputClass} required />
             </Field>
-            <Field icon={Lock} label="Mot de passe *">
+            <Field icon={Lock} label={t('org.pointForm.adminPassword')}>
               <Input name="adminPassword" type="password" placeholder="••••••••" minLength={8} className={inputClass} required />
-              <p className="text-xs text-slate-500">Minimum 8 caractères</p>
+              <p className="text-xs text-slate-500">{t('org.pointForm.passwordHint')}</p>
             </Field>
           </div>
         </div>
@@ -156,11 +158,11 @@ export function PointForm({
           className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 font-semibold disabled:opacity-50"
         >
           <Save className="w-4 h-4 mr-2" />
-          {isPending ? 'Enregistrement…' : submitLabel}
+          {isPending ? t('org.pointForm.saving') : submitLabel}
         </Button>
         <Link href="/organization/points" className="sm:flex-none">
           <Button type="button" variant="outline" className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white">
-            Annuler
+            {t('common.cancel')}
           </Button>
         </Link>
       </div>

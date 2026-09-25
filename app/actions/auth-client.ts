@@ -3,6 +3,7 @@
 import { getAdminSupabase } from '@/lib/supabase';
 import { hashPassword, createSession } from '@/lib/auth';
 import { buildClientWelcomeMail, queueMail } from '@/lib/emails';
+import { getLocale, getT } from '@/lib/i18n/server';
 
 export async function registerClient(
   _prevState: { success: boolean; error: string },
@@ -12,9 +13,10 @@ export async function registerClient(
   const firstName = String(formData.get('firstName') || '').trim();
   const lastName = String(formData.get('lastName') || '').trim();
   const password = String(formData.get('password') || '');
+  const { t } = await getT();
 
   if (!email || !firstName || !lastName || !password) {
-    return { success: false, error: 'All required fields must be provided' };
+    return { success: false, error: t('auth.errors.missingFields') };
   }
 
   try {
@@ -29,7 +31,7 @@ export async function registerClient(
       .single();
 
     if (existingUser) {
-      return { success: false, error: 'Email is already taken.' };
+      return { success: false, error: t('auth.errors.emailTaken') };
     }
 
     // 2. Create the user with structure_id = null (Global Client)
@@ -49,10 +51,11 @@ export async function registerClient(
 
     if (error || !user) {
       console.error('Client registration error:', error);
-      return { success: false, error: 'Failed to create account.' };
+      return { success: false, error: t('auth.errors.registrationFailed') };
     }
 
-    queueMail(async () => buildClientWelcomeMail({ email: user.email, firstName }));
+    const locale = await getLocale();
+    queueMail(async () => buildClientWelcomeMail({ email: user.email, firstName, locale }));
 
     // 3. Log them in automatically
     await createSession({
@@ -65,6 +68,6 @@ export async function registerClient(
     return { success: true, error: '' };
   } catch (error) {
     console.error('Unhandled Registration Exception:', error);
-    return { success: false, error: 'An unexpected error occurred.' };
+    return { success: false, error: t('common.genericError') };
   }
 }

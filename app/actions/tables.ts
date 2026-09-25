@@ -3,6 +3,7 @@
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireAuth, requireModule } from './auth';
 import { revalidatePath } from 'next/cache';
+import { te } from '@/lib/i18n/server';
 
 export async function getTables() {
   const session = await requireAuth();
@@ -35,10 +36,10 @@ export async function createTable(formData: FormData) {
     const floor_id = formData.get('floor_id') as string;
 
     if (!name) {
-      return { success: false, error: 'Le nom de la table est obligatoire' };
+      return { success: false, error: await te('errors.tableNameRequired') };
     }
     if (!floor_id) {
-      return { success: false, error: 'La salle est obligatoire' };
+      return { success: false, error: await te('errors.floorRequired') };
     }
 
     const admin = getAdminSupabase();
@@ -52,7 +53,7 @@ export async function createTable(formData: FormData) {
       .single();
 
     if (!floor) {
-      return { success: false, error: 'Salle introuvable' };
+      return { success: false, error: await te('errors.floorNotFound') };
     }
 
     // Vérifier que le nom de la table est unique pour cette structure
@@ -64,7 +65,7 @@ export async function createTable(formData: FormData) {
       .single();
 
     if (existingTable) {
-      return { success: false, error: `Une table portant le nom "${name}" existe déjà.` };
+      return { success: false, error: await te('errors.tableExists', { name }) };
     }
 
     const { error } = await admin.from('tables').insert({
@@ -86,7 +87,7 @@ export async function createTable(formData: FormData) {
     return { success: true, error: '' };
   } catch (error: any) {
     console.error('Error creating table:', error);
-    return { success: false, error: error.message || 'Erreur lors de la création de la table' };
+    return { success: false, error: await te('errors.tableCreateFailed') };
   }
 }
 
@@ -100,7 +101,7 @@ export async function updateTable(id: string, formData: FormData) {
     const shape = (formData.get('shape') as string) || 'rectangle';
 
     if (!name) {
-      return { success: false, error: 'Le nom de la table est obligatoire' };
+      return { success: false, error: await te('errors.tableNameRequired') };
     }
 
     const admin = getAdminSupabase();
@@ -115,7 +116,7 @@ export async function updateTable(id: string, formData: FormData) {
       .single();
 
     if (existingTable) {
-      return { success: false, error: `Une table portant le nom "${name}" existe déjà.` };
+      return { success: false, error: await te('errors.tableExists', { name }) };
     }
 
     const { data, error } = await admin
@@ -138,7 +139,7 @@ export async function updateTable(id: string, formData: FormData) {
     return { success: true, table: data };
   } catch (error: any) {
     console.error('Error updating table:', error);
-    return { success: false, error: error.message || 'Erreur lors de la mise à jour de la table' };
+    return { success: false, error: await te('errors.tableUpdateFailed') };
   }
 }
 
@@ -160,7 +161,7 @@ export async function updateTablePosition(id: string, x: number, y: number) {
     return { success: true, error: '' };
   } catch (error: any) {
     console.error('Error updating table position:', error);
-    return { success: false, error: error.message || 'Erreur lors de la mise à jour' };
+    return { success: false, error: await te('errors.tableUpdateFailed') };
   }
 }
 
@@ -169,7 +170,7 @@ export async function deleteTable(id: string) {
     const session = await requireAuth();
     await requireModule('TABLES');
     if (!['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(session.role)) {
-      return { success: false, error: 'Non autorisé à supprimer une table' };
+      return { success: false, error: await te('errors.tableDeleteForbidden') };
     }
 
     const admin = getAdminSupabase();
@@ -185,6 +186,6 @@ export async function deleteTable(id: string) {
     return { success: true, error: '' };
   } catch (error: any) {
     console.error('Error deleting table:', error);
-    return { success: false, error: error.message || 'Erreur lors de la suppression' };
+    return { success: false, error: await te('errors.tableDeleteFailed') };
   }
 }

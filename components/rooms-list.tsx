@@ -31,14 +31,17 @@ import { Input } from '@/components/ui/input';
 import { updateRoom, updateRoomStatus, deleteRoom } from '@/app/actions/rooms';
 import { useActionState } from 'react';
 import { toast } from 'sonner';
-import { formatFCFA } from '@/lib/utils';
 import { TablePagination } from './table-pagination';
+import { useT } from '@/lib/i18n/client';
+
+type RoomType = 'Standard' | 'Double' | 'Studio' | 'Suite' | 'Familiale' | 'Autre';
 
 export default function RoomsList({ rooms }: { rooms: any[] }) {
   const [editingRoom, setEditingRoom] = useState<any>(null);
   const [viewingRoom, setViewingRoom] = useState<any>(null);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const { t, format } = useT();
   
   const [editImage1, setEditImage1] = useState<string | null>(null);
   const [editImage2, setEditImage2] = useState<string | null>(null);
@@ -60,7 +63,7 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
       if (!editingRoom) return prevState;
       const res = await updateRoom(editingRoom.id, prevState, formData);
       if (res.success) {
-        toast.success("Chambre mise à jour avec succès");
+        toast.success(t('hotel.rooms.updated'));
         setEditingRoom(null);
       }
       return res;
@@ -69,38 +72,42 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
   );
 
   const statusColors: Record<string, { bg: string; text: string; icon: any; label: string }> = {
-    AVAILABLE: { bg: 'bg-green-500/10', text: 'text-green-400', icon: CheckCircle, label: 'Disponible' },
-    OCCUPIED: { bg: 'bg-red-500/10', text: 'text-red-400', icon: XCircle, label: 'Occupée' },
-    CLEANING: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', icon: Sparkles, label: 'Nettoyage' },
+    AVAILABLE: { bg: 'bg-green-500/10', text: 'text-green-400', icon: CheckCircle, label: t('hotel.roomStatus.AVAILABLE') },
+    OCCUPIED: { bg: 'bg-red-500/10', text: 'text-red-400', icon: XCircle, label: t('hotel.roomStatus.OCCUPIED') },
+    CLEANING: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', icon: Sparkles, label: t('hotel.roomStatus.CLEANING') },
   };
 
-  const roomTypes: Record<string, { label: string; icon: string; description: string }> = {
-    Standard: { label: 'Standard', icon: '🏨', description: 'Chambre classique avec équipements de base' },
-    Double: { label: 'Double', icon: '🛏️', description: 'Chambre avec lit double, idéale pour les couples' },
-    Studio: { label: 'Studio', icon: '✨', description: 'Espace moderne avec coin salon et cuisine' },
-    Suite: { label: 'Suite', icon: '👑', description: 'Chambre de luxe avec salon séparé' },
-    Familiale: { label: 'Familiale', icon: '👨‍👩‍👧‍👦', description: 'Grande chambre pour toute la famille' },
-    Autre: { label: 'Autre', icon: '📦', description: 'Configuration spéciale' },
+  const roomTypeIcons: Record<RoomType, string> = {
+    Standard: '🏨', Double: '🛏️', Studio: '✨', Suite: '👑', Familiale: '👨‍👩‍👧‍👦', Autre: '📦',
   };
+  const roomTypes = Object.fromEntries(
+    (Object.keys(roomTypeIcons) as RoomType[]).map((type) => [type, {
+      label: t(`hotel.roomTypes.${type}.label`),
+      icon: roomTypeIcons[type],
+      description: t(`hotel.roomTypes.${type}.description`),
+    }]),
+  ) as Record<string, { label: string; icon: string; description: string }>;
+  const roomTypeOf = (type?: string | null) =>
+    roomTypes[type || 'Standard'] ?? { label: type ?? '', icon: '📦', description: '' };
 
   const handleStatusChange = async (roomId: string, newStatus: string) => {
     setUpdatingStatusId(roomId);
     const res = await updateRoomStatus(roomId, newStatus);
     setUpdatingStatusId(null);
     if (!res.success) {
-      toast.error("Erreur lors du changement de statut");
+      toast.error(t('hotel.rooms.statusError'));
     } else {
-      toast.success(`Statut mis à jour avec succès`);
+      toast.success(t('hotel.rooms.statusUpdated'));
     }
   };
 
   const handleDelete = async (roomId: string) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer cette chambre ? Tout l'historique sera effacé.")) {
+    if (confirm(t('hotel.rooms.confirmDelete'))) {
       const res = await deleteRoom(roomId);
       if (res.success) {
-        toast.success("Chambre supprimée avec succès !");
+        toast.success(t('hotel.rooms.deleted'));
       } else {
-        toast.error("Erreur lors de la suppression");
+        toast.error(t('hotel.rooms.deleteError'));
       }
     }
   };
@@ -137,12 +144,12 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
         <Table>
           <TableHeader>
             <TableRow className="border-slate-700 hover:bg-transparent bg-slate-800/50">
-              <TableHead className="text-slate-300 font-semibold w-16 text-center">Icône</TableHead>
-              <TableHead className="text-slate-300 font-semibold">Numéro</TableHead>
-              <TableHead className="text-slate-300 font-semibold">Prix / nuit</TableHead>
-              <TableHead className="text-slate-300 font-semibold">Type</TableHead>
-              <TableHead className="text-slate-300 font-semibold">Statut</TableHead>
-              <TableHead className="text-slate-300 font-semibold text-right">Actions</TableHead>
+              <TableHead className="text-slate-300 font-semibold w-16 text-center">{t('hotel.rooms.colIcon')}</TableHead>
+              <TableHead className="text-slate-300 font-semibold">{t('hotel.rooms.colNumber')}</TableHead>
+              <TableHead className="text-slate-300 font-semibold">{t('hotel.rooms.colPrice')}</TableHead>
+              <TableHead className="text-slate-300 font-semibold">{t('hotel.rooms.colType')}</TableHead>
+              <TableHead className="text-slate-300 font-semibold">{t('hotel.rooms.colStatus')}</TableHead>
+              <TableHead className="text-slate-300 font-semibold text-right">{t('hotel.rooms.colActions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -150,7 +157,7 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
               const statusColor = statusColors[room.status] || statusColors.AVAILABLE;
               const StatusIcon = statusColor.icon;
               const isUpdatingStatus = updatingStatusId === room.id;
-              const roomType = roomTypes[room.type || 'Standard'];
+              const roomType = roomTypeOf(room.type);
 
               return (
                 <TableRow
@@ -163,7 +170,7 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
                     </div>
                   </TableCell>
                   <TableCell className="text-slate-50 text-lg font-bold">{room.number}</TableCell>
-                  <TableCell className="text-slate-50 font-bold">{formatFCFA(room.price)}</TableCell>
+                  <TableCell className="text-slate-50 font-bold">{format.money(room.price)}</TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border ${getRoomTypeColor(room.type || 'Standard')}`}>
                       <span className="text-base">{roomType.icon}</span>
@@ -185,9 +192,9 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
                           backgroundSize: '1.25rem'
                         }}
                       >
-                        <option value="AVAILABLE" className="bg-slate-800 text-green-400">✓ Disponible</option>
-                        <option value="OCCUPIED" className="bg-slate-800 text-red-400">✗ Occupée</option>
-                        <option value="CLEANING" className="bg-slate-800 text-yellow-400">✨ Nettoyage</option>
+                        <option value="AVAILABLE" className="bg-slate-800 text-green-400">✓ {t('hotel.roomStatus.AVAILABLE')}</option>
+                        <option value="OCCUPIED" className="bg-slate-800 text-red-400">✗ {t('hotel.roomStatus.OCCUPIED')}</option>
+                        <option value="CLEANING" className="bg-slate-800 text-yellow-400">✨ {t('hotel.roomStatus.CLEANING')}</option>
                       </select>
                       {isUpdatingStatus && (
                         <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
@@ -204,7 +211,7 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
                         size="sm"
                         onClick={() => setViewingRoom(room)}
                         className="h-8 w-8 p-0 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10"
-                        title="Voir les détails"
+                        title={t('hotel.rooms.viewDetails')}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -232,7 +239,7 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
                             className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700 gap-2"
                           >
                             <Pencil className="w-4 h-4 text-blue-400" />
-                            <span>Modifier</span>
+                            <span>{t('common.edit')}</span>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator className="bg-slate-700" />
                           <DropdownMenuItem
@@ -240,7 +247,7 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
                             className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700 gap-2 text-red-400"
                           >
                             <Trash2 className="w-4 h-4" />
-                            <span>Supprimer</span>
+                            <span>{t('common.delete')}</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -267,10 +274,10 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
               <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                 <Hotel className="w-4 h-4 text-white" />
               </div>
-              <DialogTitle className="text-xl font-bold">Détails de la chambre</DialogTitle>
+              <DialogTitle className="text-xl font-bold">{t('hotel.roomDetails.title')}</DialogTitle>
             </div>
             <DialogDescription className="text-slate-400">
-              Chambre n°{viewingRoom?.number}
+              {t('hotel.roomDetails.number', { number: viewingRoom?.number ?? '' })}
             </DialogDescription>
           </DialogHeader>
 
@@ -283,7 +290,7 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
                     <BedDouble className="w-6 h-6 text-blue-400" />
                   </div>
                   <div>
-                    <p className="text-sm text-slate-400">Chambre</p>
+                    <p className="text-sm text-slate-400">{t('hotel.roomDetails.room')}</p>
                     <p className="text-2xl font-bold text-white">{viewingRoom.number}</p>
                   </div>
                 </div>
@@ -294,20 +301,20 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
               <div className="rounded-lg bg-slate-900/50 p-4 border border-slate-700">
                 <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
                   <Info className="w-4 h-4 text-blue-400" />
-                  Informations générales
+                  {t('hotel.roomDetails.general')}
                 </h4>
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Type de chambre :</span>
+                    <span className="text-slate-400">{t('hotel.roomDetails.type')}</span>
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border ${getRoomTypeColor(viewingRoom.type || 'Standard')}`}>
-                      <span className="text-base">{roomTypes[viewingRoom.type || 'Standard']?.icon}</span>
-                      {roomTypes[viewingRoom.type || 'Standard']?.label}
+                      <span className="text-base">{roomTypeOf(viewingRoom.type).icon}</span>
+                      {roomTypeOf(viewingRoom.type).label}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Description :</span>
+                    <span className="text-slate-400">{t('hotel.roomDetails.description')}</span>
                     <span className="text-slate-300 text-right">
-                      {roomTypes[viewingRoom.type || 'Standard']?.description || 'Chambre standard'}
+                      {roomTypeOf(viewingRoom.type).description}
                     </span>
                   </div>
                 </div>
@@ -317,18 +324,14 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
               <div className="rounded-lg bg-slate-900/50 p-4 border border-slate-700">
                 <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-green-400" />
-                  Tarifs
+                  {t('hotel.roomDetails.pricing')}
                 </h4>
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Prix par nuit :</span>
+                    <span className="text-slate-400">{t('hotel.roomDetails.pricePerNight')}</span>
                     <span className="text-slate-50 font-bold text-lg">
-                      {formatFCFA(viewingRoom.price)}
+                      {format.money(viewingRoom.price)}
                     </span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-slate-700">
-                    <span className="text-slate-400">Taxes incluses :</span>
-                    <span className="text-green-400">Oui</span>
                   </div>
                 </div>
               </div>
@@ -337,19 +340,19 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
               <div className="rounded-lg bg-slate-900/50 p-4 border border-slate-700">
                 <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
                   <Tag className="w-4 h-4 text-purple-400" />
-                  Capacité
+                  {t('hotel.roomDetails.capacity')}
                 </h4>
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Capacité maximale :</span>
+                    <span className="text-slate-400">{t('hotel.roomDetails.maxCapacity')}</span>
                     <span className="text-slate-200">
-                      {viewingRoom.capacity || 2} personne(s)
+                      {t('hotel.roomDetails.persons', { count: viewingRoom.capacity || 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Lits :</span>
+                    <span className="text-slate-400">{t('hotel.roomDetails.beds')}</span>
                     <span className="text-slate-200">
-                      {viewingRoom.beds || 1} lit(s)
+                      {t('hotel.roomDetails.bedCount', { count: viewingRoom.beds || 1 })}
                     </span>
                   </div>
                 </div>
@@ -359,17 +362,17 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
               <div className="rounded-lg bg-slate-900/50 p-4 border border-slate-700">
                 <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-emerald-400" />
-                  Informations système
+                  {t('hotel.roomDetails.system')}
                 </h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-slate-400">ID Chambre :</span>
+                    <span className="text-slate-400">{t('hotel.roomDetails.id')}</span>
                     <span className="text-slate-300 font-mono text-xs">{viewingRoom.id?.slice(0, 8)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Créée le :</span>
+                    <span className="text-slate-400">{t('hotel.roomDetails.createdAt')}</span>
                     <span className="text-slate-300">
-                      {new Date(viewingRoom.created_at).toLocaleDateString('fr-FR')}
+                      {format.date(viewingRoom.created_at)}
                     </span>
                   </div>
                 </div>
@@ -383,7 +386,7 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
               onClick={() => setViewingRoom(null)}
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6"
             >
-              Fermer
+              {t('hotel.roomDetails.close')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -398,21 +401,21 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
               <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                 <Hotel className="w-4 h-4 text-white" />
               </div>
-              <DialogTitle className="text-xl font-bold">Modifier la chambre</DialogTitle>
+              <DialogTitle className="text-xl font-bold">{t('hotel.roomForm.editTitle')}</DialogTitle>
             </div>
-            <p className="text-sm text-slate-400">Modifiez les informations de la chambre</p>
+            <p className="text-sm text-slate-400">{t('hotel.roomForm.editSubtitle')}</p>
           </DialogHeader>
           <form action={updateAction} className="space-y-5 pt-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                 <Home className="w-4 h-4 text-blue-400" />
-                Numéro de chambre *
+                {t('hotel.roomForm.number')}
               </label>
               <Input
                 name="roomNumber"
                 defaultValue={editingRoom?.number}
                 type="text"
-                placeholder="Ex: 101, 202, Suite Royale"
+                placeholder={t('hotel.roomForm.numberPlaceholder')}
                 className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300"
                 required
               />
@@ -421,26 +424,26 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                 <BedDouble className="w-4 h-4 text-purple-400" />
-                Type de chambre
+                {t('hotel.roomForm.type')}
               </label>
               <select
                 name="roomType"
                 defaultValue={editingRoom?.type || 'Standard'}
                 className="w-full bg-slate-900/50 border border-slate-600 text-slate-50 rounded-lg px-3 py-2 text-sm focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300 cursor-pointer"
               >
-                <option value="Standard">🏨 Standard</option>
-                <option value="Double">🛏️ Double</option>
-                <option value="Studio">✨ Studio</option>
-                <option value="Suite">👑 Suite</option>
-                <option value="Familiale">👨‍👩‍👧‍👦 Familiale</option>
-                <option value="Autre">📦 Autre</option>
+                <option value="Standard">🏨 {t('hotel.roomTypes.Standard.label')}</option>
+                <option value="Double">🛏️ {t('hotel.roomTypes.Double.label')}</option>
+                <option value="Studio">✨ {t('hotel.roomTypes.Studio.label')}</option>
+                <option value="Suite">👑 {t('hotel.roomTypes.Suite.label')}</option>
+                <option value="Familiale">👨‍👩‍👧‍👦 {t('hotel.roomTypes.Familiale.label')}</option>
+                <option value="Autre">📦 {t('hotel.roomTypes.Autre.label')}</option>
               </select>
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-emerald-400" />
-                Prix par nuit (FCFA) *
+                {t('hotel.roomForm.price')}
               </label>
               <Input
                 name="price"
@@ -456,7 +459,7 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
             <div className="space-y-3 pt-2">
               <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                 <ImageIcon className="w-4 h-4 text-blue-400" />
-                Images (Max 2)
+                {t('hotel.roomForm.imagesShort')}
               </label>
               <div className="flex gap-4">
                 <div className="flex-1">
@@ -486,7 +489,7 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
                 onClick={() => setEditingRoom(null)}
                 className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-300"
               >
-                Annuler
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -496,10 +499,10 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
                 {isUpdating ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Enregistrement...
+                    {t('hotel.roomForm.saving')}
                   </div>
                 ) : (
-                  'Enregistrer'
+                  t('hotel.roomForm.save')
                 )}
               </Button>
             </DialogFooter>

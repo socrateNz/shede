@@ -1,5 +1,7 @@
 import { hashPassword, type UserRole } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
+import { getT } from '@/lib/i18n/server';
+import type { Translator } from '@/lib/i18n/translate';
 
 export type AccountInput = {
   firstName: string;
@@ -11,7 +13,8 @@ export type AccountInput = {
 /** Lit les champs `${prefix}FirstName`, `${prefix}Email`… d'un formulaire. */
 export function parseAccountFormData(
   formData: FormData,
-  prefix = 'admin'
+  prefix: string,
+  t: Translator
 ): { data: AccountInput } | { error: string } {
   const firstName = String(formData.get(`${prefix}FirstName`) || '').trim();
   const lastName = String(formData.get(`${prefix}LastName`) || '').trim();
@@ -19,10 +22,10 @@ export function parseAccountFormData(
   const password = String(formData.get(`${prefix}Password`) || '');
 
   if (!firstName || !lastName || !email || !password) {
-    return { error: "Tous les champs de l'administrateur sont obligatoires." };
+    return { error: t('org.errors.adminFieldsRequired') };
   }
   if (password.length < 8) {
-    return { error: 'Le mot de passe doit contenir au moins 8 caractères.' };
+    return { error: t('org.errors.passwordTooShort') };
   }
   return { data: { firstName, lastName, email, password } };
 }
@@ -38,8 +41,9 @@ export async function insertUserAccount(
   account: AccountInput,
   scope: { role: UserRole; organizationId: string; structureId?: string | null }
 ): Promise<{ user: { id: string; email: string; role: UserRole } } | { error: string }> {
+  const { t } = await getT();
   if (await isUserEmailTaken(account.email)) {
-    return { error: 'Un compte existe déjà avec cet email.' };
+    return { error: t('org.errors.accountEmailTaken') };
   }
 
   const admin = getAdminSupabase();
@@ -59,7 +63,7 @@ export async function insertUserAccount(
     .single();
 
   if (error || !user) {
-    return { error: 'Échec de la création du compte.' };
+    return { error: t('org.errors.accountCreateFailed') };
   }
   return { user };
 }

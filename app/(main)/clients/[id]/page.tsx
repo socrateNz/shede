@@ -7,11 +7,13 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { ArrowLeft, User, Phone, Mail, Calendar, Heart, MessageSquare, ShoppingBag, Clock } from 'lucide-react';
 import { notFound } from 'next/navigation';
+import { getT } from '@/lib/i18n/server';
+import type { TranslationKey } from '@/lib/i18n/translate';
 
-export const metadata = {
-  title: 'Fiche Client — Shede',
-  description: 'Détails du client CRM',
-};
+export async function generateMetadata() {
+  const { t } = await getT();
+  return { title: t('crm.meta.detailTitle'), description: t('crm.meta.detailDescription') };
+}
 
 async function getClientHistory(clientId: string, structureId: string) {
   const admin = getAdminSupabase();
@@ -32,6 +34,7 @@ async function getClientHistory(clientId: string, structureId: string) {
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CAISSE');
   const { id } = await params;
+  const { t, format } = await getT();
 
   const client = await getClientById(id);
   if (!client) {
@@ -40,14 +43,15 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   const history = await getClientHistory(id, session.structureId!);
 
-  const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-    PENDING: { label: 'En attente', color: 'bg-amber-500/10 text-amber-400 border-amber-500/30' },
-    IN_PROGRESS: { label: 'En cours', color: 'bg-blue-500/10 text-blue-400 border-blue-500/30' },
-    READY: { label: 'Prêt', color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30' },
-    SERVED: { label: 'Servi', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' },
-    COMPLETED: { label: 'Terminé', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' },
-    CANCELLED: { label: 'Annulé', color: 'bg-red-500/10 text-red-400 border-red-500/30' },
+  const STATUS_COLORS: Record<string, string> = {
+    PENDING: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+    IN_PROGRESS: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+    READY: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30',
+    SERVED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+    COMPLETED: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50',
+    CANCELLED: 'bg-red-500/10 text-red-400 border-red-500/30',
   };
+  const SOURCES = ['CLIENT', 'QR_CODE', 'CAISSE'];
 
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -63,10 +67,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             className="inline-flex items-center gap-2 text-slate-400 hover:text-pink-400 transition-all duration-300 group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span>Retour aux clients</span>
+            <span>{t('crm.detail.back')}</span>
           </Link>
           <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
-            Éditer la fiche (à venir)
+            {t('crm.detail.editSoon')}
           </Button>
         </div>
 
@@ -84,7 +88,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                   {client.first_name} {client.last_name}
                 </h2>
                 <p className="text-sm text-slate-400 mb-6">
-                  Client depuis le {new Date(client.created_at).toLocaleDateString('fr-FR')}
+                  {t('crm.detail.since', { date: format.date(client.created_at) })}
                 </p>
 
                 <div className="space-y-4 text-left border-t border-slate-700/50 pt-4">
@@ -109,7 +113,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                       <div className="p-2 bg-slate-900/50 rounded-lg">
                         <Calendar className="w-4 h-4 text-pink-400" />
                       </div>
-                      <span>{new Date(client.birthday).toLocaleDateString('fr-FR')}</span>
+                      <span>{format.date(client.birthday)}</span>
                     </div>
                   )}
                 </div>
@@ -120,13 +124,13 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               <CardHeader className="border-b border-slate-700/50 pb-4">
                 <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
                   <Heart className="w-5 h-5 text-pink-400" />
-                  Préférences & Santé
+                  {t('crm.detail.preferences')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
                 {client.allergies ? (
                   <div>
-                    <h4 className="text-xs font-semibold text-rose-400 uppercase tracking-wider mb-1">Allergies</h4>
+                    <h4 className="text-xs font-semibold text-rose-400 uppercase tracking-wider mb-1">{t('crm.detail.allergies')}</h4>
                     <p className="text-sm text-slate-300 bg-rose-500/10 border border-rose-500/20 p-3 rounded-lg">
                       {client.allergies}
                     </p>
@@ -134,7 +138,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 ) : null}
                 {client.preferences ? (
                   <div>
-                    <h4 className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-1">Préférences</h4>
+                    <h4 className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-1">{t('crm.detail.preferencesLabel')}</h4>
                     <p className="text-sm text-slate-300 bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-lg">
                       {client.preferences}
                     </p>
@@ -142,7 +146,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 ) : null}
                 {!client.allergies && !client.preferences && (
                   <p className="text-sm text-slate-500 text-center italic py-2">
-                    Aucune préférence enregistrée
+                    {t('crm.detail.noPreferences')}
                   </p>
                 )}
               </CardContent>
@@ -153,7 +157,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 <CardHeader className="border-b border-slate-700/50 pb-4">
                   <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
                     <MessageSquare className="w-5 h-5 text-amber-400" />
-                    Notes internes
+                    {t('crm.detail.notes')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4">
@@ -172,10 +176,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
                     <ShoppingBag className="w-5 h-5 text-pink-400" />
-                    Historique des commandes
+                    {t('crm.detail.history')}
                   </CardTitle>
                   <Badge variant="outline" className="bg-pink-500/10 text-pink-400 border-pink-500/30">
-                    {history.length} commande(s)
+                    {t('crm.detail.orderCount', { count: history.length })}
                   </Badge>
                 </div>
               </CardHeader>
@@ -184,11 +188,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                   <table className="w-full text-sm text-left">
                     <thead className="text-xs text-slate-400 uppercase bg-slate-900/50 border-b border-slate-700/50">
                       <tr>
-                        <th className="px-6 py-4 font-medium">Date</th>
-                        <th className="px-6 py-4 font-medium">ID Commande</th>
-                        <th className="px-6 py-4 font-medium">Montant</th>
-                        <th className="px-6 py-4 font-medium">Source</th>
-                        <th className="px-6 py-4 font-medium text-right">Statut</th>
+                        <th className="px-6 py-4 font-medium">{t('crm.detail.colDate')}</th>
+                        <th className="px-6 py-4 font-medium">{t('crm.detail.colOrder')}</th>
+                        <th className="px-6 py-4 font-medium">{t('crm.detail.colAmount')}</th>
+                        <th className="px-6 py-4 font-medium">{t('crm.detail.colSource')}</th>
+                        <th className="px-6 py-4 font-medium text-right">{t('crm.detail.colStatus')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-700/50">
@@ -197,39 +201,36 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                           <td colSpan={5} className="px-6 py-12 text-center">
                             <div className="flex flex-col items-center justify-center text-slate-500">
                               <ShoppingBag className="w-12 h-12 mb-3 text-slate-600" />
-                              <p className="text-lg font-medium text-slate-400">Aucune commande</p>
-                              <p className="text-sm">Ce client n'a pas encore passé de commande.</p>
+                              <p className="text-lg font-medium text-slate-400">{t('crm.detail.emptyTitle')}</p>
+                              <p className="text-sm">{t('crm.detail.emptyText')}</p>
                             </div>
                           </td>
                         </tr>
                       ) : (
                         history.map((order) => {
-                          const statusConf = STATUS_CONFIG[order.status] || STATUS_CONFIG.PENDING;
+                          const statusColor = STATUS_COLORS[order.status] || STATUS_COLORS.PENDING;
                           return (
                             <tr key={order.id} className="hover:bg-slate-700/20 transition-colors group">
                               <td className="px-6 py-4 text-slate-300">
                                 <div className="flex items-center gap-2">
                                   <Clock className="w-4 h-4 text-slate-500" />
-                                  {new Date(order.created_at).toLocaleString('fr-FR', {
-                                    day: '2-digit', month: '2-digit', year: 'numeric',
-                                    hour: '2-digit', minute: '2-digit'
-                                  })}
+                                  {format.dateTime(order.created_at)}
                                 </div>
                               </td>
                               <td className="px-6 py-4 font-mono text-slate-400">
                                 #{order.id.slice(-8).toUpperCase()}
                               </td>
                               <td className="px-6 py-4 font-bold text-white">
-                                {Number(order.total).toLocaleString('fr-FR')} XOF
+                                {format.money(order.total)}
                               </td>
                               <td className="px-6 py-4">
                                 <Badge variant="outline" className="bg-slate-900 border-slate-600 text-slate-300">
-                                  {order.source}
+                                  {SOURCES.includes(order.source) ? t(`orders.source.${order.source}` as TranslationKey) : order.source}
                                 </Badge>
                               </td>
                               <td className="px-6 py-4 text-right">
-                                <Badge variant="outline" className={statusConf.color}>
-                                  {statusConf.label}
+                                <Badge variant="outline" className={statusColor}>
+                                  {order.status in STATUS_COLORS ? t(`orders.status.${order.status}` as TranslationKey) : order.status}
                                 </Badge>
                               </td>
                             </tr>

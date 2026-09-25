@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { getKitchenOrders, updateOrderStatusFromKitchen } from '@/app/actions/kitchen';
 import type { KitchenOrder } from '@/app/actions/kitchen';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n/client';
 
 // Client Supabase public pour le Realtime (sans service role)
 const supabasePublic = createClient(
@@ -66,16 +67,17 @@ function OrderCard({
   onStatusChange: (id: string, status: 'IN_PROGRESS' | 'READY') => void;
   isPending: boolean;
 }) {
+  const { t } = useT();
   const isNew      = order.status === 'PENDING';
   const isCooking  = order.status === 'IN_PROGRESS';
 
   const locationLabel = order.table_number
-    ? `Table ${order.table_number}`
+    ? t('displays.table', { number: order.table_number })
     : order.room_id
-    ? 'Chambre'
+    ? t('displays.room')
     : order.phone
     ? `📱 ${order.phone}`
-    : 'À emporter';
+    : t('displays.takeaway');
 
   return (
     <div
@@ -106,7 +108,7 @@ function OrderCard({
                 : 'border-blue-500/50 text-blue-400 bg-blue-500/10'
             )}
           >
-            {isNew ? 'NOUVEAU' : 'EN COURS'}
+            {isNew ? t('displays.new') : t('displays.inProgress')}
           </Badge>
         </div>
         <div className="flex items-center gap-2">
@@ -163,7 +165,7 @@ function OrderCard({
             ) : (
               <ChefHat className="w-4 h-4" />
             )}
-            Commencer
+            {t('displays.kitchen.start')}
           </Button>
         )}
         {isCooking && (
@@ -177,7 +179,7 @@ function OrderCard({
             ) : (
               <CheckCircle2 className="w-4 h-4" />
             )}
-            Prêt !
+            {t('displays.kitchen.ready')}
           </Button>
         )}
       </div>
@@ -190,6 +192,7 @@ export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayPro
   const [isConnected, setIsConnected] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const { t } = useT();
 
   /** Recharge les commandes via Server Action */
   const refreshOrders = useCallback(() => {
@@ -234,11 +237,10 @@ export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayPro
     const result = await updateOrderStatusFromKitchen(orderId, newStatus);
     setUpdatingId(null);
     if (result.success) {
-      const label = newStatus === 'IN_PROGRESS' ? 'En préparation' : 'Prêt !';
-      toast.success(`Commande ${label}`);
+      toast.success(newStatus === 'IN_PROGRESS' ? t('displays.kitchen.started') : t('displays.kitchen.markedReady'));
       refreshOrders();
     } else {
-      toast.error(result.error || 'Erreur de mise à jour');
+      toast.error(result.error || t('displays.updateError'));
     }
   };
 
@@ -255,8 +257,8 @@ export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayPro
               <ChefHat className="w-6 h-6 text-orange-400" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white leading-none">Kitchen Display</h1>
-              <p className="text-xs text-slate-400 mt-0.5">Système d&apos;affichage cuisine</p>
+              <h1 className="text-lg font-bold text-white leading-none">{t('displays.kitchen.title')}</h1>
+              <p className="text-xs text-slate-400 mt-0.5">{t('displays.kitchen.subtitle')}</p>
             </div>
           </div>
 
@@ -265,11 +267,11 @@ export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayPro
             <div className="hidden sm:flex items-center gap-2">
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm font-medium">
                 <Clock className="w-3.5 h-3.5" />
-                {pending.length} en attente
+                {t('displays.kitchen.pendingCount', { count: pending.length })}
               </span>
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium">
                 <ChefHat className="w-3.5 h-3.5" />
-                {inProgress.length} en cours
+                {t('displays.kitchen.inProgressCount', { count: inProgress.length })}
               </span>
             </div>
 
@@ -281,7 +283,7 @@ export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayPro
                 : 'bg-slate-700/50 border-slate-600/50 text-slate-500'
             )}>
               {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-              {isConnected ? 'Temps réel' : 'Connexion...'}
+              {isConnected ? t('displays.realtime') : t('displays.connecting')}
             </div>
 
             <Button
@@ -292,7 +294,7 @@ export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayPro
               className="border-slate-600 text-slate-400 hover:text-white gap-1.5"
             >
               <RefreshCw className={cn('w-3.5 h-3.5', isPending && 'animate-spin')} />
-              <span className="hidden sm:inline">Actualiser</span>
+              <span className="hidden sm:inline">{t('displays.refresh')}</span>
             </Button>
           </div>
         </div>
@@ -305,9 +307,9 @@ export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayPro
             <div className="p-6 bg-slate-800/50 rounded-full mb-4">
               <ChefHat className="w-16 h-16 text-slate-600" />
             </div>
-            <h2 className="text-xl font-bold text-slate-400">Aucune commande active</h2>
+            <h2 className="text-xl font-bold text-slate-400">{t('displays.kitchen.emptyTitle')}</h2>
             <p className="text-slate-600 text-sm mt-2">
-              Les nouvelles commandes apparaîtront ici automatiquement
+              {t('displays.kitchen.emptyText')}
             </p>
           </div>
         ) : (
@@ -317,13 +319,13 @@ export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayPro
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_8px_#f59e0b]" />
                 <h2 className="text-sm font-bold text-amber-400 uppercase tracking-wider">
-                  En attente ({pending.length})
+                  {t('displays.kitchen.pendingColumn', { count: pending.length })}
                 </h2>
               </div>
               <div className="space-y-4">
                 {pending.length === 0 ? (
                   <div className="flex items-center justify-center h-24 rounded-xl border border-slate-800 text-slate-600 text-sm">
-                    Aucune commande en attente
+                    {t('displays.kitchen.noPending')}
                   </div>
                 ) : (
                   pending.map((order) => (
@@ -343,13 +345,13 @@ export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayPro
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6] animate-pulse" />
                 <h2 className="text-sm font-bold text-blue-400 uppercase tracking-wider">
-                  En préparation ({inProgress.length})
+                  {t('displays.kitchen.inProgressColumn', { count: inProgress.length })}
                 </h2>
               </div>
               <div className="space-y-4">
                 {inProgress.length === 0 ? (
                   <div className="flex items-center justify-center h-24 rounded-xl border border-slate-800 text-slate-600 text-sm">
-                    Aucune commande en cours
+                    {t('displays.kitchen.noInProgress')}
                   </div>
                 ) : (
                   inProgress.map((order) => (

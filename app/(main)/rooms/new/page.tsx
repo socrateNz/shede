@@ -9,10 +9,11 @@ import { ImageUpload } from '@/components/image-upload';
 import { ArrowLeft, BedDouble, Home, DollarSign, Hotel, Plus, Image as ImageIcon } from 'lucide-react';
 import { useActionState, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { requireRole } from '@/app/actions/auth';
+import { useT } from '@/lib/i18n/client';
 
 export default function NewRoomPage() {
   const router = useRouter();
+  const { t } = useT();
   const [state, formAction, isPending] = useActionState(createRoom, {
     success: false,
     error: '',
@@ -42,19 +43,19 @@ export default function NewRoomPage() {
           className="inline-flex items-center gap-2 text-slate-400 hover:text-blue-400 mb-6 transition-all duration-300 group"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span>Retour aux chambres</span>
+          <span>{t('hotel.roomForm.back')}</span>
         </Link>
 
         {/* Header */}
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
             <Hotel className="w-4 h-4 text-blue-400" />
-            <span className="text-sm text-blue-400 font-medium">Nouvelle chambre</span>
+            <span className="text-sm text-blue-400 font-medium">{t('hotel.roomForm.createBadge')}</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
-            Ajouter une chambre
+            {t('hotel.roomForm.createTitle')}
           </h1>
-          <p className="text-slate-400">Créez une nouvelle chambre pour votre établissement</p>
+          <p className="text-slate-400">{t('hotel.roomForm.createSubtitle')}</p>
         </div>
 
         <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-xl overflow-hidden">
@@ -65,7 +66,7 @@ export default function NewRoomPage() {
               <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                 <BedDouble className="w-4 h-4 text-white" />
               </div>
-              Formulaire de création
+              {t('hotel.roomForm.createCard')}
             </CardTitle>
           </CardHeader>
 
@@ -75,41 +76,41 @@ export default function NewRoomPage() {
               <div className="space-y-6">
                 <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
                   <Hotel className="w-4 h-4 text-blue-400" />
-                  <h3 className="font-semibold">Informations de la chambre</h3>
+                  <h3 className="font-semibold">{t('hotel.roomForm.section')}</h3>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <Home className="w-4 h-4 text-blue-400" />
-                      Numéro de chambre *
+                      {t('hotel.roomForm.number')}
                     </label>
                     <Input
                       name="roomNumber"
                       type="text"
-                      placeholder="Ex: 101, 202, Suite Royale"
+                      placeholder={t('hotel.roomForm.numberPlaceholder')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300 group-hover:border-slate-500"
                       required
                     />
-                    <p className="text-xs text-slate-500 mt-1">Identifiant unique de la chambre</p>
+                    <p className="text-xs text-slate-500 mt-1">{t('hotel.roomForm.numberHint')}</p>
                   </div>
 
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <BedDouble className="w-4 h-4 text-purple-400" />
-                      Type de chambre
+                      {t('hotel.roomForm.type')}
                     </label>
                     <select
                       name="roomType"
                       defaultValue="Standard"
                       className="w-full bg-slate-900/50 border border-slate-600 text-slate-50 rounded-lg px-3 py-2 text-sm focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300 cursor-pointer hover:border-slate-500"
                     >
-                      <option value="Standard">🏨 Standard</option>
-                      <option value="Double">🛏️ Double</option>
-                      <option value="Studio">✨ Studio</option>
-                      <option value="Suite">👑 Suite</option>
-                      <option value="Familiale">👨‍👩‍👧‍👦 Familiale</option>
-                      <option value="Autre">📦 Autre</option>
+                      <option value="Standard">🏨 {t('hotel.roomTypes.Standard.label')}</option>
+                      <option value="Double">🛏️ {t('hotel.roomTypes.Double.label')}</option>
+                      <option value="Studio">✨ {t('hotel.roomTypes.Studio.label')}</option>
+                      <option value="Suite">👑 {t('hotel.roomTypes.Suite.label')}</option>
+                      <option value="Familiale">👨‍👩‍👧‍👦 {t('hotel.roomTypes.Familiale.label')}</option>
+                      <option value="Autre">📦 {t('hotel.roomTypes.Autre.label')}</option>
                     </select>
                   </div>
                 </div>
@@ -117,7 +118,7 @@ export default function NewRoomPage() {
                 <div className="space-y-2 group">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-emerald-400" />
-                    Prix par nuit (FCFA) *
+                    {t('hotel.roomForm.price')}
                   </label>
                   <Input
                     name="price"
@@ -125,17 +126,17 @@ export default function NewRoomPage() {
                     min="0"
                     defaultValue="0"
                     step="1000"
-                    placeholder="Ex: 25000"
+                    placeholder={t('hotel.roomForm.pricePlaceholder')}
                     className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300 group-hover:border-slate-500"
                     required
                   />
-                  <p className="text-xs text-slate-500 mt-1">Prix en FCFA par nuitée</p>
+                  <p className="text-xs text-slate-500 mt-1">{t('hotel.roomForm.priceHint')}</p>
                 </div>
 
                 <div className="space-y-3 pt-2">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                     <ImageIcon className="w-4 h-4 text-blue-400" />
-                    Images de la chambre (Max 2)
+                    {t('hotel.roomForm.images')}
                   </label>
                   <div className="flex gap-4">
                     <div className="flex-1">
@@ -170,12 +171,12 @@ export default function NewRoomPage() {
                   {isPending ? (
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Création en cours...
+                      {t('hotel.roomForm.creating')}
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
                       <Plus className="w-4 h-4" />
-                      Créer la chambre
+                      {t('hotel.roomForm.create')}
                     </div>
                   )}
                 </Button>
@@ -186,7 +187,7 @@ export default function NewRoomPage() {
                     variant="outline"
                     className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-300"
                   >
-                    Annuler
+                    {t('common.cancel')}
                   </Button>
                 </Link>
               </div>
@@ -197,7 +198,7 @@ export default function NewRoomPage() {
         {/* Footer */}
         <div className="mt-6 text-center">
           <p className="text-xs text-slate-500">
-            La chambre sera immédiatement disponible pour les réservations après création
+            {t('hotel.roomForm.createFooter')}
           </p>
         </div>
       </div>

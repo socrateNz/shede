@@ -9,9 +9,11 @@ import Link from 'next/link';
 import { ArrowLeft, User, Phone, Mail, Calendar, Heart, MessageSquare } from 'lucide-react';
 import { useActionState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useT } from '@/lib/i18n/client';
 
 export default function NewClientPage() {
   const router = useRouter();
+  const { t } = useT();
   const [state, formAction, isPending] = useActionState(
     createClient as any,
     { success: false, error: '' }
@@ -38,15 +40,15 @@ export default function NewClientPage() {
           className="inline-flex items-center gap-2 text-slate-400 hover:text-pink-400 mb-6 transition-all duration-300 group cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span>Retour aux clients</span>
+          <span>{t('crm.form.back')}</span>
         </Link>
 
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-            Nouveau client
+            {t('crm.form.title')}
           </h1>
-          <p className="text-slate-400">Ajoutez un client à votre base de données CRM</p>
+          <p className="text-slate-400">{t('crm.form.subtitle')}</p>
         </div>
 
         {/* Formulaire Card */}
@@ -56,7 +58,7 @@ export default function NewClientPage() {
               <div className="p-2 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl">
                 <User className="w-5 h-5 text-white" />
               </div>
-              Informations du client
+              {t('crm.form.card')}
             </CardTitle>
           </CardHeader>
 
@@ -67,12 +69,12 @@ export default function NewClientPage() {
                 <div className="space-y-2 group">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                     <User className="w-4 h-4 text-pink-400" />
-                    Prénom *
+                    {t('crm.form.firstName')}
                   </label>
                   <Input
                     name="firstName"
                     type="text"
-                    placeholder="Jean"
+                    placeholder={t('crm.form.firstNamePlaceholder')}
                     className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-pink-500 focus:ring-pink-500/20"
                     required
                   />
@@ -81,12 +83,12 @@ export default function NewClientPage() {
                 <div className="space-y-2 group">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                     <User className="w-4 h-4 text-pink-400" />
-                    Nom *
+                    {t('crm.form.lastName')}
                   </label>
                   <Input
                     name="lastName"
                     type="text"
-                    placeholder="Dupont"
+                    placeholder={t('crm.form.lastNamePlaceholder')}
                     className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-pink-500 focus:ring-pink-500/20"
                     required
                   />
@@ -97,12 +99,12 @@ export default function NewClientPage() {
                 <div className="space-y-2 group">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                     <Phone className="w-4 h-4 text-pink-400" />
-                    Téléphone
+                    {t('crm.form.phone')}
                   </label>
                   <Input
                     name="phone"
                     type="tel"
-                    placeholder="+225 0102030405"
+                    placeholder={t('crm.form.phonePlaceholder')}
                     className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-pink-500 focus:ring-pink-500/20"
                   />
                 </div>
@@ -110,12 +112,12 @@ export default function NewClientPage() {
                 <div className="space-y-2 group">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                     <Mail className="w-4 h-4 text-pink-400" />
-                    Email
+                    {t('crm.form.email')}
                   </label>
                   <Input
                     name="email"
                     type="email"
-                    placeholder="client@email.com"
+                    placeholder={t('crm.form.emailPlaceholder')}
                     className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-pink-500 focus:ring-pink-500/20"
                   />
                 </div>
@@ -124,7 +126,7 @@ export default function NewClientPage() {
               <div className="space-y-2 group">
                 <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-pink-400" />
-                  Date de naissance
+                  {t('crm.form.birthday')}
                 </label>
                 <Input
                   name="birthday"
@@ -136,11 +138,11 @@ export default function NewClientPage() {
               <div className="space-y-2 group">
                 <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                   <Heart className="w-4 h-4 text-pink-400" />
-                  Allergies / Restrictions
+                  {t('crm.form.allergies')}
                 </label>
                 <Textarea
                   name="allergies"
-                  placeholder="Ex: Arachides, Gluten..."
+                  placeholder={t('crm.form.allergiesPlaceholder')}
                   className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-pink-500 focus:ring-pink-500/20 resize-none"
                   rows={2}
                 />
@@ -149,11 +151,11 @@ export default function NewClientPage() {
               <div className="space-y-2 group">
                 <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-pink-400" />
-                  Préférences
+                  {t('crm.form.preferences')}
                 </label>
                 <Textarea
                   name="preferences"
-                  placeholder="Ex: Table près de la fenêtre, sans glaçons..."
+                  placeholder={t('crm.form.preferencesPlaceholder')}
                   className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-pink-500 focus:ring-pink-500/20 resize-none"
                   rows={2}
                 />
@@ -161,11 +163,11 @@ export default function NewClientPage() {
 
               <div className="space-y-2 group">
                 <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                  Notes internes
+                  {t('crm.form.notes')}
                 </label>
                 <Textarea
                   name="notes"
-                  placeholder="Notes visibles uniquement par le staff..."
+                  placeholder={t('crm.form.notesPlaceholder')}
                   className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-pink-500 focus:ring-pink-500/20 resize-none"
                   rows={2}
                 />
@@ -188,7 +190,7 @@ export default function NewClientPage() {
                   disabled={isPending}
                   className="flex-1 sm:flex-none bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white px-8 py-2.5 rounded-lg font-semibold transition-all duration-300 disabled:opacity-50 cursor-pointer"
                 >
-                  {isPending ? 'Création...' : 'Créer le client'}
+                  {isPending ? t('crm.form.creating') : t('crm.form.create')}
                 </Button>
 
                 <Link href="/clients" className="flex-1 sm:flex-none">
@@ -197,7 +199,7 @@ export default function NewClientPage() {
                     variant="outline"
                     className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-300 cursor-pointer"
                   >
-                    Annuler
+                    {t('common.cancel')}
                   </Button>
                 </Link>
               </div>

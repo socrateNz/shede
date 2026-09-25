@@ -10,6 +10,7 @@ import {
   Coins,
   CreditCard,
   Hotel,
+  Landmark,
   Minus,
   Percent,
   Receipt,
@@ -26,41 +27,32 @@ import { PeakHoursChart, RevenueByPointChart } from '@/components/owner/owner-ch
 import { pointColor } from '@/lib/chart-colors';
 import { OwnerExportButton } from '@/components/owner/owner-export-button';
 import { cn } from '@/lib/utils';
+import { getT } from '@/lib/i18n/server';
+import type { TranslationKey } from '@/lib/i18n/translate';
 
-const RANGE_OPTIONS = [
-  { value: 'today', label: "Aujourd'hui" },
-  { value: '7', label: '7 jours' },
-  { value: '30', label: '30 jours' },
-  { value: '90', label: '90 jours' },
-];
+const RANGE_VALUES = ['today', '7', '30', '90'] as const;
 
-const PAYMENT_LABELS: Record<string, string> = {
-  CASH: 'Espèces',
-  CARD: 'Carte bancaire',
-  CHEQUE: 'Chèque',
-  TRANSFER: 'Virement',
-  MOBILE: 'Mobile Money',
-  AUTRE: 'Autre',
-};
+type I18n = Awaited<ReturnType<typeof getT>>;
 
-function money(value: number, currency: string) {
-  return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value)} ${currency}`;
+function money(i18n: I18n, value: number, currency: string) {
+  return i18n.format.money(value, currency);
 }
 
-function percent(value: number) {
-  return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(value * 100)} %`;
+function percent(i18n: I18n, value: number) {
+  return `${i18n.format.number(value * 100, { maximumFractionDigits: 1 })} %`;
 }
 
 /** Évolution vs période précédente : icône + texte, jamais la couleur seule. */
-function Delta({ current, previous, invert = false }: { current: number; previous: number; invert?: boolean }) {
+function Delta({ i18n, current, previous, invert = false }: { i18n: I18n; current: number; previous: number; invert?: boolean }) {
+  const { t } = i18n;
   if (previous === 0) {
-    return <span className="text-xs text-slate-400">{current > 0 ? 'Pas de base de comparaison' : '—'}</span>;
+    return <span className="text-xs text-slate-400">{current > 0 ? t('org.owner.noComparison') : '—'}</span>;
   }
   const change = (current - previous) / previous;
   if (Math.abs(change) < 0.005) {
     return (
       <span className="inline-flex items-center gap-1 text-xs text-slate-400">
-        <Minus className="h-3 w-3" /> Stable
+        <Minus className="h-3 w-3" /> {t('org.owner.stable')}
       </span>
     );
   }
@@ -70,8 +62,8 @@ function Delta({ current, previous, invert = false }: { current: number; previou
     <span className={cn('inline-flex items-center gap-1 text-xs font-medium', good ? 'text-emerald-400' : 'text-red-400')}>
       <Icon className="h-3.5 w-3.5" />
       {change > 0 ? '+' : ''}
-      {percent(change)}
-      <span className="font-normal text-slate-500">vs période préc.</span>
+      {percent(i18n, change)}
+      <span className="font-normal text-slate-500">{t('org.owner.vsPrevious')}</span>
     </span>
   );
 }
@@ -100,10 +92,10 @@ function Kpi({
 }
 
 /** Barres de proportion (une seule teinte, magnitude). */
-function ShareBars({ rows, currency }: { rows: { label: string; amount: number; hint?: string }[]; currency: string }) {
+function ShareBars({ i18n, rows, currency }: { i18n: I18n; rows: { label: string; amount: number; hint?: string }[]; currency: string }) {
   const total = rows.reduce((s, r) => s + r.amount, 0);
   if (rows.length === 0 || total === 0) {
-    return <p className="text-sm text-slate-500">Aucune donnée sur la période.</p>;
+    return <p className="text-sm text-slate-500">{i18n.t('org.owner.noPeriodData')}</p>;
   }
   return (
     <ul className="space-y-3">
@@ -117,7 +109,7 @@ function ShareBars({ rows, currency }: { rows: { label: string; amount: number; 
                 {row.hint && <span className="ml-1 text-xs text-slate-500">{row.hint}</span>}
               </span>
               <span className="whitespace-nowrap text-slate-300">
-                {money(row.amount, currency)} <span className="text-xs text-slate-500">· {percent(share)}</span>
+                {money(i18n, row.amount, currency)} <span className="text-xs text-slate-500">· {percent(i18n, share)}</span>
               </span>
             </div>
             <div className="h-2 rounded-full bg-slate-700/60">
@@ -153,32 +145,54 @@ function FilterChip({ href, active, children }: { href: string; active: boolean;
   );
 }
 
-function buildExportSheets(data: Extract<OwnerDashboard, { empty: false }>) {
-  const c = data.currency;
+function paymentLabel(t: I18n['t'], method: string) {
+  return method in PAYMENT_METHOD_KEYS ? t(`common.paymentMethods.${method as keyof typeof PAYMENT_METHOD_KEYS}`) : method;
+}
+
+const PAYMENT_METHOD_KEYS = { CASH: 1, CARD: 1, CHEQUE: 1, TRANSFER: 1, MOBILE: 1, AUTRE: 1 } as const;
+
+const CHANNEL_KEYS = { DINE_IN: 1, TAKEAWAY: 1, DELIVERY: 1, CLIENT_APP: 1, HOTEL: 1 } as const;
+
+function productName(t: I18n['t'], name: string) {
+  return name === '__deleted__' ? t('org.owner.deletedProduct') : name;
+}
+
+function buildExportSheets(i18n: I18n, data: Extract<OwnerDashboard, { empty: false }>) {
+  const { t } = i18n;
+  const currency = data.currency;
+  const x = (key: Parameters<I18n['t']>[0]) => t(key, { currency });
   return {
-    'Points': data.perPoint.map((p) => ({
-      Point: p.name,
-      [`CA (${c})`]: Math.round(p.revenue),
-      [`CA période préc. (${c})`]: Math.round(p.previousRevenue),
-      [`Restauration (${c})`]: Math.round(p.orderRevenue),
-      [`Hébergement (${c})`]: Math.round(p.hotelRevenue),
-      'Part du CA (%)': Math.round(p.share * 1000) / 10,
-      Commandes: p.orders,
-      [`Ticket moyen (${c})`]: Math.round(p.avgTicket),
-      [`Écart de caisse (${c})`]: Math.round(p.cashDifference),
-      'Articles en stock bas': p.lowStock,
+    [t('org.owner.export.sheetPoints')]: data.perPoint.map((p) => ({
+      [x('org.owner.export.point')]: p.name,
+      [x('org.owner.export.revenue')]: Math.round(p.revenue),
+      [x('org.owner.export.previousRevenue')]: Math.round(p.previousRevenue),
+      [x('org.owner.export.foodRevenue')]: Math.round(p.orderRevenue),
+      [x('org.owner.export.hotelRevenue')]: Math.round(p.hotelRevenue),
+      [x('org.owner.export.share')]: Math.round(p.share * 1000) / 10,
+      [x('org.owner.export.orders')]: p.orders,
+      [x('org.owner.export.avgTicket')]: Math.round(p.avgTicket),
+      [x('org.owner.export.cashGap')]: Math.round(p.cashDifference),
+      [x('org.owner.export.lowStock')]: p.lowStock,
     })),
-    'Top produits': data.topProducts.map((p) => ({
-      Produit: p.name,
-      Quantité: p.quantity,
-      [`CA (${c})`]: Math.round(p.revenue),
+    [t('org.owner.export.sheetSummary')]: [
+      { [x('org.owner.export.indicator')]: x('org.owner.export.revenueTtc'), [x('org.owner.export.value')]: Math.round(data.kpis.revenue) },
+      { [x('org.owner.export.indicator')]: x('org.owner.export.taxIncluded'), [x('org.owner.export.value')]: Math.round(data.kpis.tax) },
+      { [x('org.owner.export.indicator')]: x('org.owner.export.discounts'), [x('org.owner.export.value')]: Math.round(data.kpis.discounts) },
+      { [x('org.owner.export.indicator')]: x('org.owner.export.tips'), [x('org.owner.export.value')]: Math.round(data.kpis.tips) },
+      { [x('org.owner.export.indicator')]: x('org.owner.export.ordersPaid'), [x('org.owner.export.value')]: data.kpis.ordersCount },
+      { [x('org.owner.export.indicator')]: x('org.owner.export.ordersCancelled'), [x('org.owner.export.value')]: data.kpis.cancelledCount },
+    ],
+    [t('org.owner.export.sheetProducts')]: data.topProducts.map((p) => ({
+      [x('org.owner.export.product')]: productName(t, p.name),
+      [x('org.owner.export.quantity')]: p.quantity,
+      [x('org.owner.export.revenue')]: Math.round(p.revenue),
     })),
-    'Paiements': data.paymentMethods.map((p) => ({
-      'Moyen de paiement': PAYMENT_LABELS[p.method] ?? p.method,
-      [`Montant (${c})`]: Math.round(p.amount),
+    [t('org.owner.export.sheetPayments')]: data.paymentMethods.map((p) => ({
+      [x('org.owner.export.method')]: paymentLabel(t, p.method),
+      [x('org.owner.export.amount')]: Math.round(p.amount),
     })),
-    'Évolution': data.series.map((row) => {
-      const line: Record<string, string | number> = { Période: String(row.label) };
+    [t('org.owner.export.sheetTrend')]: data.series.map((row) => {
+      const line: Record<string, string | number> = { [x('org.owner.export.period')]: String(row.label) };
       for (const p of data.scopePoints) line[p.name] = Math.round(Number(row[p.id]) || 0);
       return line;
     }),
@@ -191,12 +205,14 @@ export default async function OwnerViewPage({
   searchParams: Promise<{ range?: string; point?: string }>;
 }) {
   await requireRole('ORG_ADMIN');
+  const i18n = await getT();
+  const { t, format } = i18n;
   const params = await searchParams;
   const data = await getOwnerDashboard({ range: params.range, pointId: params.point });
   if (!data) redirect('/login');
 
   const { currency } = data;
-  const rangeLabel = RANGE_OPTIONS.find((r) => r.value === data.range)?.label ?? '';
+  const rangeLabel = t(`org.owner.ranges.${data.range}` as TranslationKey);
   // Couleur fixée par l'ordre des points dans l'organisation (jamais par le filtre ni le rang).
   const colorOf = new Map(data.points.map((p, i) => [p.id, pointColor(i)]));
 
@@ -208,17 +224,21 @@ export default async function OwnerViewPage({
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-1.5">
               <BarChart3 className="h-4 w-4 text-blue-400" />
-              <span className="text-sm font-medium text-blue-400">Vue propriétaire</span>
+              <span className="text-sm font-medium text-blue-400">{t('org.owner.badge')}</span>
             </div>
             <h1 className="text-3xl font-bold text-white md:text-4xl">{data.organization.name}</h1>
             <p className="mt-1 text-slate-400">
-              {data.pointId ? data.points.find((p) => p.id === data.pointId)?.name : 'Tous les points'} · {rangeLabel} (du{' '}
-              {new Date(data.period.start).toLocaleDateString('fr-FR')} au {new Date(data.period.end).toLocaleDateString('fr-FR')})
+              {t('org.owner.periodLine', {
+                scope: (data.pointId && data.points.find((p) => p.id === data.pointId)?.name) || t('org.owner.allPoints'),
+                range: rangeLabel,
+                from: format.date(data.period.start),
+                to: format.date(data.period.end),
+              })}
             </p>
           </div>
           {!data.empty && (
             <OwnerExportButton
-              sheets={buildExportSheets(data)}
+              sheets={buildExportSheets(i18n, data)}
               filename={`rapport-${data.organization.name.replace(/\s+/g, '-').toLowerCase()}-${data.range}`}
             />
           )}
@@ -226,17 +246,17 @@ export default async function OwnerViewPage({
 
         {/* Filtres */}
         <div className="flex flex-col gap-3 rounded-xl border border-slate-700/60 bg-slate-800/40 p-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-wrap gap-2" aria-label="Période">
-            {RANGE_OPTIONS.map((r) => (
-              <FilterChip key={r.value} href={buildHref({ range: r.value, point: data.pointId })} active={data.range === r.value}>
-                {r.label}
+          <div className="flex flex-wrap gap-2" aria-label={t('org.owner.rangeAria')}>
+            {RANGE_VALUES.map((value) => (
+              <FilterChip key={value} href={buildHref({ range: value, point: data.pointId })} active={data.range === value}>
+                {t(`org.owner.ranges.${value}`)}
               </FilterChip>
             ))}
           </div>
           {data.points.length > 1 && (
-            <div className="flex flex-wrap gap-2" aria-label="Point">
+            <div className="flex flex-wrap gap-2" aria-label={t('org.owner.pointAria')}>
               <FilterChip href={buildHref({ range: data.range })} active={!data.pointId}>
-                Tous les points
+                {t('org.owner.allPoints')}
               </FilterChip>
               {data.points.map((p) => (
                 <FilterChip key={p.id} href={buildHref({ range: data.range, point: p.id })} active={data.pointId === p.id}>
@@ -251,17 +271,17 @@ export default async function OwnerViewPage({
         {data.mixedCurrencies && (
           <p role="alert" className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
             <AlertTriangle className="h-4 w-4 shrink-0" />
-            Vos points n&apos;utilisent pas tous la même devise : les totaux consolidés sont affichés en {currency}.
+            {t('org.owner.mixedCurrencies', { currency })}
           </p>
         )}
 
         {data.empty ? (
           <Card className="border-slate-700/50 bg-slate-800/50">
             <CardContent className="py-16 text-center text-slate-400">
-              <p className="text-lg">Aucun point pour le moment</p>
-              <p className="mt-2 text-sm">Créez votre premier point pour suivre son activité ici.</p>
+              <p className="text-lg">{t('org.owner.emptyTitle')}</p>
+              <p className="mt-2 text-sm">{t('org.owner.emptyText')}</p>
               <Link href="/organization/points/new">
-                <Button className="mt-6 bg-blue-600 text-white hover:bg-blue-700">Créer un point</Button>
+                <Button className="mt-6 bg-blue-600 text-white hover:bg-blue-700">{t('org.owner.createPoint')}</Button>
               </Link>
             </CardContent>
           </Card>
@@ -269,29 +289,34 @@ export default async function OwnerViewPage({
           <>
             {/* Indicateurs clés */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <Kpi icon={Wallet} label="Chiffre d'affaires" value={money(data.kpis.revenue, currency)}>
-                <Delta current={data.kpis.revenue} previous={data.kpis.previousRevenue} />
+              <Kpi icon={Wallet} label={t('org.owner.kpi.revenue')} value={money(i18n, data.kpis.revenue, currency)}>
+                <Delta i18n={i18n} current={data.kpis.revenue} previous={data.kpis.previousRevenue} />
               </Kpi>
-              <Kpi icon={ShoppingCart} label="Commandes encaissées" value={String(data.kpis.ordersCount)}>
-                <Delta current={data.kpis.ordersCount} previous={data.kpis.previousOrdersCount} />
+              <Kpi icon={ShoppingCart} label={t('org.owner.kpi.orders')} value={String(data.kpis.ordersCount)}>
+                <Delta i18n={i18n} current={data.kpis.ordersCount} previous={data.kpis.previousOrdersCount} />
               </Kpi>
-              <Kpi icon={Receipt} label="Ticket moyen" value={money(data.kpis.avgTicket, currency)}>
-                <Delta current={data.kpis.avgTicket} previous={data.kpis.previousAvgTicket} />
+              <Kpi icon={Receipt} label={t('org.owner.kpi.avgTicket')} value={money(i18n, data.kpis.avgTicket, currency)}>
+                <Delta i18n={i18n} current={data.kpis.avgTicket} previous={data.kpis.previousAvgTicket} />
               </Kpi>
-              <Kpi icon={Hotel} label="Hébergement" value={money(data.kpis.hotelRevenue, currency)}>
-                <span className="text-xs text-slate-400">{data.kpis.bookingsCount} réservation(s) payée(s)</span>
+              <Kpi icon={Hotel} label={t('org.owner.kpi.hotel')} value={money(i18n, data.kpis.hotelRevenue, currency)}>
+                <span className="text-xs text-slate-400">{t('org.owner.kpi.paidBookings', { count: data.kpis.bookingsCount })}</span>
               </Kpi>
-              <Kpi icon={Percent} label="Remises accordées" value={money(data.kpis.discounts, currency)}>
+              <Kpi icon={Percent} label={t('org.owner.kpi.discounts')} value={money(i18n, data.kpis.discounts, currency)}>
                 <span className="text-xs text-slate-400">
-                  {data.kpis.orderRevenue > 0 ? `${percent(data.kpis.discounts / (data.kpis.orderRevenue + data.kpis.discounts))} des ventes brutes` : '—'}
+                  {data.kpis.orderRevenue > 0
+                    ? t('org.owner.kpi.discountShare', { share: percent(i18n, data.kpis.discounts / (data.kpis.orderRevenue + data.kpis.discounts)) })
+                    : '—'}
                 </span>
               </Kpi>
-              <Kpi icon={Coins} label="Pourboires" value={money(data.kpis.tips, currency)} />
-              <Kpi icon={XCircle} label="Commandes annulées" value={String(data.kpis.cancelledCount)} />
-              <Kpi icon={Wallet} label="Écart de caisse (sessions clôturées)" value={money(data.cash.difference, currency)}>
+              <Kpi icon={Coins} label={t('org.owner.kpi.tips')} value={money(i18n, data.kpis.tips, currency)} />
+              <Kpi icon={Landmark} label={t('org.owner.kpi.tax')} value={money(i18n, data.kpis.tax, currency)}>
+                <span className="text-xs text-slate-400">{t('org.owner.kpi.taxHint')}</span>
+              </Kpi>
+              <Kpi icon={XCircle} label={t('org.owner.kpi.cancelled')} value={String(data.kpis.cancelledCount)} />
+              <Kpi icon={Wallet} label={t('org.owner.kpi.cashGap')} value={money(i18n, data.cash.difference, currency)}>
                 <span className={cn('text-xs', data.cash.negativeCount > 0 ? 'text-red-400' : 'text-slate-400')}>
                   {data.cash.negativeCount > 0 && <AlertTriangle className="mr-1 inline h-3 w-3" />}
-                  {data.cash.negativeCount} session(s) en manque sur {data.cash.closedCount}
+                  {t('org.owner.kpi.shortSessions', { short: data.cash.negativeCount, total: data.cash.closedCount })}
                 </span>
               </Kpi>
             </div>
@@ -301,21 +326,21 @@ export default async function OwnerViewPage({
               <div className="flex items-center gap-3 rounded-xl border border-slate-700/60 bg-slate-800/40 p-4">
                 <ShoppingCart className="h-5 w-5 text-slate-400" />
                 <div>
-                  <p className="text-sm text-slate-400">Commandes en cours</p>
+                  <p className="text-sm text-slate-400">{t('org.owner.live.activeOrders')}</p>
                   <p className="text-xl font-semibold text-slate-50">{data.activeOrdersCount}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 rounded-xl border border-slate-700/60 bg-slate-800/40 p-4">
                 <CreditCard className="h-5 w-5 text-slate-400" />
                 <div>
-                  <p className="text-sm text-slate-400">Caisses ouvertes</p>
+                  <p className="text-sm text-slate-400">{t('org.owner.live.openTills')}</p>
                   <p className="text-xl font-semibold text-slate-50">{data.cash.open.length}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 rounded-xl border border-slate-700/60 bg-slate-800/40 p-4">
                 <Boxes className={cn('h-5 w-5', data.lowStockCount > 0 ? 'text-amber-400' : 'text-slate-400')} />
                 <div>
-                  <p className="text-sm text-slate-400">Articles en stock bas</p>
+                  <p className="text-sm text-slate-400">{t('org.owner.live.lowStock')}</p>
                   <p className="text-xl font-semibold text-slate-50">{data.lowStockCount}</p>
                 </div>
               </div>
@@ -325,8 +350,8 @@ export default async function OwnerViewPage({
             <Card className="border-slate-700/50 bg-slate-800/50">
               <CardHeader className="border-b border-slate-700/50">
                 <CardTitle className="text-slate-50">
-                  Évolution du chiffre d&apos;affaires {data.range === 'today' ? 'par heure' : 'par jour'}
-                  {data.scopePoints.length > 1 ? ' et par point' : ''}
+                  {data.range === 'today' ? t('org.owner.chartTitleHour') : t('org.owner.chartTitleDay')}
+                  {data.scopePoints.length > 1 ? t('org.owner.chartByPoint') : ''}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
@@ -341,22 +366,22 @@ export default async function OwnerViewPage({
             {/* Comparatif des points */}
             <Card className="border-slate-700/50 bg-slate-800/50">
               <CardHeader className="border-b border-slate-700/50">
-                <CardTitle className="text-slate-50">Comparatif des points</CardTitle>
+                <CardTitle className="text-slate-50">{t('org.owner.comparison.title')}</CardTitle>
               </CardHeader>
               <CardContent className="overflow-x-auto p-0">
                 <table className="w-full min-w-[900px] text-sm">
                   <thead>
                     <tr className="border-b border-slate-700 text-left text-slate-400">
-                      <th className="px-4 py-3 font-medium">Point</th>
-                      <th className="px-4 py-3 text-right font-medium">CA</th>
-                      <th className="px-4 py-3 font-medium">Évolution</th>
-                      <th className="px-4 py-3 text-right font-medium">Part</th>
-                      <th className="px-4 py-3 text-right font-medium">Commandes</th>
-                      <th className="px-4 py-3 text-right font-medium">Ticket moyen</th>
-                      <th className="px-4 py-3 text-right font-medium">En cours</th>
-                      <th className="px-4 py-3 text-right font-medium">Caisses ouvertes</th>
-                      <th className="px-4 py-3 text-right font-medium">Écart caisse</th>
-                      <th className="px-4 py-3 text-right font-medium">Stock bas</th>
+                      <th className="px-4 py-3 font-medium">{t('org.owner.comparison.point')}</th>
+                      <th className="px-4 py-3 text-right font-medium">{t('org.owner.comparison.revenue')}</th>
+                      <th className="px-4 py-3 font-medium">{t('org.owner.comparison.trend')}</th>
+                      <th className="px-4 py-3 text-right font-medium">{t('org.owner.comparison.share')}</th>
+                      <th className="px-4 py-3 text-right font-medium">{t('org.owner.comparison.orders')}</th>
+                      <th className="px-4 py-3 text-right font-medium">{t('org.owner.comparison.avgTicket')}</th>
+                      <th className="px-4 py-3 text-right font-medium">{t('org.owner.comparison.active')}</th>
+                      <th className="px-4 py-3 text-right font-medium">{t('org.owner.comparison.openTills')}</th>
+                      <th className="px-4 py-3 text-right font-medium">{t('org.owner.comparison.cashGap')}</th>
+                      <th className="px-4 py-3 text-right font-medium">{t('org.owner.comparison.lowStock')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -368,21 +393,21 @@ export default async function OwnerViewPage({
                             <div className="flex items-center gap-2">
                               <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: colorOf.get(p.id) }} />
                               <span className="font-medium text-slate-100">{p.name}</span>
-                              {!p.isActive && <span className="text-xs text-red-400">(désactivé)</span>}
+                              {!p.isActive && <span className="text-xs text-red-400">{t('org.owner.comparison.disabled')}</span>}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-right font-semibold text-slate-100">{money(p.revenue, currency)}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-slate-100">{money(i18n, p.revenue, currency)}</td>
                           <td className="px-4 py-3">
-                            <Delta current={p.revenue} previous={p.previousRevenue} />
+                            <Delta i18n={i18n} current={p.revenue} previous={p.previousRevenue} />
                           </td>
-                          <td className="px-4 py-3 text-right text-slate-300">{percent(p.share)}</td>
+                          <td className="px-4 py-3 text-right text-slate-300">{percent(i18n, p.share)}</td>
                           <td className="px-4 py-3 text-right text-slate-300">{p.orders}</td>
-                          <td className="px-4 py-3 text-right text-slate-300">{money(p.avgTicket, currency)}</td>
+                          <td className="px-4 py-3 text-right text-slate-300">{money(i18n, p.avgTicket, currency)}</td>
                           <td className="px-4 py-3 text-right text-slate-300">{p.activeOrders}</td>
                           <td className="px-4 py-3 text-right text-slate-300">{p.openShifts}</td>
                           <td className={cn('px-4 py-3 text-right', p.cashDifference < 0 ? 'text-red-400' : 'text-slate-300')}>
                             {p.cashDifference > 0 ? '+' : ''}
-                            {money(p.cashDifference, currency)}
+                            {money(i18n, p.cashDifference, currency)}
                           </td>
                           <td className={cn('px-4 py-3 text-right', p.lowStock > 0 ? 'text-amber-400' : 'text-slate-300')}>
                             {p.lowStock}
@@ -400,7 +425,7 @@ export default async function OwnerViewPage({
                 <CardHeader className="border-b border-slate-700/50">
                   <CardTitle className="flex items-center gap-2 text-slate-50">
                     <Clock className="h-5 w-5 text-slate-400" />
-                    Heures de pointe
+                    {t('org.owner.peakHours')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6">
@@ -410,21 +435,27 @@ export default async function OwnerViewPage({
 
               <Card className="border-slate-700/50 bg-slate-800/50">
                 <CardHeader className="border-b border-slate-700/50">
-                  <CardTitle className="text-slate-50">Encaissements</CardTitle>
+                  <CardTitle className="text-slate-50">{t('org.owner.payments')}</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-6 pt-6 md:grid-cols-2">
                   <div>
-                    <p className="mb-3 text-sm font-medium text-slate-300">Par moyen de paiement</p>
+                    <p className="mb-3 text-sm font-medium text-slate-300">{t('org.owner.byMethod')}</p>
                     <ShareBars
+                      i18n={i18n}
                       currency={currency}
-                      rows={data.paymentMethods.map((p) => ({ label: PAYMENT_LABELS[p.method] ?? p.method, amount: p.amount }))}
+                      rows={data.paymentMethods.map((p) => ({ label: paymentLabel(t, p.method), amount: p.amount }))}
                     />
                   </div>
                   <div>
-                    <p className="mb-3 text-sm font-medium text-slate-300">Par canal de vente</p>
+                    <p className="mb-3 text-sm font-medium text-slate-300">{t('org.owner.byChannel')}</p>
                     <ShareBars
+                      i18n={i18n}
                       currency={currency}
-                      rows={data.channels.map((ch) => ({ label: ch.name, amount: ch.amount, hint: `(${ch.count})` }))}
+                      rows={data.channels.map((ch) => ({
+                        label: ch.name in CHANNEL_KEYS ? t(`org.owner.channels.${ch.name as keyof typeof CHANNEL_KEYS}`) : ch.name,
+                        amount: ch.amount,
+                        hint: `(${ch.count})`,
+                      }))}
                     />
                   </div>
                 </CardContent>
@@ -437,29 +468,29 @@ export default async function OwnerViewPage({
                 <CardHeader className="border-b border-slate-700/50">
                   <CardTitle className="flex items-center gap-2 text-slate-50">
                     <Trophy className="h-5 w-5 text-slate-400" />
-                    Meilleures ventes
+                    {t('org.owner.topProducts')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                   {data.topProducts.length === 0 ? (
-                    <p className="p-6 text-sm text-slate-500">Aucune vente sur la période.</p>
+                    <p className="p-6 text-sm text-slate-500">{t('org.owner.noSales')}</p>
                   ) : (
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-slate-700 text-left text-slate-400">
                           <th className="px-4 py-3 font-medium">#</th>
-                          <th className="px-4 py-3 font-medium">Produit</th>
-                          <th className="px-4 py-3 text-right font-medium">Quantité</th>
-                          <th className="px-4 py-3 text-right font-medium">CA</th>
+                          <th className="px-4 py-3 font-medium">{t('org.owner.product')}</th>
+                          <th className="px-4 py-3 text-right font-medium">{t('org.owner.quantity')}</th>
+                          <th className="px-4 py-3 text-right font-medium">{t('org.owner.revenue')}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {data.topProducts.map((p, i) => (
                           <tr key={p.name} className="border-b border-slate-700/50 last:border-0">
                             <td className="px-4 py-2.5 text-slate-500">{i + 1}</td>
-                            <td className="px-4 py-2.5 text-slate-100">{p.name}</td>
+                            <td className="px-4 py-2.5 text-slate-100">{productName(t, p.name)}</td>
                             <td className="px-4 py-2.5 text-right text-slate-300">{p.quantity}</td>
-                            <td className="px-4 py-2.5 text-right text-slate-100">{money(p.revenue, currency)}</td>
+                            <td className="px-4 py-2.5 text-right text-slate-100">{money(i18n, p.revenue, currency)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -472,38 +503,38 @@ export default async function OwnerViewPage({
                 <CardHeader className="flex flex-row items-center justify-between border-b border-slate-700/50">
                   <CardTitle className="flex items-center gap-2 text-slate-50">
                     <CreditCard className="h-5 w-5 text-slate-400" />
-                    Caisses
+                    {t('org.owner.tills')}
                   </CardTitle>
                   <Link
                     href={data.pointId ? `/organization/cash?point=${data.pointId}` : '/organization/cash'}
                     className="text-sm text-blue-400 hover:text-blue-300"
                   >
-                    Rapports de caisse →
+                    {t('org.owner.cashReportsLink')}
                   </Link>
                 </CardHeader>
                 <CardContent className="space-y-5 pt-6">
                   <div className="grid grid-cols-3 gap-3 text-sm">
                     <div>
-                      <p className="text-slate-400">Attendu</p>
-                      <p className="font-semibold text-slate-100">{money(data.cash.expected, currency)}</p>
+                      <p className="text-slate-400">{t('org.owner.expected')}</p>
+                      <p className="font-semibold text-slate-100">{money(i18n, data.cash.expected, currency)}</p>
                     </div>
                     <div>
-                      <p className="text-slate-400">Compté</p>
-                      <p className="font-semibold text-slate-100">{money(data.cash.actual, currency)}</p>
+                      <p className="text-slate-400">{t('org.owner.counted')}</p>
+                      <p className="font-semibold text-slate-100">{money(i18n, data.cash.actual, currency)}</p>
                     </div>
                     <div>
-                      <p className="text-slate-400">Écart</p>
+                      <p className="text-slate-400">{t('org.owner.gap')}</p>
                       <p className={cn('font-semibold', data.cash.difference < 0 ? 'text-red-400' : 'text-slate-100')}>
                         {data.cash.difference > 0 ? '+' : ''}
-                        {money(data.cash.difference, currency)}
+                        {money(i18n, data.cash.difference, currency)}
                       </p>
                     </div>
                   </div>
 
                   <div>
-                    <p className="mb-2 text-sm font-medium text-slate-300">Sessions ouvertes en ce moment</p>
+                    <p className="mb-2 text-sm font-medium text-slate-300">{t('org.owner.openNow')}</p>
                     {data.cash.open.length === 0 ? (
-                      <p className="text-sm text-slate-500">Aucune caisse ouverte.</p>
+                      <p className="text-sm text-slate-500">{t('org.owner.noOpenTill')}</p>
                     ) : (
                       <ul className="divide-y divide-slate-700/60 rounded-lg border border-slate-700/60">
                         {data.cash.open.map((s) => (
@@ -513,8 +544,8 @@ export default async function OwnerViewPage({
                               <p className="truncate text-xs text-slate-500">{s.point}</p>
                             </div>
                             <div className="text-right text-xs text-slate-400">
-                              <p>Depuis {new Date(s.openedAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</p>
-                              <p>Fond : {money(s.openingBalance, currency)}</p>
+                              <p>{t('org.owner.since', { date: format.dateTime(s.openedAt) })}</p>
+                              <p>{t('org.owner.float', { amount: money(i18n, s.openingBalance, currency) })}</p>
                             </div>
                           </li>
                         ))}
@@ -531,17 +562,17 @@ export default async function OwnerViewPage({
                 <CardHeader className="border-b border-slate-700/50">
                   <CardTitle className="flex items-center gap-2 text-slate-50">
                     <AlertTriangle className="h-5 w-5 text-amber-400" />
-                    Alertes de stock ({data.lowStockCount})
+                    {t('org.owner.stockAlerts', { count: data.lowStockCount })}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-slate-700 text-left text-slate-400">
-                        <th className="px-4 py-3 font-medium">Article</th>
-                        <th className="px-4 py-3 font-medium">Point</th>
-                        <th className="px-4 py-3 text-right font-medium">Quantité</th>
-                        <th className="px-4 py-3 text-right font-medium">Seuil</th>
+                        <th className="px-4 py-3 font-medium">{t('org.owner.item')}</th>
+                        <th className="px-4 py-3 font-medium">{t('org.owner.comparison.point')}</th>
+                        <th className="px-4 py-3 text-right font-medium">{t('org.owner.quantity')}</th>
+                        <th className="px-4 py-3 text-right font-medium">{t('org.owner.threshold')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -550,7 +581,7 @@ export default async function OwnerViewPage({
                           <td className="px-4 py-2.5 text-slate-100">{s.name}</td>
                           <td className="px-4 py-2.5 text-slate-300">{s.point}</td>
                           <td className={cn('px-4 py-2.5 text-right font-medium', s.quantity <= 0 ? 'text-red-400' : 'text-amber-400')}>
-                            {s.quantity <= 0 ? 'Rupture' : s.quantity}
+                            {s.quantity <= 0 ? t('org.owner.outOfStock') : s.quantity}
                           </td>
                           <td className="px-4 py-2.5 text-right text-slate-400">{s.threshold}</td>
                         </tr>
@@ -559,7 +590,7 @@ export default async function OwnerViewPage({
                   </table>
                   {data.lowStockCount > data.lowStock.length && (
                     <p className="border-t border-slate-700/50 px-4 py-2 text-xs text-slate-500">
-                      {data.lowStockCount - data.lowStock.length} autre(s) article(s) en stock bas (seuls les 20 plus urgents sont affichés).
+                      {t('org.owner.moreLowStock', { count: data.lowStockCount - data.lowStock.length })}
                     </p>
                   )}
                 </CardContent>

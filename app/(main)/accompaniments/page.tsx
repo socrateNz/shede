@@ -1,5 +1,7 @@
 'use client';
 
+import { useT } from '@/lib/i18n/client';
+
 import { getAccompaniments, createAccompaniment, updateAccompaniment, deleteAccompaniment } from '@/app/actions/accompaniments';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +27,7 @@ import { TablePagination } from '@/components/table-pagination';
 
 export default function AccompanimentsPage() {
   const [items, setItems] = useState<any[]>([]);
+  const { t, format } = useT();
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: '', price: 0, is_available: true });
@@ -75,7 +78,7 @@ export default function AccompanimentsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Voulez-vous supprimer cet accompagnement ?')) return;
+    if (!confirm(t('products.accompaniments.confirmDelete'))) return;
     const res = await deleteAccompaniment(id);
     if (!res.success) alert(res.error);
     else fetchData();
@@ -98,12 +101,12 @@ export default function AccompanimentsPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
               <Package className="w-4 h-4 text-blue-400" />
-              <span className="text-sm text-blue-400 font-medium">Gestion des extras</span>
+              <span className="text-sm text-blue-400 font-medium">{t('products.accompaniments.badge')}</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
-              Accompagnements
+              {t('products.accompaniments.title')}
             </h1>
-            <p className="text-slate-400">Gérez les extras et options de votre menu</p>
+            <p className="text-slate-400">{t('products.accompaniments.subtitle')}</p>
           </div>
         </div>
 
@@ -113,7 +116,7 @@ export default function AccompanimentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl font-bold text-white">{items.length}</div>
-                <div className="text-sm text-slate-400">Total accompagnements</div>
+                <div className="text-sm text-slate-400">{t('products.accompaniments.statTotal')}</div>
               </div>
               <div className="p-3 bg-blue-500/10 rounded-xl">
                 <Package className="w-6 h-6 text-blue-400" />
@@ -124,7 +127,7 @@ export default function AccompanimentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl font-bold text-green-400">{availableCount}</div>
-                <div className="text-sm text-slate-400">Disponibles</div>
+                <div className="text-sm text-slate-400">{t('products.accompaniments.statAvailable')}</div>
               </div>
               <div className="p-3 bg-green-500/10 rounded-xl">
                 <Tag className="w-6 h-6 text-green-400" />
@@ -134,8 +137,8 @@ export default function AccompanimentsPage() {
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-purple-400">{totalPrice.toFixed(2)} FCFA</div>
-                <div className="text-sm text-slate-400">Valeur totale</div>
+                <div className="text-2xl font-bold text-purple-400">{format.money(totalPrice)}</div>
+                <div className="text-sm text-slate-400">{t('products.accompaniments.statValue')}</div>
               </div>
               <div className="p-3 bg-purple-500/10 rounded-xl">
                 <DollarSign className="w-6 h-6 text-purple-400" />
@@ -153,7 +156,7 @@ export default function AccompanimentsPage() {
                 <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                   <Plus className="w-4 h-4 text-white" />
                 </div>
-                Nouvel accompagnement
+                {t('products.accompaniments.newTitle')}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
@@ -161,19 +164,19 @@ export default function AccompanimentsPage() {
                 <div className="space-y-2 group">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                     <Tag className="w-4 h-4 text-blue-400" />
-                    Nom de l'accompagnement *
+                    {t('products.accompaniments.name')}
                   </label>
                   <Input
                     name="name"
                     required
-                    placeholder="Ex: Frites, Salade, Sauce..."
+                    placeholder={t('products.accompaniments.namePlaceholder')}
                     className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300 group-hover:border-slate-500"
                   />
                 </div>
                 <div className="space-y-2 group">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-purple-400" />
-                    Prix *
+                    {t('products.accompaniments.price')}
                   </label>
                   <Input
                     name="price"
@@ -181,10 +184,10 @@ export default function AccompanimentsPage() {
                     step="10"
                     min="0"
                     required
-                    placeholder="Ex: 500"
+                    placeholder={t('products.accompaniments.pricePlaceholder')}
                     className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300 group-hover:border-slate-500"
                   />
-                  <p className="text-xs text-slate-500 mt-1">Prix en FCFA</p>
+                  <p className="text-xs text-slate-500 mt-1">{t('products.accompaniments.priceHint')}</p>
                 </div>
                 {state.error && (
                   <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
@@ -202,12 +205,12 @@ export default function AccompanimentsPage() {
                   {isPending ? (
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Création en cours...
+                      {t('products.accompaniments.creating')}
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
                       <Plus className="w-4 h-4" />
-                      Créer l'accompagnement
+                      {t('products.accompaniments.create')}
                     </div>
                   )}
                 </Button>
@@ -220,7 +223,7 @@ export default function AccompanimentsPage() {
             <CardHeader className="border-b border-slate-700/50">
               <CardTitle className="text-slate-50 flex items-center gap-2">
                 <Package className="w-5 h-5 text-blue-400" />
-                Liste des accompagnements
+                {t('products.accompaniments.listTitle')}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -228,24 +231,24 @@ export default function AccompanimentsPage() {
                 <div className="flex items-center justify-center py-16">
                   <div className="flex flex-col items-center gap-3">
                     <div className="w-8 h-8 border-3 border-slate-600 border-t-blue-500 rounded-full animate-spin" />
-                    <p className="text-slate-400">Chargement...</p>
+                    <p className="text-slate-400">{t('products.accompaniments.loading')}</p>
                   </div>
                 </div>
               ) : items.length === 0 ? (
                 <div className="text-center py-16 text-slate-400">
                   <Package className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                  <p className="text-lg">Aucun accompagnement</p>
-                  <p className="text-sm mt-2">Commencez par créer un nouvel accompagnement</p>
+                  <p className="text-lg">{t('products.accompaniments.emptyTitle')}</p>
+                  <p className="text-sm mt-2">{t('products.accompaniments.emptyText')}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="border-slate-700 hover:bg-transparent">
-                        <TableHead className="text-slate-300 font-semibold">Nom</TableHead>
-                        <TableHead className="text-slate-300 font-semibold">Prix</TableHead>
-                        <TableHead className="text-slate-300 font-semibold">Disponibilité</TableHead>
-                        <TableHead className="text-slate-300 font-semibold text-right">Actions</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">{t('products.accompaniments.colName')}</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">{t('products.accompaniments.colPrice')}</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">{t('products.accompaniments.colAvailability')}</TableHead>
+                        <TableHead className="text-slate-300 font-semibold text-right">{t('products.accompaniments.colActions')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -310,7 +313,7 @@ export default function AccompanimentsPage() {
                                 {item.name}
                               </TableCell>
                               <TableCell className="text-slate-300">
-                                <span className="font-semibold text-white">{item.price.toLocaleString()} FCFA</span>
+                                <span className="font-semibold text-white">{format.money(item.price)}</span>
                               </TableCell>
                               <TableCell>
                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${item.is_available
@@ -318,7 +321,7 @@ export default function AccompanimentsPage() {
                                   : 'bg-red-500/10 text-red-400'
                                   }`}>
                                   <div className={`w-1.5 h-1.5 rounded-full ${item.is_available ? 'bg-green-400' : 'bg-red-400'}`} />
-                                  {item.is_available ? 'Disponible' : 'Indisponible'}
+                                  {item.is_available ? t('products.accompaniments.available') : t('products.accompaniments.unavailable')}
                                 </span>
                               </TableCell>
                               <TableCell className="text-right">
@@ -329,7 +332,7 @@ export default function AccompanimentsPage() {
                                       size="sm"
                                       className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
                                     >
-                                      <span className="sr-only">Menu actions</span>
+                                      <span className="sr-only">{t('products.accompaniments.menuActions')}</span>
                                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                                       </svg>
@@ -344,7 +347,7 @@ export default function AccompanimentsPage() {
                                       className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700"
                                     >
                                       <Edit2 className="w-4 h-4 mr-2 text-blue-400" />
-                                      <span>Modifier</span>
+                                      <span>{t('common.edit')}</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator className="bg-slate-700" />
                                     <DropdownMenuItem
@@ -352,7 +355,7 @@ export default function AccompanimentsPage() {
                                       className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700 text-red-400"
                                     >
                                       <Trash2 className="w-4 h-4 mr-2" />
-                                      <span>Supprimer</span>
+                                      <span>{t('common.delete')}</span>
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>

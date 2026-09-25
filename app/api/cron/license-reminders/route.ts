@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { sendMail } from '@/lib/mail';
-import { buildLicenseExpiringMail, getOrganizationAdminEmails } from '@/lib/emails';
+import { buildLicenseExpiringMails, getOrganizationAdminRecipients } from '@/lib/emails';
 
 // Rappels d'expiration de licence / d'essai, à J-7 et J-1.
 // À appeler une fois par jour (voir vercel.json) avec l'en-tête
@@ -41,20 +41,21 @@ export async function GET(request: NextRequest) {
     }
 
     for (const license of licenses || []) {
-      const recipients = await getOrganizationAdminEmails(license.organization_id);
+      const recipients = await getOrganizationAdminRecipients(license.organization_id);
       const organization = Array.isArray(license.organizations) ? license.organizations[0] : license.organizations;
-      const result = recipients.length
-        ? await sendMail(
-            buildLicenseExpiringMail({
-              to: recipients,
-              organizationName: organization?.name ?? 'votre organisation',
-              expiresAt: license.expires_at,
-              daysLeft,
-              isTrial: license.plan === 'TRIAL',
-            })
-          )
-        : { ok: false };
-      report.push({ organizationId: license.organization_id, daysLeft, sent: result.ok });
+      const mails = buildLicenseExpiringMails({
+        recipients,
+        organizationName: organization?.name,
+        expiresAt: license.expires_at,
+        daysLeft,
+        isTrial: license.plan === 'TRIAL',
+      });
+      const results = await Promise.all(mails.map((mail) => sendMail(mail)));
+      report.push({
+        organizationId: license.organization_id,
+        daysLeft,
+        sent: results.length > 0 && results.every((r) => r.ok),
+      });
     }
   }
 

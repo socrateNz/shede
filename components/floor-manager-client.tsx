@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { AddFloorDialog } from '@/components/add-floor-dialog';
 import { EditTableDialog } from '@/components/edit-table-dialog';
 import type { Floor } from '@/lib/supabase';
+import { useT } from '@/lib/i18n/client';
 
 interface Table {
   id: string;
@@ -35,6 +36,7 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
   const [renamingFloorId, setRenamingFloorId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const { t } = useT();
 
   useEffect(() => {
     setTables(initialTables);
@@ -49,8 +51,8 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
   }
 
   const activeFloor = floors.find(f => f.id === activeFloorId);
-  const floorTables = tables.filter(t =>
-    t.floor_id === activeFloorId || (!t.floor_id && activeFloor && t.floor_name === activeFloor.name)
+  const floorTables = tables.filter(tb =>
+    tb.floor_id === activeFloorId || (!tb.floor_id && activeFloor && tb.floor_name === activeFloor.name)
   );
 
   const handlePointerDown = (e: React.PointerEvent, id: string) => {
@@ -70,11 +72,11 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
     const snappedX = Math.round(x / 20) * 20;
     const snappedY = Math.round(y / 20) * 20;
 
-    setTables(prev => prev.map(t => {
-      if (t.id === draggingId) {
-        return { ...t, position_x: snappedX - t.width / 2, position_y: snappedY - t.height / 2 };
+    setTables(prev => prev.map(tb => {
+      if (tb.id === draggingId) {
+        return { ...tb, position_x: snappedX - tb.width / 2, position_y: snappedY - tb.height / 2 };
       }
-      return t;
+      return tb;
     }));
   };
 
@@ -82,7 +84,7 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
     if (!isEditMode || !draggingId) return;
     e.currentTarget.releasePointerCapture(e.pointerId);
 
-    const table = tables.find(t => t.id === draggingId);
+    const table = tables.find(tb => tb.id === draggingId);
     if (table) {
       await updateTablePosition(table.id, table.position_x, table.position_y);
     }
@@ -90,11 +92,11 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Voulez-vous vraiment supprimer cette table ?')) {
+    if (confirm(t('floor.manager.confirmDeleteTable'))) {
       const result = await deleteTable(id);
       if (result.success) {
-        setTables(prev => prev.filter(t => t.id !== id));
-        toast.success('Table supprimée');
+        setTables(prev => prev.filter(tb => tb.id !== id));
+        toast.success(t('floor.manager.tableDeleted'));
       } else {
         toast.error(result.error);
       }
@@ -102,7 +104,7 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
   };
 
   const handleTableUpdated = (updated: any) => {
-    setTables(prev => prev.map(t => (t.id === updated.id ? { ...t, ...updated } : t)));
+    setTables(prev => prev.map(tb => (tb.id === updated.id ? { ...tb, ...updated } : tb)));
   };
 
   const handleFloorCreated = (floor: Floor) => {
@@ -128,20 +130,20 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
     const result = await renameFloor(id, renameValue.trim());
     if (result.success && result.floor) {
       setFloors(prev => prev.map(f => (f.id === id ? result.floor : f)));
-      setTables(prev => prev.map(t => (t.floor_id === id ? { ...t, floor_name: result.floor.name } : t)));
-      toast.success('Salle renommée');
+      setTables(prev => prev.map(tb => (tb.floor_id === id ? { ...tb, floor_name: result.floor.name } : tb)));
+      toast.success(t('floor.manager.floorRenamed'));
     } else {
-      toast.error(result.error || 'Erreur lors du renommage');
+      toast.error(result.error || t('floor.manager.renameError'));
     }
     cancelRenameFloor();
   };
 
   const handleDeleteFloor = async (floor: Floor) => {
-    if (!confirm(`Voulez-vous vraiment supprimer la salle "${floor.name}" ?`)) return;
+    if (!confirm(t('floor.manager.confirmDeleteFloor', { name: floor.name }))) return;
     const result = await deleteFloor(floor.id);
     if (result.success) {
       setFloors(prev => prev.filter(f => f.id !== floor.id));
-      toast.success('Salle supprimée');
+      toast.success(t('floor.manager.floorDeleted'));
     } else {
       toast.error(result.error);
     }
@@ -191,14 +193,14 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
                     <button
                       onClick={() => startRenameFloor(floor)}
                       className="text-slate-400 hover:text-white p-1"
-                      title="Renommer la salle"
+                      title={t('floor.manager.renameFloor')}
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDeleteFloor(floor)}
                       className="text-slate-400 hover:text-red-400 p-1"
-                      title="Supprimer la salle"
+                      title={t('floor.manager.deleteFloor')}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -217,9 +219,9 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
             onClick={() => setIsEditMode(!isEditMode)}
           >
             {isEditMode ? (
-              <><CheckCircle2 className="w-4 h-4 mr-2" /> Terminer l'édition</>
+              <><CheckCircle2 className="w-4 h-4 mr-2" /> {t('floor.manager.finishEditing')}</>
             ) : (
-              <><Edit2 className="w-4 h-4 mr-2" /> Éditer le plan</>
+              <><Edit2 className="w-4 h-4 mr-2" /> {t('floor.manager.editPlan')}</>
             )}
           </Button>
         </div>
@@ -287,6 +289,8 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
                     <button
                       className="absolute -top-3 -right-3 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all z-20"
                       onPointerDown={(e) => e.stopPropagation()}
+                      title={t('floor.manager.deleteTable')}
+                      aria-label={t('floor.manager.deleteTable')}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDelete(table.id);
@@ -302,8 +306,8 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
 
           {floorTables.length === 0 && (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500">
-              <p className="text-lg">Aucune table dans cette salle</p>
-              <p className="text-sm">Ajoutez-en via le bouton ci-dessous</p>
+              <p className="text-lg">{t('floor.manager.emptyTitle')}</p>
+              <p className="text-sm">{t('floor.manager.emptyText')}</p>
             </div>
           )}
         </div>

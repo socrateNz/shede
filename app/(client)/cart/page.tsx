@@ -1,18 +1,28 @@
 'use client';
 
 import { getActivePromotionsForClient, validatePromoCode } from '@/app/actions/promotions';
-import { Tag, Check, X, Trash2, Plus, Minus, Loader2, UtensilsCrossed, Bed, ShoppingBag, Truck, Clock, Shield } from 'lucide-react';
+import { Tag, Check, X, Trash2, Plus, Minus, Loader2, UtensilsCrossed, Bed, ShoppingBag, Truck, Clock, Shield, Bike, MapPin, LocateFixed } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { formatFCFA } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useCartStore } from '@/lib/cart-store';
 import { createClientOrder } from '@/app/actions/client-orders';
+import { getDeliveryOptions } from '@/app/actions/delivery';
+import { computeTax, toTaxSettings, type TaxSettings } from '@/lib/tax';
+import { normalizeCameroonPhone } from '@/lib/phone';
+import { useT } from '@/lib/i18n/client';
 
 export default function CartPage() {
   const { items, structureId, updateQuantity, removeItem, getTotal, clearCart } = useCartStore();
-  const [deliveryMode, setDeliveryMode] = useState<'TABLE' | 'ROOM' | 'TAKEAWAY'>('TABLE');
+  const [deliveryMode, setDeliveryMode] = useState<'TABLE' | 'ROOM' | 'TAKEAWAY' | 'DELIVERY'>('TABLE');
+  const [deliveryZones, setDeliveryZones] = useState<{ id: string; name: string; fee: number }[]>([]);
+  const [zoneId, setZoneId] = useState('');
+  const [district, setDistrict] = useState('');
+  const [landmark, setLandmark] = useState('');
+  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [taxSettings, setTaxSettings] = useState<TaxSettings>({ rate: 0, pricesIncludeTax: true });
   const [roomId, setRoomId] = useState('');
   const [tableNumber, setTableNumber] = useState('');
   const [isScannedTable, setIsScannedTable] = useState(false);
@@ -26,6 +36,8 @@ export default function CartPage() {
   const [takeawayFee, setTakeawayFee] = useState(0);
   const [tableId, setTableId] = useState('');
   const router = useRouter();
+  const { t, format } = useT();
+  const formatFCFA = (value: number) => format.money(value);
 
   const [autoPromos, setAutoPromos] = useState<any[]>([]);
 
@@ -45,8 +57,14 @@ export default function CartPage() {
         .order('number', { ascending: true })
         .then(({ data }) => setRooms(data || []));
 
-      supabase.from('structures').select('takeaway_fee').eq('id', structureId).single()
-        .then(({ data }) => setTakeawayFee(Number(data?.takeaway_fee || 0)));
+      // select('*') : les colonnes fiscales n'existent qu'après docs/phase9-fiscal.sql.
+      supabase.from('structures').select('*').eq('id', structureId).single()
+        .then(({ data }) => {
+          setTakeawayFee(Number(data?.takeaway_fee || 0));
+          setTaxSettings(toTaxSettings(data));
+        });
+
+      getDeliveryOptions(structureId).then((options) => setDeliveryZones(options.zones));
 
       getActivePromotionsForClient(structureId)
         .then((data) => {
@@ -66,13 +84,13 @@ export default function CartPage() {
               <ShoppingBag className="w-16 h-16 text-slate-400" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">Votre panier est vide</h2>
-          <p className="text-slate-500 mb-6">Ajoutez des produits pour passer commande.</p>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">{t('client.cart.emptyTitle')}</h2>
+          <p className="text-slate-500 mb-6">{t('client.cart.emptyText')}</p>
           <button
             onClick={() => router.push('/client')}
             className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all hover:-translate-y-0.5"
           >
-            Découvrir les établissements
+            {t('client.cart.discover')}
           </button>
         </div>
       </div>
@@ -87,13 +105,13 @@ export default function CartPage() {
       const res = await validatePromoCode(promoCode, structureId);
       if (res.valid) {
         setAppliedPromo(res);
-        toast.success('Code promo appliqué !');
+        toast.success(t('client.cart.promoApplied'));
       } else {
-        setPromoError(res.error || 'Code invalide');
+        setPromoError(res.error || t('client.cart.promoInvalid'));
         setAppliedPromo(null);
       }
     } catch (err) {
-      setPromoError('Erreur de validation');
+      setPromoError(t('client.cart.promoError'));
     } finally {
       setPromoLoading(false);
     }
@@ -159,8 +177,22 @@ export default function CartPage() {
   const handleCheckout = async () => {
     if (!structureId) return;
     if (!phone) {
-      toast.error('Le numéro de téléphone est obligatoire.');
+      toast.error(t('client.cart.phoneRequired'));
       return;
+    }
+    if (deliveryMode === 'DELIVERY') {
+      if (!zoneId) {
+        toast.error(t('client.cart.zoneRequired'));
+        return;
+      }
+      if (landmark.trim().length < 3) {
+        toast.error(t('client.cart.landmarkRequired'));
+        return;
+      }
+      if (!normalizeCameroonPhone(phone)) {
+        toast.error(t('client.cart.phoneInvalid'));
+        return;
+      }
     }
 
     setLoading(true);
@@ -168,23 +200,53 @@ export default function CartPage() {
       roomId: deliveryMode === 'ROOM' ? roomId : undefined,
       tableNumber: deliveryMode === 'TABLE' ? tableNumber : undefined,
       tableId: deliveryMode === 'TABLE' && tableId ? tableId : undefined,
-      consumptionType: deliveryMode === 'TAKEAWAY' ? 'TAKEAWAY' : 'DINE_IN',
-      takeawayFee: deliveryMode === 'TAKEAWAY' ? takeawayFee : 0,
+      consumptionType: deliveryMode === 'TAKEAWAY' ? 'TAKEAWAY' : deliveryMode === 'DELIVERY' ? 'DELIVERY' : 'DINE_IN',
       phone,
+      delivery: deliveryMode === 'DELIVERY'
+        ? { zoneId, district, landmark, lat: position?.lat, lng: position?.lng }
+        : undefined,
       promoCode: appliedPromo ? promoCode : undefined
     });
 
     if (result.success) {
-      toast.success('Commande confirmée !');
+      toast.success(t('client.cart.orderConfirmed'));
       clearCart();
       router.push('/client');
     } else {
-      toast.error(result.error || 'Erreur lors de la commande');
+      toast.error(result.error || t('client.cart.orderError'));
     }
     setLoading(false);
   };
 
-  const finalTotal = Math.max(0, getTotal() - getDiscount()) + (deliveryMode === 'TAKEAWAY' ? takeawayFee : 0);
+  const selectedZone = deliveryZones.find((z) => z.id === zoneId);
+  const deliveryFee = deliveryMode === 'DELIVERY' ? selectedZone?.fee ?? 0 : 0;
+  // Estimation : le montant définitif est recalculé par le serveur.
+  const taxedTotal = computeTax(
+    Math.max(0, getTotal() - getDiscount()) + (deliveryMode === 'TAKEAWAY' ? takeawayFee : 0) + deliveryFee,
+    taxSettings
+  );
+  const finalTotal = taxedTotal.total;
+  const addedTax = taxSettings.pricesIncludeTax ? 0 : taxedTotal.tax;
+
+  const sharePosition = () => {
+    if (!navigator.geolocation) {
+      toast.error(t('client.cart.geoUnavailable'));
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocating(false);
+        toast.success(t('client.cart.geoShared'));
+      },
+      () => {
+        setLocating(false);
+        toast.error(t('client.cart.geoFailed'));
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
@@ -193,15 +255,15 @@ export default function CartPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-800">Votre Panier</h1>
-            <p className="text-slate-500 text-sm mt-1">{items.length} article{items.length > 1 ? 's' : ''}</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-800">{t('client.cart.title')}</h1>
+            <p className="text-slate-500 text-sm mt-1">{t('client.cart.items', { count: items.length })}</p>
           </div>
           <button
             onClick={() => clearCart()}
             className="text-red-500 hover:text-red-600 text-sm font-medium flex items-center gap-1 transition-colors"
           >
             <Trash2 className="w-4 h-4" />
-            Vider
+            {t('client.cart.clear')}
           </button>
         </div>
 
@@ -294,7 +356,7 @@ export default function CartPage() {
                             </div>
                             {freeUnitsCount > 0 && (
                               <div className="flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded-lg">
-                                <span className="text-emerald-600 text-xs font-bold">+{freeUnitsCount} OFFERT</span>
+                                <span className="text-emerald-600 text-xs font-bold">{t('client.cart.free', { count: freeUnitsCount })}</span>
                               </div>
                             )}
                           </div>
@@ -315,12 +377,12 @@ export default function CartPage() {
               <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-5 space-y-4">
                 <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
                   <Tag className="w-5 h-5 text-blue-600" />
-                  Récapitulatif
+                  {t('client.cart.summary')}
                 </h3>
 
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Sous-total</span>
+                    <span className="text-slate-600">{t('client.cart.subtotal')}</span>
                     <span className="font-medium">{formatFCFA(getTotal())}</span>
                   </div>
 
@@ -328,7 +390,7 @@ export default function CartPage() {
                     <div className="flex justify-between text-emerald-600 bg-emerald-50/50 p-2 rounded-lg">
                       <span className="flex items-center gap-1">
                         <Tag className="w-3 h-3" />
-                        Réduction
+                        {t('client.cart.discount')}
                       </span>
                       <span className="font-bold">- {formatFCFA(getDiscount())}</span>
                     </div>
@@ -337,10 +399,10 @@ export default function CartPage() {
 
                 <div className="border-t border-slate-200 pt-3">
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-slate-800">Total</span>
+                    <span className="font-bold text-slate-800">{t('client.cart.total')}</span>
                     <span className="text-2xl font-bold text-blue-600">{formatFCFA(finalTotal)}</span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">TTC - TVA incluse</p>
+                  <p className="text-xs text-slate-500 mt-1">{t('client.cart.taxIncluded')}</p>
                 </div>
 
                 {/* Code promo */}
@@ -348,7 +410,7 @@ export default function CartPage() {
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      placeholder="Code promo"
+                      placeholder={t('client.cart.promoPlaceholder')}
                       value={promoCode}
                       onChange={(e) => setPromoCode(e.target.value)}
                       disabled={!!appliedPromo}
@@ -360,7 +422,7 @@ export default function CartPage() {
                         disabled={promoLoading || !promoCode}
                         className="bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-700 transition-all disabled:opacity-50"
                       >
-                        {promoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Appliquer'}
+                        {promoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('client.cart.apply')}
                       </button>
                     ) : (
                       <button
@@ -375,7 +437,7 @@ export default function CartPage() {
                   {appliedPromo && (
                     <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
                       <Check className="w-3 h-3" />
-                      Code {appliedPromo.code_name} appliqué !
+                      {t('client.cart.codeApplied', { code: appliedPromo.code_name })}
                     </p>
                   )}
                 </div>
@@ -386,9 +448,28 @@ export default function CartPage() {
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center justify-between">
                   <div className="flex items-center gap-2 text-slate-800">
                     <ShoppingBag className="w-5 h-5 text-blue-500" />
-                    <span className="font-semibold">Frais d'emballage</span>
+                    <span className="font-semibold">{t('client.cart.packagingFee')}</span>
                   </div>
                   <span className="font-bold text-slate-800">+{formatFCFA(takeawayFee)}</span>
+                </div>
+              )}
+
+              {/* Frais de livraison */}
+              {deliveryMode === 'DELIVERY' && selectedZone && (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-slate-800">
+                    <Bike className="w-5 h-5 text-emerald-600" />
+                    <span className="font-semibold">{t('client.cart.deliveryFee', { zone: selectedZone.name })}</span>
+                  </div>
+                  <span className="font-bold text-slate-800">+{formatFCFA(selectedZone.fee)}</span>
+                </div>
+              )}
+
+              {/* TVA ajoutée (points en prix HT) */}
+              {addedTax > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center justify-between">
+                  <span className="font-semibold text-slate-800">{t('client.cart.vat', { rate: taxSettings.rate })}</span>
+                  <span className="font-bold text-slate-800">+{formatFCFA(addedTax)}</span>
                 </div>
               )}
 
@@ -396,24 +477,27 @@ export default function CartPage() {
               <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-5 space-y-4">
                 <h3 className="font-bold text-slate-800 flex items-center gap-2">
                   <Truck className="w-5 h-5 text-blue-600" />
-                  Livraison
+                  {t('client.cart.modeTitle')}
                 </h3>
 
                 {isScannedTable ? (
                   <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center justify-between">
                     <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-orange-800">Livraison sur place</span>
-                      <span className="text-xs text-orange-600 font-medium mt-1">Table {tableNumber}</span>
+                      <span className="text-sm font-semibold text-orange-800">{t('client.cart.onSite')}</span>
+                      <span className="text-xs text-orange-600 font-medium mt-1">{t('client.cart.tableLabel', { table: tableNumber })}</span>
                     </div>
                     <UtensilsCrossed className="w-8 h-8 text-orange-400 opacity-50" />
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className={`grid gap-2 ${deliveryZones.length > 0 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
                       {[
-                        { mode: 'TABLE' as const, icon: UtensilsCrossed, label: 'Sur place', color: 'orange' },
-                        { mode: 'ROOM' as const, icon: Bed, label: 'En chambre', color: 'purple' },
-                        { mode: 'TAKEAWAY' as const, icon: ShoppingBag, label: 'À emporter', color: 'blue' },
+                        { mode: 'TABLE' as const, icon: UtensilsCrossed, label: t('client.cart.modeTable'), color: 'orange' },
+                        { mode: 'ROOM' as const, icon: Bed, label: t('client.cart.modeRoom'), color: 'purple' },
+                        { mode: 'TAKEAWAY' as const, icon: ShoppingBag, label: t('client.cart.modeTakeaway'), color: 'blue' },
+                        ...(deliveryZones.length > 0
+                          ? [{ mode: 'DELIVERY' as const, icon: Bike, label: t('client.cart.modeDelivery'), color: 'emerald' }]
+                          : []),
                       ].map(({ mode, icon: Icon, label, color }) => (
                         <button
                           key={mode}
@@ -432,12 +516,12 @@ export default function CartPage() {
                     {/* Champs spécifiques */}
                     {deliveryMode === 'TABLE' && (
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700">Numéro de table</label>
+                        <label className="text-sm font-medium text-slate-700">{t('client.cart.tableNumber')}</label>
                         <input
                           type="text"
                           value={tableNumber}
                           onChange={(e) => setTableNumber(e.target.value)}
-                          placeholder="Ex: T1"
+                          placeholder={t('client.cart.tablePlaceholder')}
                           className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
                         />
                       </div>
@@ -447,32 +531,82 @@ export default function CartPage() {
 
                 {deliveryMode === 'ROOM' && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">Chambre</label>
+                    <label className="text-sm font-medium text-slate-700">{t('client.cart.room')}</label>
                     <select
                       value={roomId}
                       onChange={(e) => setRoomId(e.target.value)}
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     >
-                      <option value="">Sélectionner une chambre</option>
+                      <option value="">{t('client.cart.selectRoom')}</option>
                       {rooms.map((r: any) => (
-                        <option key={r.id} value={r.id}>Chambre {r.number}</option>
+                        <option key={r.id} value={r.id}>{t('client.cart.roomOption', { number: r.number })}</option>
                       ))}
                     </select>
                   </div>
                 )}
 
+                {deliveryMode === 'DELIVERY' && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label htmlFor="delivery-zone" className="text-sm font-medium text-slate-700">{t('client.cart.zone')}</label>
+                      <select
+                        id="delivery-zone"
+                        value={zoneId}
+                        onChange={(e) => setZoneId(e.target.value)}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                      >
+                        <option value="">{t('client.cart.selectZone')}</option>
+                        {deliveryZones.map((z) => (
+                          <option key={z.id} value={z.id}>{z.name} — {formatFCFA(z.fee)}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="delivery-district" className="text-sm font-medium text-slate-700">{t('client.cart.district')}</label>
+                      <input
+                        id="delivery-district"
+                        type="text"
+                        value={district}
+                        onChange={(e) => setDistrict(e.target.value)}
+                        placeholder={t('client.cart.districtPlaceholder')}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="delivery-landmark" className="text-sm font-medium text-slate-700">{t('client.cart.landmark')}</label>
+                      <textarea
+                        id="delivery-landmark"
+                        value={landmark}
+                        onChange={(e) => setLandmark(e.target.value)}
+                        rows={2}
+                        placeholder={t('client.cart.landmarkPlaceholder')}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={sharePosition}
+                      disabled={locating}
+                      className={`w-full flex items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 text-sm font-medium transition-all ${position ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}
+                    >
+                      {locating ? <Loader2 className="w-4 h-4 animate-spin" /> : position ? <MapPin className="w-4 h-4" /> : <LocateFixed className="w-4 h-4" />}
+                      {position ? t('client.cart.positionShared') : t('client.cart.sharePosition')}
+                    </button>
+                  </div>
+                )}
+
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Téléphone</label>
+                  <label className="text-sm font-medium text-slate-700">{t('client.cart.phone')}</label>
                   <input
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Ex: 06 12 34 56 78"
+                    placeholder={t('client.cart.phonePlaceholder')}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                   <p className="text-xs text-slate-400 flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    Requis pour vous contacter
+                    {t('client.cart.phoneHint')}
                   </p>
                 </div>
               </div>
@@ -484,9 +618,9 @@ export default function CartPage() {
                 className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-xl py-4 font-bold text-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 {loading ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /> Traitement...</>
+                  <><Loader2 className="w-5 h-5 animate-spin" /> {t('client.cart.processing')}</>
                 ) : (
-                  <>Valider la commande • {formatFCFA(finalTotal)}</>
+                  <>{t('client.cart.submit', { amount: formatFCFA(finalTotal) })}</>
                 )}
               </button>
 
@@ -494,12 +628,12 @@ export default function CartPage() {
               <div className="flex items-center justify-center gap-4 text-xs text-slate-400">
                 <div className="flex items-center gap-1">
                   <Shield className="w-3 h-3" />
-                  Paiement sécurisé
+                  {t('client.cart.securePayment')}
                 </div>
                 <div className="w-1 h-1 bg-slate-300 rounded-full" />
-                <div>Livraison rapide</div>
+                <div>{t('client.cart.fastDelivery')}</div>
                 <div className="w-1 h-1 bg-slate-300 rounded-full" />
-                <div>Service client 24/7</div>
+                <div>{t('client.cart.support')}</div>
               </div>
             </div>
           </div>

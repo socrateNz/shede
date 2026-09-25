@@ -3,6 +3,7 @@
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireAuth, requireModule } from './auth';
 import { revalidatePath } from 'next/cache';
+import { te } from '@/lib/i18n/server';
 
 export async function getClients() {
   const session = await requireAuth();
@@ -58,7 +59,7 @@ export async function createClient(prevState: any, formData: FormData) {
     const notes = formData.get('notes') as string;
 
     if (!firstName || !lastName) {
-      return { success: false, error: 'Le nom et le prénom sont obligatoires' };
+      return { success: false, error: await te('errors.clientNameRequired') };
     }
 
     const admin = getAdminSupabase();
@@ -80,7 +81,7 @@ export async function createClient(prevState: any, formData: FormData) {
     return { success: true, error: '' };
   } catch (error: any) {
     console.error('Error creating client:', error);
-    return { success: false, error: error.message || 'Erreur lors de la création du client' };
+    return { success: false, error: await te('errors.clientCreateFailed') };
   }
 }
 
@@ -99,7 +100,7 @@ export async function updateClient(id: string, prevState: any, formData: FormDat
     const notes = formData.get('notes') as string;
 
     if (!firstName || !lastName) {
-      return { success: false, error: 'Le nom et le prénom sont obligatoires' };
+      return { success: false, error: await te('errors.clientNameRequired') };
     }
 
     const admin = getAdminSupabase();
@@ -125,7 +126,7 @@ export async function updateClient(id: string, prevState: any, formData: FormDat
     return { success: true, error: '' };
   } catch (error: any) {
     console.error('Error updating client:', error);
-    return { success: false, error: error.message || 'Erreur lors de la modification du client' };
+    return { success: false, error: await te('errors.clientUpdateFailed') };
   }
 }
 
@@ -135,7 +136,7 @@ export async function deleteClient(id: string) {
     await requireModule('CRM');
     // Seuls l'admin ou le manager peuvent supprimer un client
     if (!['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(session.role)) {
-      return { success: false, error: 'Non autorisé à supprimer un client' };
+      return { success: false, error: await te('errors.clientDeleteForbidden') };
     }
 
     const admin = getAdminSupabase();
@@ -151,6 +152,6 @@ export async function deleteClient(id: string) {
     return { success: true, error: '' };
   } catch (error: any) {
     console.error('Error deleting client:', error);
-    return { success: false, error: error.message || 'Erreur lors de la suppression' };
+    return { success: false, error: await te('errors.clientDeleteFailed') };
   }
 }

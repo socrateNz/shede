@@ -2,49 +2,29 @@ import { after } from 'next/server';
 import { appUrl, sendMail, type MailContent } from '@/lib/mail';
 import { getAdminSupabase } from '@/lib/supabase';
 import { createPasswordToken } from '@/lib/password-tokens';
-import { getModuleLabel } from '@/lib/modules';
-import { formatTrialDateFr } from '@/lib/trial';
+import { moduleLabel } from '@/lib/modules';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/lib/i18n/config';
+import { getTranslations } from '@/lib/i18n/server';
+import type { TranslationKey } from '@/lib/i18n/translate';
 
 // ─────────────────────────────────────────────────────────
-// Emails métier de Shede : destinataires + contenus.
+// Emails métier de Shede : destinataires + contenus, dans la langue du
+// destinataire (users.locale, docs/phase11-locale.sql).
 // Tous les envois passent par `queueMail`, qui les exécute après la réponse
 // (next/server `after`) : l'action utilisateur n'attend pas le serveur SMTP
 // et n'échoue jamais à cause de lui.
 // ─────────────────────────────────────────────────────────
 
-type OutgoingMail = { to: string | string[]; subject: string; content: MailContent };
+export type OutgoingMail = { to: string | string[]; subject: string; content: MailContent };
+export type Recipient = { email: string; locale: Locale };
 
-const ROLE_LABELS: Record<string, string> = {
-  SUPER_ADMIN: 'Super administrateur',
-  ORG_ADMIN: "Administrateur d'organisation",
-  ADMIN: 'Administrateur du point',
-  MANAGER: 'Manager',
-  CAISSE: 'Caisse',
-  SERVEUR: 'Serveur',
-  RECEPTION: 'Réception',
-  CUISINIER: 'Cuisinier',
-  BAR: 'Bar',
-  LIVREUR: 'Livreur',
-  COMPTABLE: 'Comptable',
-  MAGASINIER: 'Magasinier',
-  RH: 'Ressources humaines',
-  CLIENT: 'Client',
-};
-
-export function roleLabel(role: string) {
-  return ROLE_LABELS[role] ?? role;
-}
-
-function formatDate(iso: string | null | undefined) {
-  return iso ? formatTrialDateFr(new Date(iso)) : 'Illimitée';
-}
-
-/** Planifie un email après la réponse. `build` peut renvoyer null (rien à envoyer). */
-export function queueMail(build: () => Promise<OutgoingMail | null>) {
+/** Planifie un ou plusieurs emails après la réponse. `build` peut renvoyer null. */
+export function queueMail(build: () => Promise<OutgoingMail | OutgoingMail[] | null>) {
   after(async () => {
     try {
-      const mail = await build();
-      if (mail) await sendMail(mail);
+      const result = await build();
+      const mails = Array.isArray(result) ? result : result ? [result] : [];
+      for (const mail of mails) await sendMail(mail);
     } catch (error) {
       console.error('[mail] préparation impossible :', error);
     }
@@ -53,37 +33,68 @@ export function queueMail(build: () => Promise<OutgoingMail | null>) {
 
 // ── Destinataires ───────────────────────────────────────
 
+function toRecipient(row: { email: string; locale?: string | null }): Recipient {
+  return { email: row.email, locale: isLocale(row.locale) ? row.locale : DEFAULT_LOCALE };
+}
+
+/** Langue enregistrée d'un utilisateur (français par défaut). */
+export async function getUserLocale(userId: string): Promise<Locale> {
+  const { data } = await getAdminSupabase().from('users').select('*').eq('id', userId).maybeSingle();
+  return isLocale(data?.locale) ? data.locale : DEFAULT_LOCALE;
+}
+
 /** Administrateurs actifs d'une organisation ; à défaut, les admins de ses points. */
-export async function getOrganizationAdminEmails(organizationId: string): Promise<string[]> {
+export async function getOrganizationAdminRecipients(organizationId: string): Promise<Recipient[]> {
   const admin = getAdminSupabase();
   const { data: orgAdmins } = await admin
     .from('users')
-    .select('email')
+    .select('*')
     .eq('organization_id', organizationId)
     .eq('role', 'ORG_ADMIN')
     .eq('is_active', true);
 
-  if (orgAdmins?.length) return orgAdmins.map((u) => u.email);
+  if (orgAdmins?.length) return orgAdmins.map(toRecipient);
 
   const { data: pointAdmins } = await admin
     .from('users')
-    .select('email, structures!inner(organization_id)')
+    .select('*, structures!inner(organization_id)')
     .eq('structures.organization_id', organizationId)
     .eq('role', 'ADMIN')
     .eq('is_active', true);
 
-  return (pointAdmins || []).map((u) => u.email);
+  return (pointAdmins || []).map(toRecipient);
 }
 
-export async function getPointAdminEmails(pointId: string): Promise<string[]> {
-  const admin = getAdminSupabase();
-  const { data } = await admin
+export async function getPointAdminRecipients(pointId: string): Promise<Recipient[]> {
+  const { data } = await getAdminSupabase()
     .from('users')
-    .select('email')
+    .select('*')
     .eq('structure_id', pointId)
     .eq('role', 'ADMIN')
     .eq('is_active', true);
-  return (data || []).map((u) => u.email);
+  return (data || []).map(toRecipient);
+}
+
+/** Un email par langue pour une liste de destinataires. */
+function perLocale(recipients: Recipient[], build: (locale: Locale, to: string[]) => OutgoingMail): OutgoingMail[] {
+  const groups = new Map<Locale, string[]>();
+  for (const r of recipients) groups.set(r.locale, [...(groups.get(r.locale) ?? []), r.email]);
+  return [...groups.entries()].map(([locale, to]) => build(locale, to));
+}
+
+// ── Aides de contenu ────────────────────────────────────
+
+function mailKit(locale: Locale) {
+  const { t, format } = getTranslations(locale);
+  return {
+    t,
+    format,
+    greeting: (firstName?: string | null) =>
+      firstName ? t('emails.helloName', { name: firstName }) : t('emails.hello'),
+    role: (role: string) => t(`roles.${role}` as TranslationKey),
+    date: (iso: string | null | undefined) => (iso ? format.date(iso, { dateStyle: 'long' }) : t('emails.unlimited')),
+    base: { lang: locale, footer: t('emails.footer') },
+  };
 }
 
 // ── Contenus ────────────────────────────────────────────
@@ -97,34 +108,33 @@ export async function buildAccountCreatedMail(input: {
   email: string;
   firstName?: string | null;
   role: string;
-  scopeName: string;
+  scopeName?: string | null;
+  locale: Locale;
 }): Promise<OutgoingMail> {
+  const { t, greeting, role, base } = mailKit(input.locale);
   const token = await createPasswordToken(input.userId, 'INVITE');
-  const greeting = input.firstName ? `Bonjour ${input.firstName},` : 'Bonjour,';
+  const scope = input.scopeName || t('emails.fallbackStructure');
 
   return {
     to: input.email,
-    subject: `Votre accès Shede — ${input.scopeName}`,
+    subject: t('emails.accountCreated.subject', { scope }),
     content: {
-      title: 'Votre compte a été créé',
+      ...base,
+      title: t('emails.accountCreated.title'),
       paragraphs: [
-        greeting,
-        `Un compte « ${roleLabel(input.role)} » vient d'être créé pour vous sur Shede, pour ${input.scopeName}.`,
-        token
-          ? "Pour des raisons de sécurité, choisissez votre propre mot de passe avec le bouton ci-dessous. Vous pouvez aussi vous connecter avec le mot de passe qui vous a été communiqué."
-          : 'Connectez-vous avec le mot de passe qui vous a été communiqué.',
+        greeting(input.firstName),
+        t('emails.accountCreated.intro', { role: role(input.role), scope }),
+        token ? t('emails.accountCreated.withLink') : t('emails.accountCreated.withoutLink'),
       ],
       details: [
-        { label: 'Identifiant', value: input.email },
-        { label: 'Rôle', value: roleLabel(input.role) },
-        { label: 'Rattachement', value: input.scopeName },
+        { label: t('emails.labels.login'), value: input.email },
+        { label: t('emails.labels.role'), value: role(input.role) },
+        { label: t('emails.labels.scope'), value: scope },
       ],
       action: token
-        ? { label: 'Choisir mon mot de passe', url: appUrl(`/reset-password?token=${encodeURIComponent(token)}`) }
-        : { label: 'Me connecter', url: appUrl('/login') },
-      footnote: token
-        ? `Ce lien est valable 7 jours. Page de connexion : ${appUrl('/login')}`
-        : undefined,
+        ? { label: t('emails.accountCreated.action'), url: appUrl(`/reset-password?token=${encodeURIComponent(token)}`) }
+        : { label: t('emails.signIn'), url: appUrl('/login') },
+      footnote: token ? t('emails.accountCreated.footnote', { url: appUrl('/login') }) : undefined,
     },
   };
 }
@@ -134,160 +144,180 @@ export function buildBusinessWelcomeMail(input: {
   firstName: string;
   organizationName: string;
   trialEndsAt?: string | null;
+  locale: Locale;
 }): OutgoingMail {
+  const { t, greeting, date, base } = mailKit(input.locale);
+  const organization = input.organizationName;
   return {
     to: input.email,
-    subject: `Bienvenue sur Shede — ${input.organizationName}`,
+    subject: t('emails.businessWelcome.subject', { organization }),
     content: {
-      title: 'Bienvenue sur Shede',
-      paragraphs: [
-        `Bonjour ${input.firstName},`,
-        `Votre organisation « ${input.organizationName} » est créée. Vous pouvez dès maintenant créer vos points de vente et leurs administrateurs, puis suivre toute votre activité depuis la vue propriétaire.`,
-      ],
+      ...base,
+      title: t('emails.businessWelcome.title'),
+      paragraphs: [greeting(input.firstName), t('emails.businessWelcome.body', { organization })],
       details: [
-        { label: 'Identifiant', value: input.email },
-        ...(input.trialEndsAt ? [{ label: "Fin de la période d'essai", value: formatDate(input.trialEndsAt) }] : []),
+        { label: t('emails.labels.login'), value: input.email },
+        ...(input.trialEndsAt ? [{ label: t('emails.labels.trialEnd'), value: date(input.trialEndsAt) }] : []),
       ],
-      action: { label: 'Accéder à mon espace', url: appUrl('/login') },
+      action: { label: t('emails.openSpace'), url: appUrl('/login') },
     },
   };
 }
 
-export function buildClientWelcomeMail(input: { email: string; firstName: string }): OutgoingMail {
+export function buildClientWelcomeMail(input: { email: string; firstName: string; locale: Locale }): OutgoingMail {
+  const { t, greeting, base } = mailKit(input.locale);
   return {
     to: input.email,
-    subject: 'Bienvenue sur Shede',
+    subject: t('emails.clientWelcome.subject'),
     content: {
-      title: 'Bienvenue sur Shede',
-      paragraphs: [
-        `Bonjour ${input.firstName},`,
-        'Votre compte client est créé. Commandez chez vos établissements préférés, réservez une chambre et retrouvez tout votre historique au même endroit.',
-      ],
-      details: [{ label: 'Identifiant', value: input.email }],
-      action: { label: 'Découvrir les établissements', url: appUrl('/client') },
+      ...base,
+      title: t('emails.clientWelcome.title'),
+      paragraphs: [greeting(input.firstName), t('emails.clientWelcome.body')],
+      details: [{ label: t('emails.labels.login'), value: input.email }],
+      action: { label: t('emails.clientWelcome.action'), url: appUrl('/client') },
     },
   };
 }
 
-export function buildPasswordResetMail(input: { email: string; firstName?: string | null; token: string }): OutgoingMail {
+export function buildPasswordResetMail(input: {
+  email: string;
+  firstName?: string | null;
+  token: string;
+  locale: Locale;
+}): OutgoingMail {
+  const { t, greeting, base } = mailKit(input.locale);
   return {
     to: input.email,
-    subject: 'Réinitialisation de votre mot de passe Shede',
+    subject: t('emails.passwordReset.subject'),
     content: {
-      title: 'Réinitialiser votre mot de passe',
-      paragraphs: [
-        input.firstName ? `Bonjour ${input.firstName},` : 'Bonjour,',
-        'Vous avez demandé à réinitialiser le mot de passe de votre compte Shede. Cliquez sur le bouton ci-dessous pour en choisir un nouveau.',
-      ],
-      action: { label: 'Choisir un nouveau mot de passe', url: appUrl(`/reset-password?token=${encodeURIComponent(input.token)}`) },
-      footnote: "Ce lien est valable 1 heure et ne peut servir qu'une fois. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email : votre mot de passe reste inchangé.",
+      ...base,
+      title: t('emails.passwordReset.title'),
+      paragraphs: [greeting(input.firstName), t('emails.passwordReset.body')],
+      action: {
+        label: t('emails.passwordReset.action'),
+        url: appUrl(`/reset-password?token=${encodeURIComponent(input.token)}`),
+      },
+      footnote: t('emails.passwordReset.footnote'),
     },
   };
 }
 
-export function buildPasswordChangedMail(input: { email: string; firstName?: string | null }): OutgoingMail {
+export function buildPasswordChangedMail(input: { email: string; firstName?: string | null; locale: Locale }): OutgoingMail {
+  const { t, greeting, base } = mailKit(input.locale);
   return {
     to: input.email,
-    subject: 'Votre mot de passe Shede a été modifié',
+    subject: t('emails.passwordChanged.subject'),
     content: {
-      title: 'Mot de passe modifié',
-      paragraphs: [
-        input.firstName ? `Bonjour ${input.firstName},` : 'Bonjour,',
-        'Le mot de passe de votre compte Shede vient d\'être modifié.',
-        "Si vous n'êtes pas à l'origine de ce changement, contactez immédiatement votre administrateur ou le support.",
-      ],
-      action: { label: 'Me connecter', url: appUrl('/login') },
+      ...base,
+      title: t('emails.passwordChanged.title'),
+      paragraphs: [greeting(input.firstName), t('emails.passwordChanged.body'), t('emails.passwordChanged.warning')],
+      action: { label: t('emails.signIn'), url: appUrl('/login') },
     },
   };
 }
 
-export function buildLicenseChangedMail(input: {
-  to: string[];
-  organizationName: string;
+export function buildLicenseChangedMails(input: {
+  recipients: Recipient[];
+  organizationName?: string | null;
   isActive: boolean;
   expiresAt: string | null;
   maxPoints: number;
-}): OutgoingMail {
-  return {
-    to: input.to,
-    subject: `Licence ${input.isActive ? 'mise à jour' : 'désactivée'} — ${input.organizationName}`,
-    content: {
-      title: input.isActive ? 'Votre licence a été mise à jour' : 'Votre licence a été désactivée',
-      paragraphs: [
-        'Bonjour,',
-        input.isActive
-          ? `La licence de l'organisation « ${input.organizationName} » a été mise à jour.`
-          : `La licence de l'organisation « ${input.organizationName} » a été désactivée : vos points et leur personnel ne peuvent plus accéder à Shede. Contactez le support pour la réactiver.`,
-      ],
-      details: [
-        { label: 'Statut', value: input.isActive ? 'Active' : 'Désactivée' },
-        { label: 'Expiration', value: formatDate(input.expiresAt) },
-        { label: 'Points autorisés', value: String(input.maxPoints) },
-      ],
-      action: input.isActive ? { label: 'Accéder à mon espace', url: appUrl('/login') } : undefined,
-    },
-  };
+}): OutgoingMail[] {
+  return perLocale(input.recipients, (locale, to) => {
+    const { t, date, base } = mailKit(locale);
+    const organization = input.organizationName || t('emails.fallbackOrganization');
+    return {
+      to,
+      subject: input.isActive
+        ? t('emails.license.subjectUpdated', { organization })
+        : t('emails.license.subjectDisabled', { organization }),
+      content: {
+        ...base,
+        title: input.isActive ? t('emails.license.titleUpdated') : t('emails.license.titleDisabled'),
+        paragraphs: [
+          t('emails.hello'),
+          input.isActive
+            ? t('emails.license.bodyUpdated', { organization })
+            : t('emails.license.bodyDisabled', { organization }),
+        ],
+        details: [
+          { label: t('emails.labels.status'), value: input.isActive ? t('emails.license.active') : t('emails.license.disabled') },
+          { label: t('emails.labels.expiry'), value: date(input.expiresAt) },
+          { label: t('emails.labels.maxPoints'), value: String(input.maxPoints) },
+        ],
+        action: input.isActive ? { label: t('emails.openSpace'), url: appUrl('/login') } : undefined,
+      },
+    };
+  });
 }
 
-export function buildModulesChangedMail(input: {
-  to: string[];
+export function buildModulesChangedMails(input: {
+  recipients: Recipient[];
   organizationName: string;
   added: string[];
   removed: string[];
-}): OutgoingMail {
-  return {
-    to: input.to,
-    subject: `Modules modifiés — ${input.organizationName}`,
-    content: {
-      title: 'Les modules de votre licence ont changé',
-      paragraphs: [
-        'Bonjour,',
-        `Les modules de la licence de « ${input.organizationName} » ont été modifiés. Ils s'appliquent à tous vos points, à la prochaine connexion de leur personnel.`,
-      ],
-      details: [
-        ...(input.added.length ? [{ label: 'Ajoutés', value: input.added.map(getModuleLabel).join(', ') }] : []),
-        ...(input.removed.length ? [{ label: 'Retirés', value: input.removed.map(getModuleLabel).join(', ') }] : []),
-      ],
-      action: { label: 'Accéder à mon espace', url: appUrl('/login') },
-    },
-  };
+}): OutgoingMail[] {
+  return perLocale(input.recipients, (locale, to) => {
+    const { t, base } = mailKit(locale);
+    const organization = input.organizationName;
+    const list = (codes: string[]) => codes.map((code) => moduleLabel(t, code)).join(', ');
+    return {
+      to,
+      subject: t('emails.modules.subject', { organization }),
+      content: {
+        ...base,
+        title: t('emails.modules.title'),
+        paragraphs: [t('emails.hello'), t('emails.modules.body', { organization })],
+        details: [
+          ...(input.added.length ? [{ label: t('emails.labels.added'), value: list(input.added) }] : []),
+          ...(input.removed.length ? [{ label: t('emails.labels.removed'), value: list(input.removed) }] : []),
+        ],
+        action: { label: t('emails.openSpace'), url: appUrl('/login') },
+      },
+    };
+  });
 }
 
-export function buildPointStatusMail(input: { to: string[]; pointName: string; isActive: boolean }): OutgoingMail {
-  return {
-    to: input.to,
-    subject: `${input.pointName} a été ${input.isActive ? 'réactivé' : 'désactivé'}`,
-    content: {
-      title: input.isActive ? 'Votre point est réactivé' : 'Votre point est désactivé',
-      paragraphs: [
-        'Bonjour,',
-        input.isActive
-          ? `Le point « ${input.pointName} » a été réactivé par l'administrateur de l'organisation. Son personnel peut de nouveau se connecter.`
-          : `Le point « ${input.pointName} » a été désactivé par l'administrateur de l'organisation. Son personnel ne peut plus se connecter et il n'apparaît plus dans le catalogue client.`,
-      ],
-      action: input.isActive ? { label: 'Me connecter', url: appUrl('/login') } : undefined,
-    },
-  };
+export function buildPointStatusMails(input: { recipients: Recipient[]; pointName: string; isActive: boolean }): OutgoingMail[] {
+  return perLocale(input.recipients, (locale, to) => {
+    const { t, base } = mailKit(locale);
+    const point = input.pointName;
+    return {
+      to,
+      subject: input.isActive ? t('emails.pointStatus.subjectEnabled', { point }) : t('emails.pointStatus.subjectDisabled', { point }),
+      content: {
+        ...base,
+        title: input.isActive ? t('emails.pointStatus.titleEnabled') : t('emails.pointStatus.titleDisabled'),
+        paragraphs: [
+          t('emails.hello'),
+          input.isActive ? t('emails.pointStatus.bodyEnabled', { point }) : t('emails.pointStatus.bodyDisabled', { point }),
+        ],
+        action: input.isActive ? { label: t('emails.signIn'), url: appUrl('/login') } : undefined,
+      },
+    };
+  });
 }
 
 export function buildAccountStatusMail(input: {
   email: string;
   firstName?: string | null;
   isActive: boolean;
-  scopeName: string;
+  scopeName?: string | null;
+  locale: Locale;
 }): OutgoingMail {
+  const { t, greeting, base } = mailKit(input.locale);
+  const scope = input.scopeName || t('emails.fallbackStructure');
   return {
     to: input.email,
-    subject: `Votre compte Shede a été ${input.isActive ? 'réactivé' : 'désactivé'}`,
+    subject: input.isActive ? t('emails.accountStatus.subjectEnabled') : t('emails.accountStatus.subjectDisabled'),
     content: {
-      title: input.isActive ? 'Compte réactivé' : 'Compte désactivé',
+      ...base,
+      title: input.isActive ? t('emails.accountStatus.titleEnabled') : t('emails.accountStatus.titleDisabled'),
       paragraphs: [
-        input.firstName ? `Bonjour ${input.firstName},` : 'Bonjour,',
-        input.isActive
-          ? `Votre accès à Shede pour ${input.scopeName} a été réactivé.`
-          : `Votre accès à Shede pour ${input.scopeName} a été désactivé par un administrateur. Contactez-le pour plus d'informations.`,
+        greeting(input.firstName),
+        input.isActive ? t('emails.accountStatus.bodyEnabled', { scope }) : t('emails.accountStatus.bodyDisabled', { scope }),
       ],
-      action: input.isActive ? { label: 'Me connecter', url: appUrl('/login') } : undefined,
+      action: input.isActive ? { label: t('emails.signIn'), url: appUrl('/login') } : undefined,
     },
   };
 }
@@ -297,47 +327,53 @@ export function buildRoleChangedMail(input: {
   firstName?: string | null;
   previousRole: string;
   role: string;
-  scopeName: string;
+  scopeName?: string | null;
+  locale: Locale;
 }): OutgoingMail {
+  const { t, greeting, role, base } = mailKit(input.locale);
+  const scope = input.scopeName || t('emails.fallbackStructure');
   return {
     to: input.email,
-    subject: 'Votre rôle sur Shede a changé',
+    subject: t('emails.roleChanged.subject'),
     content: {
-      title: 'Nouveau rôle',
-      paragraphs: [
-        input.firstName ? `Bonjour ${input.firstName},` : 'Bonjour,',
-        `Votre rôle pour ${input.scopeName} a été modifié par un administrateur. Reconnectez-vous pour accéder à vos nouveaux écrans.`,
-      ],
+      ...base,
+      title: t('emails.roleChanged.title'),
+      paragraphs: [greeting(input.firstName), t('emails.roleChanged.body', { scope })],
       details: [
-        { label: 'Ancien rôle', value: roleLabel(input.previousRole) },
-        { label: 'Nouveau rôle', value: roleLabel(input.role) },
+        { label: t('emails.labels.previousRole'), value: role(input.previousRole) },
+        { label: t('emails.labels.newRole'), value: role(input.role) },
       ],
-      action: { label: 'Me connecter', url: appUrl('/login') },
+      action: { label: t('emails.signIn'), url: appUrl('/login') },
     },
   };
 }
 
-export function buildLicenseExpiringMail(input: {
-  to: string[];
-  organizationName: string;
+export function buildLicenseExpiringMails(input: {
+  recipients: Recipient[];
+  organizationName?: string | null;
   expiresAt: string;
   daysLeft: number;
   isTrial: boolean;
-}): OutgoingMail {
-  const what = input.isTrial ? "Votre période d'essai" : 'Votre licence';
-  const when = input.daysLeft <= 1 ? 'demain' : `dans ${input.daysLeft} jours`;
-  return {
-    to: input.to,
-    subject: `${what} expire ${when} — ${input.organizationName}`,
-    content: {
-      title: `${what} expire ${when}`,
-      paragraphs: [
-        'Bonjour,',
-        `${what} pour « ${input.organizationName} » expire le ${formatDate(input.expiresAt)}. Passé cette date, vos points et leur personnel ne pourront plus accéder à Shede.`,
-        'Contactez le support pour prolonger votre abonnement.',
-      ],
-      details: [{ label: 'Date d’expiration', value: formatDate(input.expiresAt) }],
-      action: { label: 'Accéder à mon espace', url: appUrl('/login') },
-    },
-  };
+}): OutgoingMail[] {
+  return perLocale(input.recipients, (locale, to) => {
+    const { t, date, base } = mailKit(locale);
+    const organization = input.organizationName || t('emails.fallbackOrganization');
+    const what = input.isTrial ? t('emails.licenseExpiring.trial') : t('emails.licenseExpiring.license');
+    const when = input.daysLeft <= 1 ? t('emails.licenseExpiring.tomorrow') : t('emails.licenseExpiring.inDays', { days: input.daysLeft });
+    return {
+      to,
+      subject: t('emails.licenseExpiring.subject', { what, when, organization }),
+      content: {
+        ...base,
+        title: t('emails.licenseExpiring.title', { what, when }),
+        paragraphs: [
+          t('emails.hello'),
+          t('emails.licenseExpiring.body', { what, organization, date: date(input.expiresAt) }),
+          t('emails.licenseExpiring.contact'),
+        ],
+        details: [{ label: t('emails.labels.expiryDate'), value: date(input.expiresAt) }],
+        action: { label: t('emails.openSpace'), url: appUrl('/login') },
+      },
+    };
+  });
 }

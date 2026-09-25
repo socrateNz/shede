@@ -6,13 +6,17 @@ import { revalidatePath } from 'next/cache';
 import { insertUserAccount, parseAccountFormData } from '@/lib/accounts';
 import { firstOf, isLicenseValid } from '@/lib/license';
 import { sanitizeModules } from '@/lib/modules';
+import { CAMEROON_VAT_RATE } from '@/lib/tax';
 import {
   buildAccountCreatedMail,
   buildAccountStatusMail,
-  buildPointStatusMail,
-  getPointAdminEmails,
+  buildPointStatusMails,
+  getPointAdminRecipients,
+  getUserLocale,
   queueMail,
 } from '@/lib/emails';
+import { getLocale, getT } from '@/lib/i18n/server';
+import type { Translator } from '@/lib/i18n/translate';
 
 // ─────────────────────────────────────────────────────────
 // Espace ORG_ADMIN : l'administrateur d'une organisation crée ses points
@@ -48,7 +52,8 @@ async function getOwnedPoint(organizationId: string, pointId: string) {
 }
 
 function parsePointFormData(
-  formData: FormData
+  formData: FormData,
+  t: Translator
 ):
   | { data: { name: string; email: string; city: string; type: string; phone: string | null; address: string | null } }
   | { error: string } {
@@ -60,10 +65,10 @@ function parsePointFormData(
   const address = String(formData.get('address') || '').trim() || null;
 
   if (!name || !email || !city) {
-    return { error: 'Le nom, l\'email et la ville du point sont obligatoires.' };
+    return { error: t('org.errors.pointRequired') };
   }
   if (!POINT_TYPES.includes(type)) {
-    return { error: 'Type de point invalide.' };
+    return { error: t('org.errors.invalidType') };
   }
   return { data: { name, email, city, type, phone, address } };
 }
@@ -154,12 +159,13 @@ export async function createPoint(
   formData: FormData
 ): Promise<ActionState> {
   const session = await requireOrgAdmin();
-  if (!session) return { success: false, error: 'Unauthorized' };
+  const { t } = await getT();
+  if (!session) return { success: false, error: t('org.errors.unauthorized') };
 
-  const point = parsePointFormData(formData);
+  const point = parsePointFormData(formData, t);
   if ('error' in point) return { success: false, error: point.error };
 
-  const account = parseAccountFormData(formData, 'admin');
+  const account = parseAccountFormData(formData, 'admin', t);
   if ('error' in account) return { success: false, error: account.error };
 
   try {
@@ -176,7 +182,7 @@ export async function createPoint(
       | null;
 
     if (!organization || !isLicenseValid(license)) {
-      return { success: false, error: 'La licence de votre organisation n\'est pas active.' };
+      return { success: false, error: t('org.errors.licenseInactive') };
     }
 
     const { count: pointsCount } = await admin
@@ -188,12 +194,12 @@ export async function createPoint(
     if ((pointsCount ?? 0) >= maxPoints) {
       return {
         success: false,
-        error: `Votre licence autorise ${maxPoints} point(s). Contactez le support pour l'étendre.`,
+        error: t('org.errors.limitReached', { max: maxPoints }),
       };
     }
 
     if (await isPointEmailTaken(point.data.email)) {
-      return { success: false, error: 'Un point utilise déjà cet email.' };
+      return { success: false, error: t('org.errors.pointEmailTaken') };
     }
 
     const { data: structure, error: structureError } = await admin
@@ -208,13 +214,18 @@ export async function createPoint(
         address: point.data.address,
         modules: sanitizeModules(organization.modules),
         is_active: true,
+        // Réglages par défaut du Cameroun (modifiables dans les paramètres du point).
+        country: 'Cameroun',
+        currency: 'XAF',
+        timezone: 'Africa/Douala',
+        tax_rate: CAMEROON_VAT_RATE,
       })
       .select('id')
       .single();
 
     if (structureError || !structure) {
       console.error('[createPoint] structure error:', structureError);
-      return { success: false, error: 'Échec de la création du point.' };
+      return { success: false, error: t('org.errors.createFailed') };
     }
 
     const created = await insertUserAccount(account.data, {
@@ -228,6 +239,7 @@ export async function createPoint(
       return { success: false, error: created.error };
     }
 
+    const locale = await getLocale();
     queueMail(() =>
       buildAccountCreatedMail({
         userId: created.user.id,
@@ -235,6 +247,7 @@ export async function createPoint(
         firstName: account.data.firstName,
         role: 'ADMIN',
         scopeName: point.data.name,
+        locale,
       })
     );
 
@@ -242,7 +255,7 @@ export async function createPoint(
     return { success: true, error: '', pointId: structure.id };
   } catch (error) {
     console.error('[createPoint] error:', error);
-    return { success: false, error: 'Échec de la création du point.' };
+    return { success: false, error: t('org.errors.createFailed') };
   }
 }
 
@@ -252,17 +265,18 @@ export async function updatePoint(
   formData: FormData
 ): Promise<ActionState> {
   const session = await requireOrgAdmin();
-  if (!session) return { success: false, error: 'Unauthorized' };
+  const { t } = await getT();
+  if (!session) return { success: false, error: t('org.errors.unauthorized') };
 
   if (!(await getOwnedPoint(session.organizationId, pointId))) {
-    return { success: false, error: 'Point introuvable.' };
+    return { success: false, error: t('org.errors.notFound') };
   }
 
-  const point = parsePointFormData(formData);
+  const point = parsePointFormData(formData, t);
   if ('error' in point) return { success: false, error: point.error };
 
   if (await isPointEmailTaken(point.data.email, pointId)) {
-    return { success: false, error: 'Un point utilise déjà cet email.' };
+    return { success: false, error: t('org.errors.pointEmailTaken') };
   }
 
   const admin = getAdminSupabase();
@@ -274,7 +288,7 @@ export async function updatePoint(
 
   if (error) {
     console.error('[updatePoint] error:', error);
-    return { success: false, error: 'Échec de la mise à jour du point.' };
+    return { success: false, error: t('org.errors.updateFailed') };
   }
 
   revalidatePath('/organization', 'layout');
@@ -285,10 +299,11 @@ export async function updatePoint(
 /** Un point désactivé bloque la connexion de tout son personnel et le retire du catalogue client. */
 export async function setPointActive(pointId: string, isActive: boolean) {
   const session = await requireOrgAdmin();
-  if (!session) return { success: false, error: 'Unauthorized' };
+  const { t } = await getT();
+  if (!session) return { success: false, error: t('org.errors.unauthorized') };
 
   const point = await getOwnedPoint(session.organizationId, pointId);
-  if (!point) return { success: false, error: 'Point introuvable.' };
+  if (!point) return { success: false, error: t('org.errors.notFound') };
 
   const admin = getAdminSupabase();
   const { error } = await admin
@@ -297,13 +312,12 @@ export async function setPointActive(pointId: string, isActive: boolean) {
     .eq('id', pointId)
     .eq('organization_id', session.organizationId);
 
-  if (error) return { success: false, error: 'Échec de la mise à jour du point.' };
+  if (error) return { success: false, error: t('org.errors.updateFailed') };
 
   if ((point.is_active !== false) !== isActive) {
-    queueMail(async () => {
-      const to = await getPointAdminEmails(pointId);
-      return to.length ? buildPointStatusMail({ to, pointName: point.name, isActive }) : null;
-    });
+    queueMail(async () =>
+      buildPointStatusMails({ recipients: await getPointAdminRecipients(pointId), pointName: point.name, isActive })
+    );
   }
 
   revalidatePath('/organization', 'layout');
@@ -317,14 +331,15 @@ export async function addPointAdmin(
   formData: FormData
 ): Promise<ActionState> {
   const session = await requireOrgAdmin();
-  if (!session) return { success: false, error: 'Unauthorized' };
+  const { t } = await getT();
+  if (!session) return { success: false, error: t('org.errors.unauthorized') };
 
   const point = await getOwnedPoint(session.organizationId, pointId);
   if (!point) {
-    return { success: false, error: 'Point introuvable.' };
+    return { success: false, error: t('org.errors.notFound') };
   }
 
-  const account = parseAccountFormData(formData, 'admin');
+  const account = parseAccountFormData(formData, 'admin', t);
   if ('error' in account) return { success: false, error: account.error };
 
   const created = await insertUserAccount(account.data, {
@@ -334,6 +349,7 @@ export async function addPointAdmin(
   });
   if ('error' in created) return { success: false, error: created.error };
 
+  const locale = await getLocale();
   queueMail(() =>
     buildAccountCreatedMail({
       userId: created.user.id,
@@ -341,6 +357,7 @@ export async function addPointAdmin(
       firstName: account.data.firstName,
       role: 'ADMIN',
       scopeName: point.name,
+      locale,
     })
   );
 
@@ -351,11 +368,12 @@ export async function addPointAdmin(
 
 export async function setPointAdminActive(pointId: string, userId: string, isActive: boolean) {
   const session = await requireOrgAdmin();
-  if (!session) return { success: false, error: 'Unauthorized' };
+  const { t } = await getT();
+  if (!session) return { success: false, error: t('org.errors.unauthorized') };
 
   const point = await getOwnedPoint(session.organizationId, pointId);
   if (!point) {
-    return { success: false, error: 'Point introuvable.' };
+    return { success: false, error: t('org.errors.notFound') };
   }
 
   const admin = getAdminSupabase();
@@ -368,11 +386,17 @@ export async function setPointAdminActive(pointId: string, userId: string, isAct
     .select('email, first_name')
     .maybeSingle();
 
-  if (error) return { success: false, error: 'Échec de la mise à jour de l\'administrateur.' };
+  if (error) return { success: false, error: t('org.errors.adminUpdateFailed') };
 
   if (user) {
     queueMail(async () =>
-      buildAccountStatusMail({ email: user.email, firstName: user.first_name, isActive, scopeName: point.name })
+      buildAccountStatusMail({
+        email: user.email,
+        firstName: user.first_name,
+        isActive,
+        scopeName: point.name,
+        locale: await getUserLocale(userId),
+      })
     );
   }
 

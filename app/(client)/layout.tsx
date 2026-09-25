@@ -4,9 +4,12 @@ import { ClientLogout } from "@/components/client-logout";
 import { getSession } from "@/lib/auth";
 import { UserCircle, CalendarDays, Home, Store } from "lucide-react";
 import { MobileNavItem } from "@/components/mobile-nav-item";
+import { getT } from "@/lib/i18n/server";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export default async function ClientLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
+  const { t } = await getT();
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col overflow-y-auto selection:bg-blue-200">
@@ -27,12 +30,13 @@ export default async function ClientLayout({ children }: { children: React.React
 
         {/* Actions principales */}
         <div className="flex items-center gap-2 md:gap-4">
+          <LanguageSwitcher tone="light" />
           {session ? (
             <>
               <div className="hidden md:flex items-center gap-2 mr-2 border-r border-slate-200/80 pr-6">
-                <NavLink href="/client/structures" icon={<Store className="w-4 h-4" />} label="Catalogue" />
-                <NavLink href="/history" icon={<CalendarDays className="w-4 h-4" />} label="Historique" />
-                <NavLink href="/client" icon={<UserCircle className="w-4 h-4" />} label="Mon Espace" />
+                <NavLink href="/client/structures" icon={<Store className="w-4 h-4" />} label={t('client.nav.catalogue')} />
+                <NavLink href="/history" icon={<CalendarDays className="w-4 h-4" />} label={t('client.nav.history')} />
+                <NavLink href="/client" icon={<UserCircle className="w-4 h-4" />} label={t('client.nav.mySpace')} />
               </div>
               <ClientLogout />
             </>
@@ -42,7 +46,7 @@ export default async function ClientLayout({ children }: { children: React.React
                 href="/login"
                 className="relative px-6 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-full transition-all duration-300 hover:bg-blue-600 shadow-md hover:shadow-blue-200 hover:-translate-y-0.5 active:translate-y-0"
               >
-                Se connecter
+                {t('client.nav.signIn')}
               </Link>
             </div>
           )}
@@ -57,12 +61,12 @@ export default async function ClientLayout({ children }: { children: React.React
 
       {/* Navigation mobile moderne - Bottom Bar avec effet glassmorphism premium */}
       <nav className="fixed bottom-4 left-4 right-4 md:hidden bg-white/90 backdrop-blur-2xl border border-white/40 rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.12)] flex items-center justify-around px-3 py-3 z-50 transition-all duration-300">
-        <MobileNavItem href="/" icon={<Home className="w-5 h-5" />} label="Accueil" exact />
+        <MobileNavItem href="/" icon={<Home className="w-5 h-5" />} label={t('client.nav.home')} exact />
         {session && (
           <>
-            <MobileNavItem href="/client/structures" icon={<Store className="w-5 h-5" />} label="Catalogue" />
-            <MobileNavItem href="/history" icon={<CalendarDays className="w-5 h-5" />} label="Historique" />
-            <MobileNavItem href="/client" icon={<UserCircle className="w-5 h-5" />} label="Espace" />
+            <MobileNavItem href="/client/structures" icon={<Store className="w-5 h-5" />} label={t('client.nav.catalogue')} />
+            <MobileNavItem href="/history" icon={<CalendarDays className="w-5 h-5" />} label={t('client.nav.history')} />
+            <MobileNavItem href="/client" icon={<UserCircle className="w-5 h-5" />} label={t('client.nav.space')} />
           </>
         )}
         <div className="relative">

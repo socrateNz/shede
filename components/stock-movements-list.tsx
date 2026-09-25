@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useT } from '@/lib/i18n/client';
 import { TablePagination } from './table-pagination';
 import { ArrowUpRight, ArrowDownLeft, Settings2, ShoppingCart, User, Package, Coffee } from 'lucide-react';
 
@@ -23,8 +24,11 @@ function cn(...classes: any[]) {
   return classes.filter(Boolean).join(' ');
 }
 
+const REASON_KEYS = { manual_adjustment: 1, purchase: 1, loss: 1, return: 1, inventory: 1, sale: 1 } as const;
+
 export function StockMovementsList({ movements }: StockMovementsListProps) {
   const [currentPage, setCurrentPage] = useState(1);
+  const { t, format: fmt } = useT();
   const itemsPerPage = 10;
 
   const totalPages = Math.ceil(movements.length / itemsPerPage);
@@ -38,7 +42,7 @@ export function StockMovementsList({ movements }: StockMovementsListProps) {
   }
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('fr-FR', {
+    return new Date(dateStr).toLocaleString(fmt.intl, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -57,9 +61,9 @@ export function StockMovementsList({ movements }: StockMovementsListProps) {
   };
 
   const getLabel = (type: string, reason: string) => {
-    if (type === 'IN') return 'Entrée';
-    if (type === 'OUT') return reason === 'sale' ? 'Vente' : 'Sortie';
-    return 'Ajustement';
+    if (type === 'IN') return t('stock.movements.in');
+    if (type === 'OUT') return reason === 'sale' ? t('stock.movements.sale') : t('stock.movements.out');
+    return t('stock.movements.adjustment');
   };
 
   return (
@@ -68,13 +72,13 @@ export function StockMovementsList({ movements }: StockMovementsListProps) {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-slate-700 bg-slate-800/80">
-              <th className="p-4 text-sm font-semibold text-slate-300">Date</th>
-              <th className="p-4 text-sm font-semibold text-slate-300">Article</th>
-              <th className="p-4 text-sm font-semibold text-slate-300">Type d'article</th>
-              <th className="p-4 text-sm font-semibold text-slate-300">Mouvement</th>
-              <th className="p-4 text-sm font-semibold text-slate-300 text-center">Quantité</th>
-              <th className="p-4 text-sm font-semibold text-slate-300">Raison</th>
-              <th className="p-4 text-sm font-semibold text-slate-300">Utilisateur</th>
+              <th className="p-4 text-sm font-semibold text-slate-300">{t('stock.movements.colDate')}</th>
+              <th className="p-4 text-sm font-semibold text-slate-300">{t('stock.movements.colItem')}</th>
+              <th className="p-4 text-sm font-semibold text-slate-300">{t('stock.movements.colItemType')}</th>
+              <th className="p-4 text-sm font-semibold text-slate-300">{t('stock.movements.colMovement')}</th>
+              <th className="p-4 text-sm font-semibold text-slate-300 text-center">{t('stock.movements.colQuantity')}</th>
+              <th className="p-4 text-sm font-semibold text-slate-300">{t('stock.movements.colReason')}</th>
+              <th className="p-4 text-sm font-semibold text-slate-300">{t('stock.movements.colUser')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-700/50">
@@ -90,12 +94,12 @@ export function StockMovementsList({ movements }: StockMovementsListProps) {
                   {m.item_type === 'accompaniment' ? (
                     <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">
                       <Coffee className="w-3 h-3" />
-                      Accompagnement
+                      {t('stock.itemType.accompaniment')}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
                       <Package className="w-3 h-3" />
-                      Produit
+                      {t('stock.itemType.product')}
                     </span>
                   )}
                 </td>
@@ -117,12 +121,9 @@ export function StockMovementsList({ movements }: StockMovementsListProps) {
                 </td>
                 <td className="p-4">
                   <span className="text-sm text-slate-400 italic">
-                    {m.reason === 'purchase' ? 'Achat' :
-                      m.reason === 'sale' ? 'Vente POS' :
-                        m.reason === 'loss' ? 'Perte / Casse' :
-                          m.reason === 'return' ? 'Retour client' :
-                            m.reason === 'inventory' ? 'Inventaire' :
-                              m.reason || 'Saisie manuelle'}
+                    {m.reason && m.reason in REASON_KEYS
+                      ? t(`stock.reasons.${m.reason as keyof typeof REASON_KEYS}`)
+                      : m.reason || t('stock.reasons.manual')}
                   </span>
                 </td>
                 <td className="p-4">
@@ -136,7 +137,7 @@ export function StockMovementsList({ movements }: StockMovementsListProps) {
             {movements.length === 0 && (
               <tr>
                 <td colSpan={7} className="p-8 text-center text-slate-500">
-                  Aucun mouvement enregistré.
+                  {t('stock.movements.empty')}
                 </td>
               </tr>
             )}

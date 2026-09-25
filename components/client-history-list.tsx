@@ -9,9 +9,12 @@ import { ClientInvoiceWrapper } from '@/components/client-invoice-wrapper';
 import { updateClientBooking, cancelClientOrder } from '@/app/actions/client-history';
 import { toast } from 'sonner';
 import { TablePagination } from './table-pagination';
+import { useT } from '@/lib/i18n/client';
+import type { TranslationKey } from '@/lib/i18n/translate';
 
 export function ClientHistoryList({ bookings, orders }: { bookings: any[], orders: any[] }) {
   const [activeTab, setActiveTab] = useState<'BOOKINGS' | 'ORDERS'>('BOOKINGS');
+  const { t, format } = useT();
   const [editingBooking, setEditingBooking] = useState<any>(null);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
@@ -38,20 +41,20 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
     setIsSubmitting(false);
     
     if (res.success) {
-      toast.success(action === 'UPDATE' ? 'Réservation modifiée avec succès' : 'Réservation annulée');
+      toast.success(action === 'UPDATE' ? t('client.history.bookingUpdated') : t('client.history.bookingCancelled'));
       setEditingBooking(null);
     } else {
-      toast.error(res.error || 'Une erreur est survenue');
+      toast.error(res.error || t('client.history.genericError'));
     }
   };
 
   const handleOrderCancel = async (orderId: string) => {
-    if (!confirm('Voulez-vous vraiment annuler cette commande ?')) return;
+    if (!confirm(t('client.history.confirmCancelOrder'))) return;
     const res = await cancelClientOrder(orderId);
     if (res.success) {
-      toast.success('Commande annulée');
+      toast.success(t('client.history.orderCancelled'));
     } else {
-      toast.error(res.error || 'Erreur lors de l\'annulation');
+      toast.error(res.error || t('client.history.cancelError'));
     }
   };
 
@@ -62,13 +65,13 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
           onClick={() => setActiveTab('BOOKINGS')}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition ${activeTab === 'BOOKINGS' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-800'}`}
         >
-          Mes Réservations ({bookings.length})
+          {t('client.history.myBookings', { count: bookings.length })}
         </button>
         <button 
           onClick={() => setActiveTab('ORDERS')}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition ${activeTab === 'ORDERS' ? 'border-b-2 border-emerald-600 text-emerald-600' : 'text-slate-500 hover:text-slate-800'}`}
         >
-          Mes Commandes ({orders.length})
+          {t('client.history.myOrders', { count: orders.length })}
         </button>
       </div>
 
@@ -83,11 +86,11 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
                       <Bed className="w-6 h-6 text-purple-600" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-800 text-lg">{b.rooms?.structures?.name || 'Hôtel'}</h3>
+                      <h3 className="font-bold text-slate-800 text-lg">{b.rooms?.structures?.name || t('client.dashboard.fallbackHotel')}</h3>
                       <p className="text-sm text-slate-500 flex items-center gap-2">
-                        <span>Chambre {b.rooms?.number}</span>
+                        <span>{t('client.history.roomLine', { number: b.rooms?.number ?? '' })}</span>
                         <span>•</span>
-                        <span>Du {new Date(b.check_in).toLocaleDateString('fr-FR')} au {new Date(b.check_out).toLocaleDateString('fr-FR')}</span>
+                        <span>{t('client.history.fromTo', { from: format.date(b.check_in), to: format.date(b.check_out) })}</span>
                       </p>
                     </div>
                   </div>
@@ -98,7 +101,7 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
                       b.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
                       'bg-slate-200 text-slate-700'
                     }`}>
-                      {b.status}
+                      {t(`client.clientStatus.booking.${b.status}` as TranslationKey)}
                     </span>
                     {b.status === 'PENDING' && (
                       <Button variant="outline" size="sm" onClick={() => {
@@ -107,7 +110,7 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
                         setCheckOut(b.check_out.split('T')[0]);
                       }}>
                         <Edit className="w-4 h-4 mr-2" />
-                        Modifier
+                        {t('common.edit')}
                       </Button>
                     )}
                   </div>
@@ -116,7 +119,7 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
             )) : (
               <div className="flex flex-col items-center justify-center p-12 text-center text-slate-500 bg-white rounded-xl border border-dashed border-slate-300">
                 <CalendarDays className="w-12 h-12 mb-3 text-slate-300" />
-                <p className="text-lg font-medium">Aucune réservation</p>
+                <p className="text-lg font-medium">{t('client.history.noBookings')}</p>
               </div>
             )}
             <TablePagination 
@@ -137,9 +140,9 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
                       <UtensilsCrossed className="w-6 h-6 text-emerald-600" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-800 text-lg">{o.structures?.name || 'Restaurant'}</h3>
+                      <h3 className="font-bold text-slate-800 text-lg">{o.structures?.name || t('client.dashboard.fallbackRestaurant')}</h3>
                       <p className="text-sm text-slate-500">
-                        {new Date(o.created_at).toLocaleString('fr-FR')} • <strong>{o.total} FCFA</strong>
+                        {format.dateTime(o.created_at)} • <strong>{format.money(o.total)}</strong>
                       </p>
                     </div>
                   </div>
@@ -150,13 +153,13 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
                       o.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
                       'bg-blue-100 text-blue-700'
                     }`}>
-                      {o.status}
+                      {t(`client.clientStatus.order.${o.status}` as TranslationKey)}
                     </span>
                     <ClientInvoiceWrapper order={o} />
                     {o.status === 'PENDING' && (
                       <Button variant="destructive" size="sm" onClick={() => handleOrderCancel(o.id)}>
                         <X className="w-4 h-4 mr-2" />
-                        Annuler
+                        {t('common.cancel')}
                       </Button>
                     )}
                   </div>
@@ -165,7 +168,7 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
             )) : (
               <div className="flex flex-col items-center justify-center p-12 text-center text-slate-500 bg-white rounded-xl border border-dashed border-slate-300">
                 <UtensilsCrossed className="w-12 h-12 mb-3 text-slate-300" />
-                <p className="text-lg font-medium">Aucune commande</p>
+                <p className="text-lg font-medium">{t('client.history.noOrders')}</p>
               </div>
             )}
             <TablePagination 
@@ -182,7 +185,7 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md bg-white shadow-2xl animate-in fade-in zoom-in duration-200">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Modification de la réservation</CardTitle>
+              <CardTitle>{t('client.history.editTitle')}</CardTitle>
               <Button variant="ghost" size="icon" onClick={() => setEditingBooking(null)}>
                 <X className="w-5 h-5" />
               </Button>
@@ -190,15 +193,15 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
             <CardContent>
               <form className="space-y-4">
                 <p className="text-sm text-slate-600 mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                  Établissement : <strong>{editingBooking.rooms?.structures?.name}</strong><br/>
-                  Chambre : <strong>{editingBooking.rooms?.number}</strong>
+                  {t('client.history.place')} <strong>{editingBooking.rooms?.structures?.name}</strong><br/>
+                  {t('client.history.room')} <strong>{editingBooking.rooms?.number}</strong>
                 </p>
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700">Nouvelle Date d'arrivée</label>
+                  <label className="text-sm font-semibold text-slate-700">{t('client.history.newCheckIn')}</label>
                   <Input type="date" value={checkIn} onChange={e => setCheckIn(e.target.value)} required min={new Date().toISOString().split('T')[0]} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700">Nouvelle Date de départ</label>
+                  <label className="text-sm font-semibold text-slate-700">{t('client.history.newCheckOut')}</label>
                   <Input type="date" value={checkOut} onChange={e => setCheckOut(e.target.value)} required min={checkIn || new Date().toISOString().split('T')[0]} />
                 </div>
                 
@@ -209,7 +212,7 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
                     disabled={isSubmitting || !checkIn || !checkOut}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    {isSubmitting ? 'Traitement...' : 'Enregistrer les dates'}
+                    {isSubmitting ? t('client.history.processing') : t('client.history.saveDates')}
                   </Button>
                   <Button 
                     type="button" 
@@ -218,7 +221,7 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
                     disabled={isSubmitting}
                     className="w-full text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
                   >
-                    Annuler la réservation complètement
+                    {t('client.history.cancelBooking')}
                   </Button>
                 </div>
               </form>

@@ -1,11 +1,12 @@
 import { requireAuth } from '@/app/actions/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { SettingsPageClient } from './settings-client';
+import { getT } from '@/lib/i18n/server';
 
-export const metadata = {
-  title: 'Paramètres — Shede',
-  description: 'Paramètres de votre établissement',
-};
+export async function generateMetadata() {
+  const { t } = await getT();
+  return { title: t('settings.meta.title'), description: t('settings.meta.description') };
+}
 
 export default async function SettingsPage() {
   const session = await requireAuth();

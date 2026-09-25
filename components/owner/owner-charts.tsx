@@ -10,22 +10,22 @@ import {
   YAxis,
 } from 'recharts';
 import { POINT_COLORS } from '@/lib/chart-colors';
+import { useT } from '@/lib/i18n/client';
 
 const SURFACE = '#1e293b';
 const GRID = '#334155';
 const AXIS_TEXT = '#94a3b8';
 
-function formatAmount(value: number, currency: string) {
-  return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value)} ${currency}`;
-}
+type Format = ReturnType<typeof useT>['format'];
 
-function formatCompact(value: number) {
-  return new Intl.NumberFormat('fr-FR', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+function compactFormatter(format: Format) {
+  return (value: number) => format.number(value, { notation: 'compact', maximumFractionDigits: 1 });
 }
 
 type SeriesPoint = { id: string; name: string; color: string };
 
 function RevenueTooltip({ active, payload, label, points, currency }: any) {
+  const { t, format } = useT();
   if (!active || !payload?.length) return null;
   const rows = (points as SeriesPoint[])
     .map((p) => ({ ...p, value: Number(payload[0]?.payload?.[p.id]) || 0 }))
@@ -36,19 +36,19 @@ function RevenueTooltip({ active, payload, label, points, currency }: any) {
     <div className="rounded-lg border border-slate-600 bg-slate-900/95 px-3 py-2 text-xs shadow-xl">
       <p className="mb-1 font-semibold text-slate-100">{label}</p>
       {rows.length === 0 ? (
-        <p className="text-slate-400">Aucune vente</p>
+        <p className="text-slate-400">{t('org.owner.chart.noSale')}</p>
       ) : (
         <>
           {rows.map((r) => (
             <p key={r.id} className="flex items-center gap-2 text-slate-300">
               <span className="inline-block h-2 w-2 rounded-sm" style={{ background: r.color }} />
               <span className="flex-1">{r.name}</span>
-              <span className="font-medium text-slate-100">{formatAmount(r.value, currency)}</span>
+              <span className="font-medium text-slate-100">{format.money(r.value, currency)}</span>
             </p>
           ))}
           {rows.length > 1 && (
             <p className="mt-1 border-t border-slate-700 pt-1 text-right font-semibold text-slate-100">
-              Total {formatAmount(total, currency)}
+              {t('org.owner.chart.total', { amount: format.money(total, currency) })}
             </p>
           )}
         </>
@@ -67,10 +67,11 @@ export function RevenueByPointChart({
   points: SeriesPoint[];
   currency: string;
 }) {
+  const { t, format } = useT();
   return (
     <div>
       {points.length > 1 && (
-        <ul className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-300" aria-label="Légende">
+        <ul className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-300" aria-label={t('org.owner.chart.legend')}>
           {points.map((p) => (
             <li key={p.id} className="flex items-center gap-1.5">
               <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: p.color }} />
@@ -84,7 +85,7 @@ export function RevenueByPointChart({
           <BarChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke={GRID} strokeDasharray="3 3" />
             <XAxis dataKey="label" tick={{ fill: AXIS_TEXT, fontSize: 11 }} axisLine={false} tickLine={false} minTickGap={8} />
-            <YAxis tickFormatter={formatCompact} tick={{ fill: AXIS_TEXT, fontSize: 11 }} axisLine={false} tickLine={false} width={48} />
+            <YAxis tickFormatter={compactFormatter(format)} tick={{ fill: AXIS_TEXT, fontSize: 11 }} axisLine={false} tickLine={false} width={48} />
             <Tooltip
               cursor={{ fill: 'rgba(148,163,184,0.08)' }}
               content={<RevenueTooltip points={points} currency={currency} />}
@@ -110,13 +111,14 @@ export function RevenueByPointChart({
 }
 
 function PeakTooltip({ active, payload, label, currency }: any) {
+  const { t, format } = useT();
   if (!active || !payload?.length) return null;
   const row = payload[0].payload;
   return (
     <div className="rounded-lg border border-slate-600 bg-slate-900/95 px-3 py-2 text-xs shadow-xl">
       <p className="font-semibold text-slate-100">{label}</p>
-      <p className="text-slate-300">{formatAmount(row.revenue, currency)}</p>
-      <p className="text-slate-400">{row.orders} commande(s)</p>
+      <p className="text-slate-300">{format.money(row.revenue, currency)}</p>
+      <p className="text-slate-400">{t('org.owner.chart.orders', { count: row.orders })}</p>
     </div>
   );
 }
@@ -129,13 +131,14 @@ export function PeakHoursChart({
   data: { hour: string; revenue: number; orders: number }[];
   currency: string;
 }) {
+  const { format } = useT();
   return (
     <div className="h-56">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
           <CartesianGrid vertical={false} stroke={GRID} strokeDasharray="3 3" />
           <XAxis dataKey="hour" tick={{ fill: AXIS_TEXT, fontSize: 11 }} axisLine={false} tickLine={false} interval={2} />
-          <YAxis tickFormatter={formatCompact} tick={{ fill: AXIS_TEXT, fontSize: 11 }} axisLine={false} tickLine={false} width={48} />
+          <YAxis tickFormatter={compactFormatter(format)} tick={{ fill: AXIS_TEXT, fontSize: 11 }} axisLine={false} tickLine={false} width={48} />
           <Tooltip cursor={{ fill: 'rgba(148,163,184,0.08)' }} content={<PeakTooltip currency={currency} />} />
           <Bar dataKey="revenue" fill={POINT_COLORS[0]} radius={[4, 4, 0, 0]} maxBarSize={24} />
         </BarChart>

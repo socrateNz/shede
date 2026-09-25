@@ -18,16 +18,14 @@ import {
   Gift,
   QrCode,
 } from 'lucide-react';
+import { useT } from '@/lib/i18n/client';
+import { LanguageSwitcher } from '@/components/language-switcher';
 
-const CLIENT_BENEFITS = [
-  'Réservations instantanées sans commission',
-  'Programme de fidélité intégré',
-  "Scan & Order — plus d'attente",
-  'Offres exclusives et cashback',
-];
+const CLIENT_BENEFITS = ['booking', 'loyalty', 'scan', 'offers'] as const;
 
 export default function RegisterClientPage() {
   const router = useRouter();
+  const { t } = useT();
   const [state, formAction, isPending] = useActionState(registerClient, {
     success: false,
     error: '',
@@ -55,7 +53,7 @@ export default function RegisterClientPage() {
             className="group mb-12 inline-flex items-center gap-2 text-sm text-purple-100/90 transition-colors hover:text-white"
           >
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-            Retour à l&apos;accueil
+            {t('common.backToHome')}
           </Link>
 
           <div className="mb-8 flex items-center gap-3">
@@ -64,17 +62,16 @@ export default function RegisterClientPage() {
             </div>
             <div>
               <p className="text-lg font-bold text-white">Shede</p>
-              <p className="text-sm text-purple-100/80">Espace client</p>
+              <p className="text-sm text-purple-100/80">{t('auth.registerClient.clientSpace')}</p>
             </div>
           </div>
 
           <h1 className="max-w-md text-3xl font-bold leading-tight text-white xl:text-4xl">
-            Découvrez les meilleurs établissements,{' '}
-            <span className="text-purple-200">sans complication</span>
+            {t('auth.registerClient.heroTitle')}{' '}
+            <span className="text-purple-200">{t('auth.registerClient.heroHighlight')}</span>
           </h1>
           <p className="mt-4 max-w-sm text-base text-purple-100/90">
-            Créez votre compte gratuitement et profitez d&apos;une expérience premium :
-            commandes, réservations et offres en un seul endroit.
+            {t('auth.registerClient.heroText')}
           </p>
 
           <ul className="mt-10 space-y-4">
@@ -83,7 +80,7 @@ export default function RegisterClientPage() {
                 <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20">
                   <CheckCircle2 className="h-3.5 w-3.5 text-white" />
                 </span>
-                <span className="text-sm text-purple-50/95 sm:text-base">{item}</span>
+                <span className="text-sm text-purple-50/95 sm:text-base">{t(`auth.registerClient.benefits.${item}`)}</span>
               </li>
             ))}
           </ul>
@@ -91,9 +88,9 @@ export default function RegisterClientPage() {
 
         <div className="relative z-10 hidden gap-4 p-10 xl:flex xl:p-14">
           {[
-            { icon: UtensilsCrossed, label: 'Menus digitaux' },
-            { icon: QrCode, label: 'Scan & Order' },
-            { icon: Gift, label: 'Fidélité' },
+            { icon: UtensilsCrossed, label: t('auth.registerClient.featureMenus') },
+            { icon: QrCode, label: t('auth.registerClient.featureScan') },
+            { icon: Gift, label: t('auth.registerClient.featureLoyalty') },
           ].map(({ icon: Icon, label }) => (
             <div
               key={label}
@@ -114,27 +111,28 @@ export default function RegisterClientPage() {
             className="mb-8 inline-flex items-center gap-2 text-sm text-slate-500 transition-colors hover:text-purple-700 lg:hidden"
           >
             <ArrowLeft className="h-4 w-4" />
-            Accueil
+            {t('common.home')}
           </Link>
 
           <div className="mb-8 lg:mb-10">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-3 py-1.5 text-sm font-medium text-purple-700">
-              Inscription gratuite
+              {t('auth.registerClient.badge')}
             </div>
+            <LanguageSwitcher tone="light" className="ml-2 align-middle" />
             <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              Créer mon compte client
+              {t('auth.registerClient.title')}
             </h2>
             <p className="mt-2 text-slate-600">
-              Quelques informations suffisent pour accéder à l&apos;application Shede.
+              {t('auth.registerClient.subtitle')}
             </p>
           </div>
 
           {/* Avantages mobile */}
           <div className="mb-8 grid grid-cols-3 gap-2 lg:hidden">
             {[
-              { icon: UtensilsCrossed, label: 'Menus' },
-              { icon: QrCode, label: 'Scan' },
-              { icon: Gift, label: 'Offres' },
+              { icon: UtensilsCrossed, label: t('auth.registerClient.shortMenus') },
+              { icon: QrCode, label: t('auth.registerClient.shortScan') },
+              { icon: Gift, label: t('auth.registerClient.shortOffers') },
             ].map(({ icon: Icon, label }) => (
               <div
                 key={label}
@@ -155,13 +153,13 @@ export default function RegisterClientPage() {
                     className="flex items-center gap-1.5 text-sm font-medium text-slate-700"
                   >
                     <User className="h-3.5 w-3.5 text-purple-500" />
-                    Prénom
+                    {t('common.firstName')}
                   </label>
                   <Input
                     id="firstName"
                     type="text"
                     name="firstName"
-                    placeholder="Jean"
+                    placeholder={t('auth.registerClient.firstNamePlaceholder')}
                     autoComplete="given-name"
                     className="h-11 border-slate-200 bg-slate-50/80 transition-colors focus:border-purple-400 focus:ring-purple-400/20"
                     required
@@ -169,13 +167,13 @@ export default function RegisterClientPage() {
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="lastName" className="text-sm font-medium text-slate-700">
-                    Nom
+                    {t('common.lastName')}
                   </label>
                   <Input
                     id="lastName"
                     type="text"
                     name="lastName"
-                    placeholder="Dupont"
+                    placeholder={t('auth.registerClient.lastNamePlaceholder')}
                     autoComplete="family-name"
                     className="h-11 border-slate-200 bg-slate-50/80 transition-colors focus:border-purple-400 focus:ring-purple-400/20"
                     required
@@ -189,13 +187,13 @@ export default function RegisterClientPage() {
                   className="flex items-center gap-1.5 text-sm font-medium text-slate-700"
                 >
                   <Mail className="h-3.5 w-3.5 text-purple-500" />
-                  Email
+                  {t('common.email')}
                 </label>
                 <Input
                   id="email"
                   type="email"
                   name="email"
-                  placeholder="jean.dupont@example.com"
+                  placeholder={t('auth.registerClient.emailPlaceholder')}
                   autoComplete="email"
                   className="h-11 border-slate-200 bg-slate-50/80 transition-colors focus:border-purple-400 focus:ring-purple-400/20"
                   required
@@ -208,7 +206,7 @@ export default function RegisterClientPage() {
                   className="flex items-center gap-1.5 text-sm font-medium text-slate-700"
                 >
                   <Lock className="h-3.5 w-3.5 text-purple-500" />
-                  Mot de passe
+                  {t('common.password')}
                 </label>
                 <Input
                   id="password"
@@ -220,7 +218,7 @@ export default function RegisterClientPage() {
                   required
                   minLength={6}
                 />
-                <p className="text-xs text-slate-500">Minimum 6 caractères</p>
+                <p className="text-xs text-slate-500">{t('auth.registerClient.passwordHint')}</p>
               </div>
 
               {state.error && (
@@ -241,12 +239,12 @@ export default function RegisterClientPage() {
                 {isPending ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    Création en cours…
+                    {t('auth.registerClient.submitting')}
                   </span>
                 ) : (
                   <span className="flex items-center justify-center gap-2">
                     <UserPlus className="h-5 w-5" />
-                    Créer mon compte
+                    {t('auth.registerClient.submit')}
                     <ArrowRight className="h-4 w-4" />
                   </span>
                 )}
@@ -255,28 +253,28 @@ export default function RegisterClientPage() {
 
             <div className="mt-6 space-y-3 border-t border-slate-100 pt-6 text-center text-sm">
               <p className="text-slate-600">
-                Déjà un compte ?{' '}
+                {t('auth.registerClient.hasAccount')}{' '}
                 <Link
                   href="/login"
                   className="font-semibold text-purple-600 transition-colors hover:text-purple-800"
                 >
-                  Se connecter
+                  {t('auth.registerClient.login')}
                 </Link>
               </p>
               <p className="text-slate-500">
-                Vous êtes un professionnel ?{' '}
+                {t('auth.registerClient.isBusiness')}{' '}
                 <Link
                   href="/register-business"
                   className="font-semibold text-slate-700 transition-colors hover:text-purple-700"
                 >
-                  Compte business
+                  {t('auth.registerClient.businessAccount')}
                 </Link>
               </p>
             </div>
           </div>
 
           <p className="mt-8 text-center text-xs text-slate-400">
-            En créant un compte, vous acceptez nos conditions d&apos;utilisation.
+            {t('auth.registerClient.terms')}
           </p>
         </div>
       </div>

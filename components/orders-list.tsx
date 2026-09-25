@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useState } from 'react';
 import { TablePagination } from './table-pagination';
+import { useT } from '@/lib/i18n/client';
 
 interface OrdersListProps {
   orders: Order[];
@@ -29,28 +30,25 @@ interface OrdersListProps {
   updatingOrderId?: string | null;
 }
 
-const statusColors: Record<string, { bg: string; text: string; icon: any; label: string }> = {
-  PENDING: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', icon: Clock, label: 'En attente' },
-  IN_PROGRESS: { bg: 'bg-blue-500/10', text: 'text-blue-400', icon: Package, label: 'En préparation' },
-  READY: { bg: 'bg-purple-500/10', text: 'text-purple-400', icon: Coffee, label: 'Prête' },
-  SERVED: { bg: 'bg-cyan-500/10', text: 'text-cyan-400', icon: CheckCircle, label: 'Servie' },
-  COMPLETED: { bg: 'bg-green-500/10', text: 'text-green-400', icon: CreditCard, label: 'Payée' },
-  CANCELLED: { bg: 'bg-red-500/10', text: 'text-red-400', icon: Ban, label: 'Annulée' },
+type OrderStatus = 'PENDING' | 'IN_PROGRESS' | 'READY' | 'SERVED' | 'COMPLETED' | 'CANCELLED';
+
+const statusStyles: Record<OrderStatus, { bg: string; text: string; icon: any }> = {
+  PENDING: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', icon: Clock },
+  IN_PROGRESS: { bg: 'bg-blue-500/10', text: 'text-blue-400', icon: Package },
+  READY: { bg: 'bg-purple-500/10', text: 'text-purple-400', icon: Coffee },
+  SERVED: { bg: 'bg-cyan-500/10', text: 'text-cyan-400', icon: CheckCircle },
+  COMPLETED: { bg: 'bg-green-500/10', text: 'text-green-400', icon: CreditCard },
+  CANCELLED: { bg: 'bg-red-500/10', text: 'text-red-400', icon: Ban },
 };
 
-const statusOptions = [
-  { value: 'PENDING', label: 'En attente', icon: Clock, color: 'text-yellow-400' },
-  { value: 'IN_PROGRESS', label: 'En préparation', icon: Package, color: 'text-blue-400' },
-  { value: 'READY', label: 'Prête', icon: Coffee, color: 'text-purple-400' },
-  { value: 'SERVED', label: 'Servie', icon: CheckCircle, color: 'text-cyan-400' },
-  { value: 'COMPLETED', label: 'Payée', icon: CreditCard, color: 'text-green-400' },
-  { value: 'CANCELLED', label: 'Annulée', icon: Ban, color: 'text-red-400' },
-];
+const STATUS_VALUES = Object.keys(statusStyles) as OrderStatus[];
 
-const sourceConfig: Record<string, { icon: any; label: string; color: string }> = {
-  CLIENT: { icon: Smartphone, label: 'Application', color: 'text-green-400 bg-green-500/10' },
-  QR_CODE: { icon: QrCode, label: 'QR Code', color: 'text-purple-400 bg-purple-500/10' },
-  CAISSE: { icon: CardIcon, label: 'Caisse', color: 'text-blue-400 bg-blue-500/10' },
+type OrderSource = 'CLIENT' | 'QR_CODE' | 'CAISSE';
+
+const sourceStyles: Record<OrderSource, { icon: any; color: string }> = {
+  CLIENT: { icon: Smartphone, color: 'text-green-400 bg-green-500/10' },
+  QR_CODE: { icon: QrCode, color: 'text-purple-400 bg-purple-500/10' },
+  CAISSE: { icon: CardIcon, color: 'text-blue-400 bg-blue-500/10' },
 };
 
 const getValidNextStatuses = (currentStatus: string) => {
@@ -78,9 +76,22 @@ export function OrdersList({
 }: OrdersListProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const { t, format } = useT();
+
+  const statusColors = Object.fromEntries(
+    STATUS_VALUES.map((value) => [value, { ...statusStyles[value], label: t(`orders.status.${value}`) }])
+  ) as Record<string, { bg: string; text: string; icon: any; label: string }>;
+
+  const statusOptions = STATUS_VALUES.map((value) => ({
+    value,
+    label: t(`orders.status.${value}`),
+    icon: statusStyles[value].icon,
+    color: statusStyles[value].text,
+  }));
 
   const getSourceConfig = (source: string) => {
-    return sourceConfig[source] || sourceConfig.CAISSE;
+    const key: OrderSource = source in sourceStyles ? (source as OrderSource) : 'CAISSE';
+    return { ...sourceStyles[key], label: t(`orders.source.${key}`) };
   };
 
   const totalPages = Math.ceil(orders.length / itemsPerPage);
@@ -100,13 +111,13 @@ export function OrdersList({
         <Table>
           <TableHeader>
             <TableRow className="border-slate-700 hover:bg-transparent bg-slate-800/50">
-              <TableHead className="text-slate-300 font-semibold">N° commande</TableHead>
-              <TableHead className="text-slate-300 font-semibold">Source</TableHead>
-              <TableHead className="text-slate-300 font-semibold">Table / Chambre</TableHead>
-              <TableHead className="text-slate-300 font-semibold text-right">Total</TableHead>
-              <TableHead className="text-slate-300 font-semibold">Statut</TableHead>
-              <TableHead className="text-slate-300 font-semibold">Heure</TableHead>
-              <TableHead className="text-slate-300 font-semibold text-right">Actions</TableHead>
+              <TableHead className="text-slate-300 font-semibold">{t('orders.list.colNumber')}</TableHead>
+              <TableHead className="text-slate-300 font-semibold">{t('orders.list.colSource')}</TableHead>
+              <TableHead className="text-slate-300 font-semibold">{t('orders.list.colPlace')}</TableHead>
+              <TableHead className="text-slate-300 font-semibold text-right">{t('orders.list.colTotal')}</TableHead>
+              <TableHead className="text-slate-300 font-semibold">{t('orders.list.colStatus')}</TableHead>
+              <TableHead className="text-slate-300 font-semibold">{t('orders.list.colTime')}</TableHead>
+              <TableHead className="text-slate-300 font-semibold text-right">{t('orders.list.colActions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -140,24 +151,24 @@ export function OrdersList({
                   <TableCell className="text-slate-400">
                     {(order as any).rooms?.number ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                        🛏️ Chambre {(order as any).rooms.number}
+                        {t('orders.list.room', { number: (order as any).rooms.number })}
                       </span>
                     ) : order.table_number ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20">
-                        🍽️ Table {order.table_number}
+                        {t('orders.list.table', { number: order.table_number })}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-500/10 text-slate-400 border border-slate-500/20">
-                        📦 À emporter
+                        {(order as any).consumption_type === 'DELIVERY' ? t('orders.list.delivery') : t('orders.list.takeaway')}
                       </span>
                     )}
                   </TableCell>
                   <TableCell className="text-slate-50 text-right font-bold">
                     <div className="flex flex-col items-end">
-                      {order.total.toLocaleString()} FCFA
+                      {format.money(order.total)}
                       {(order as any).discount_amount > 0 && (
                         <span className="text-[10px] text-pink-400 font-bold bg-pink-500/10 px-1.5 py-0.5 rounded-sm mt-1 inline-flex items-center gap-1 border border-pink-500/20">
-                          <Tag className="w-3 h-3" /> PROMO
+                          <Tag className="w-3 h-3" /> {t('orders.list.promo')}
                         </span>
                       )}
                     </div>
@@ -214,9 +225,9 @@ export function OrdersList({
                     )}
                   </TableCell>
                   <TableCell className="text-slate-400 text-sm">
-                    {new Date(order.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    {format.time(order.created_at)}
                     <span className="text-xs text-slate-500 block">
-                      {new Date(order.created_at).toLocaleDateString('fr-FR')}
+                      {format.date(order.created_at)}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
@@ -229,7 +240,8 @@ export function OrdersList({
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-700 transition-all duration-200"
-                          title="Voir les détails"
+                          title={t('orders.list.viewDetails')}
+                          aria-label={t('orders.list.viewDetails')}
                         >
                           <Eye className="w-4 h-4" />
                         </Button>

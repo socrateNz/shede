@@ -7,6 +7,8 @@ import { ArrowLeft, User, Mail, Briefcase, Shield, CheckCircle, AlertCircle, Sav
 import Link from 'next/link';
 import { getAdminSupabase } from '@/lib/supabase';
 import { redirect } from 'next/navigation';
+import { getT } from '@/lib/i18n/server';
+import { STAFF_ROLES, staffRoleIcon } from '@/lib/staff-roles';
 
 export default async function EditUserPage({
   params,
@@ -15,6 +17,7 @@ export default async function EditUserPage({
 }) {
   const session = await requireRole('ADMIN', 'SUPER_ADMIN');
   const { id: userId } = await params;
+  const { t } = await getT();
   const admin = getAdminSupabase();
 
   const { data: user } = await admin
@@ -31,7 +34,7 @@ export default async function EditUserPage({
           <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-red-400">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4" />
-              Utilisateur non trouvé
+              {t('team.form.notFound')}
             </div>
           </div>
         </div>
@@ -39,17 +42,11 @@ export default async function EditUserPage({
     );
   }
 
-  const roles = [
-    { value: 'ADMIN', label: 'Administrateur', icon: '👑', description: 'Accès complet à la gestion' },
-    { value: 'CAISSE', label: 'Caisse', icon: '💳', description: 'Gestion des paiements et factures' },
-    { value: 'SERVEUR', label: 'Serveur', icon: '🍽️', description: 'Prise de commandes et service' },
-    { value: 'RECEPTION', label: 'Réception', icon: '🏨', description: 'Gestion des réservations' },
-  ];
-
-  const getRoleIcon = (role: string) => {
-    const found = roles.find(r => r.value === role);
-    return found?.icon || '👤';
-  };
+  const roles = STAFF_ROLES.map((role) => ({
+    ...role,
+    label: t(`roles.${role.value}`),
+    description: t(`team.roleDescriptions.${role.value}`),
+  }));
 
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -66,29 +63,29 @@ export default async function EditUserPage({
           className="inline-flex items-center gap-2 text-slate-400 hover:text-blue-400 mb-6 transition-all duration-300 group"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span>Retour à l'équipe</span>
+          <span>{t('team.form.back')}</span>
         </Link>
 
         {/* Header */}
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
             <User className="w-4 h-4 text-blue-400" />
-            <span className="text-sm text-blue-400 font-medium">Modification</span>
+            <span className="text-sm text-blue-400 font-medium">{t('team.form.editBadge')}</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
-            Modifier un membre
+            {t('team.form.editTitle')}
           </h1>
-          <p className="text-slate-400">Mettez à jour les informations du membre</p>
+          <p className="text-slate-400">{t('team.form.editSubtitle')}</p>
         </div>
 
         {/* Info Card */}
         <div className="mb-6 p-4 rounded-lg bg-slate-800/30 border border-slate-700">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20">
-              <span className="text-xl">{getRoleIcon(user.role)}</span>
+              <span className="text-xl">{staffRoleIcon(user.role)}</span>
             </div>
             <div>
-              <p className="text-sm text-slate-400">Membre en cours de modification</p>
+              <p className="text-sm text-slate-400">{t('team.form.editing')}</p>
               <p className="text-slate-50 font-medium">
                 {user.first_name} {user.last_name}
               </p>
@@ -105,7 +102,7 @@ export default async function EditUserPage({
               <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
                 <User className="w-5 h-5 text-white" />
               </div>
-              Formulaire de modification
+              {t('team.form.editCard')}
             </CardTitle>
           </CardHeader>
 
@@ -133,20 +130,20 @@ export default async function EditUserPage({
               <div className="space-y-6">
                 <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
                   <User className="w-4 h-4 text-blue-400" />
-                  <h3 className="font-semibold">Informations personnelles</h3>
+                  <h3 className="font-semibold">{t('team.form.personal')}</h3>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <User className="w-4 h-4 text-blue-400" />
-                      Prénom *
+                      {t('team.form.firstName')}
                     </label>
                     <Input
                       type="text"
                       name="firstName"
                       defaultValue={user.first_name || ''}
-                      placeholder="Jean"
+                      placeholder={t('team.form.firstNamePlaceholder')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300 group-hover:border-slate-500"
                       required
                     />
@@ -155,13 +152,13 @@ export default async function EditUserPage({
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <User className="w-4 h-4 text-purple-400" />
-                      Nom *
+                      {t('team.form.lastName')}
                     </label>
                     <Input
                       type="text"
                       name="lastName"
                       defaultValue={user.last_name || ''}
-                      placeholder="Dupont"
+                      placeholder={t('team.form.lastNamePlaceholder')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300 group-hover:border-slate-500"
                       required
                     />
@@ -171,7 +168,7 @@ export default async function EditUserPage({
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                     <Mail className="w-4 h-4 text-emerald-400" />
-                    Email
+                    {t('team.form.emailLabel')}
                   </label>
                   <Input
                     type="email"
@@ -180,7 +177,7 @@ export default async function EditUserPage({
                     disabled
                   />
                   <p className="text-xs text-slate-500 flex items-center gap-1">
-                    L'email ne peut pas être modifié
+                    {t('team.form.emailLocked')}
                   </p>
                 </div>
               </div>
@@ -189,13 +186,13 @@ export default async function EditUserPage({
               <div className="space-y-6">
                 <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
                   <Briefcase className="w-4 h-4 text-purple-400" />
-                  <h3 className="font-semibold">Rôle et statut</h3>
+                  <h3 className="font-semibold">{t('team.form.roleAndStatus')}</h3>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                     <Briefcase className="w-4 h-4 text-purple-400" />
-                    Rôle *
+                    {t('team.form.role')}
                   </label>
                   <select
                     name="role"
@@ -205,7 +202,7 @@ export default async function EditUserPage({
                   >
                     {roles.map((role) => (
                       <option key={role.value} value={role.value}>
-                        {role.icon} {role.label} - {role.description}
+                        {t('team.form.roleOption', { icon: role.icon, label: role.label, description: role.description })}
                       </option>
                     ))}
                   </select>
@@ -222,7 +219,7 @@ export default async function EditUserPage({
                     <div className="w-11 h-6 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
                     <span className="ml-3 text-sm font-medium text-slate-300 flex items-center gap-1">
                       <CheckCircle className="w-4 h-4" />
-                      Compte actif
+                      {t('team.form.activeAccount')}
                     </span>
                   </label>
                 </div>
@@ -236,7 +233,7 @@ export default async function EditUserPage({
                 >
                   <div className="flex items-center gap-2">
                     <Save className="w-4 h-4" />
-                    Enregistrer les modifications
+                    {t('team.form.save')}
                   </div>
                 </Button>
 
@@ -247,7 +244,7 @@ export default async function EditUserPage({
                     className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-300"
                   >
                     <X className="w-4 h-4 mr-2" />
-                    Annuler
+                    {t('common.cancel')}
                   </Button>
                 </Link>
               </div>
@@ -258,7 +255,7 @@ export default async function EditUserPage({
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-xs text-slate-500">
-            Les modifications seront appliquées immédiatement
+            {t('team.form.editFooter')}
           </p>
         </div>
       </div>

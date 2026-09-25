@@ -4,9 +4,11 @@ import { History } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { StockMovementsList } from '@/components/stock-movements-list';
+import { getT } from '@/lib/i18n/server';
 
 export default async function StockMovementsPage() {
   await requireModule('STOCK');
+  const { t } = await getT();
   const movements = await getStockMovements();
 
   return (
@@ -15,13 +17,13 @@ export default async function StockMovementsPage() {
         <div>
           <h1 className="text-3xl font-bold text-slate-50 flex items-center gap-3">
             <History className="w-8 h-8 text-blue-500" />
-            Historique des mouvements
+            {t('stock.movements.title')}
           </h1>
-          <p className="text-slate-400">Tracez chaque changement de stock effectué dans votre établissement.</p>
+          <p className="text-slate-400">{t('stock.movements.subtitle')}</p>
         </div>
         <Link href="/stock">
           <Button variant="outline">
-            Retour à l'inventaire
+            {t('stock.movements.back')}
           </Button>
         </Link>
       </div>

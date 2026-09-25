@@ -3,6 +3,7 @@
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
+import { te } from '@/lib/i18n/server';
 
 export async function getPromotions() {
   const session = await getSession();
@@ -80,7 +81,7 @@ export async function getAllGlobalActivePromotions() {
 export async function createPromotion(formData: FormData) {
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   // --- Common Fields ---
@@ -112,15 +113,15 @@ export async function createPromotion(formData: FormData) {
 
   // --- Validations ---
   if (!name || !startDate || !endDate) {
-    return { success: false, error: 'Champs obligatoires manquants' };
+    return { success: false, error: await te('errors.requiredFields') };
   }
 
   if (promoMode === 'STANDARD' || promoMode === 'CODE') {
-    if (value <= 0) return { success: false, error: 'La valeur de la réduction doit être supérieure à 0' };
-    if (promoMode === 'CODE' && !codeName) return { success: false, error: 'Le code promo est requis pour ce mode' };
+    if (value <= 0) return { success: false, error: await te('errors.discountPositive') };
+    if (promoMode === 'CODE' && !codeName) return { success: false, error: await te('errors.promoCodeRequired') };
   } else if (promoMode === 'BUY_X_GET_Y') {
-    if (!requiredQty || !freeQty) return { success: false, error: 'Les quantités (X et Y) sont requises pour ce mode' };
-    if (!productId) return { success: false, error: 'Un produit spécifique doit être sélectionné pour le Buy X Get Y' };
+    if (!requiredQty || !freeQty) return { success: false, error: await te('errors.quantitiesRequired') };
+    if (!productId) return { success: false, error: await te('errors.productRequiredForGift') };
   }
 
   try {
@@ -155,14 +156,14 @@ export async function createPromotion(formData: FormData) {
     return { success: true, promotion: data };
   } catch (error: any) {
     console.error('Create promotion error:', error);
-    return { success: false, error: error.message || 'Failed to create promotion' };
+    return { success: false, error: await te('errors.promotionCreateFailed') };
   }
 }
 
 export async function togglePromotionStatus(promotionId: string, isActive: boolean) {
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   try {
@@ -178,7 +179,8 @@ export async function togglePromotionStatus(promotionId: string, isActive: boole
     revalidatePath('/promotions');
     return { success: true };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    console.error('[togglePromotionStatus]', error);
+    return { success: false, error: await te('errors.promotionUpdateFailed') };
   }
 }
 
@@ -196,11 +198,11 @@ export async function validatePromoCode(code: string, structureId: string, userI
       .eq('id', structureId)
       .single();
 
-    if (structError || !structure) return { valid: false, error: 'Structure not found' };
+    if (structError || !structure) return { valid: false, error: await te('errors.structureNotFound') };
     
     const modules = (structure.modules as string[]) || [];
     if (!modules.includes('PROMOTION')) {
-      return { valid: false, error: 'Promotion module not enabled for this establishment' };
+      return { valid: false, error: await te('errors.promoModuleDisabled') };
     }
 
     // 2. Find Promotion with this code in the structure
@@ -212,22 +214,22 @@ export async function validatePromoCode(code: string, structureId: string, userI
       .eq('structure_id', structureId)
       .single();
 
-    if (codeError || !promotion) return { valid: false, error: 'Invalid promo code' };
+    if (codeError || !promotion) return { valid: false, error: await te('errors.invalidPromoCode') };
 
     if (!promotion.is_active) {
-      return { valid: false, error: 'Promo code not active' };
+      return { valid: false, error: await te('errors.promoInactive') };
     }
 
     // 3. Check Dates
     const now = new Date();
     const start = new Date(promotion.start_date);
     const end = new Date(promotion.end_date);
-    if (now < start) return { valid: false, error: 'Promo code not yet active' };
-    if (now > end) return { valid: false, error: 'Promo code has expired' };
+    if (now < start) return { valid: false, error: await te('errors.promoNotYetActive') };
+    if (now > end) return { valid: false, error: await te('errors.promoExpired') };
 
     // 4. Check Global Usage Limit
     if (promotion.usage_limit !== null && promotion.used_count >= promotion.usage_limit) {
-      return { valid: false, error: 'Usage maximum du code promo atteint' };
+      return { valid: false, error: await te('errors.promoUsageLimit') };
     }
 
     // 5. Check Single-Use Per User/Phone
@@ -250,7 +252,7 @@ export async function validatePromoCode(code: string, structureId: string, userI
       const { data: existing, error: usageError } = await query.limit(1);
       
       if (existing && existing.length > 0) {
-        return { valid: false, error: 'Vous avez déjà utilisé ce code promo' };
+        return { valid: false, error: await te('errors.promoAlreadyUsed') };
       }
     }
 
@@ -267,14 +269,14 @@ export async function validatePromoCode(code: string, structureId: string, userI
     };
   } catch (error) {
     console.error('Validate promo code error:', error);
-    return { valid: false, error: 'Failed to validate promo code' };
+    return { valid: false, error: await te('errors.promoValidationFailed') };
   }
 }
 
 export async function updatePromotion(promotionId: string, formData: FormData) {
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   const name = String(formData.get('name') || '').trim();
@@ -301,7 +303,7 @@ export async function updatePromotion(promotionId: string, formData: FormData) {
   const isCumulative = formData.get('is_cumulative') === 'on' || formData.get('is_cumulative') === 'true';
 
   if (!name || !startDate || !endDate) {
-    return { success: false, error: 'Champs obligatoires manquants' };
+    return { success: false, error: await te('errors.requiredFields') };
   }
 
   try {
@@ -310,7 +312,7 @@ export async function updatePromotion(promotionId: string, formData: FormData) {
     // First fetch current to check mode and structure
     const { data: current } = await admin.from('promotions').select('*').eq('id', promotionId).single();
     if (!current || current.structure_id !== session.structureId) {
-      return { success: false, error: 'Promotion introuvable' };
+      return { success: false, error: await te('errors.promotionNotFound') };
     }
 
     const updatePayload: any = {
@@ -349,14 +351,14 @@ export async function updatePromotion(promotionId: string, formData: FormData) {
     return { success: true };
   } catch (error: any) {
     console.error('Update promotion error:', error);
-    return { success: false, error: error.message || 'Failed to update promotion' };
+    return { success: false, error: await te('errors.promotionUpdateFailed') };
   }
 }
 
 export async function deletePromotion(promotionId: string) {
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: await te('errors.unauthorized') };
   }
 
   try {
@@ -373,7 +375,7 @@ export async function deletePromotion(promotionId: string) {
     return { success: true };
   } catch (error: any) {
     console.error('Delete promotion error:', error);
-    return { success: false, error: error.message || 'Failed to delete promotion' };
+    return { success: false, error: await te('errors.promotionDeleteFailed') };
   }
 }/**
  * Records the usage of a promo code

@@ -6,12 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { ArrowLeft, Building2, Mail, MapPin, User, Lock, ChevronRight, Check, Network } from 'lucide-react';
-import { MODULE_OPTIONS, MODULE_CATEGORY_LABELS } from '@/lib/modules';
+import { MODULE_CATEGORIES, MODULE_OPTIONS, moduleCategoryLabel, moduleDescription, moduleLabel } from '@/lib/modules';
+import { useT } from '@/lib/i18n/client';
 import { useActionState, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function NewOrganizationPage() {
   const router = useRouter();
+  const { t } = useT();
   const [state, formAction, isPending] = useActionState(createOrganizationWithAdmin, {
     success: false,
     error: '',
@@ -36,9 +38,7 @@ export default function NewOrganizationPage() {
   };
 
   const modules = MODULE_OPTIONS;
-
-  // Grouper les modules par catégorie
-  const categories = Array.from(new Set(modules.map(m => m.category)));
+  const categories = MODULE_CATEGORIES;
 
 
   return (
@@ -56,19 +56,19 @@ export default function NewOrganizationPage() {
           className="inline-flex items-center gap-2 text-slate-400 hover:text-blue-400 mb-6 transition-all duration-300 group cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span>Retour aux organisations</span>
+          <span>{t('business.create.back')}</span>
         </Link>
 
         {/* Header */}
         <div className="mb-8 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
-            <span className="text-sm text-blue-400 font-medium">Nouvelle organisation</span>
+            <span className="text-sm text-blue-400 font-medium">{t('business.create.badge')}</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
-            Créer une organisation
+            {t('business.create.title')}
           </h1>
           <p className="text-slate-400">
-            L&apos;administrateur de l&apos;organisation créera ensuite ses points et leurs administrateurs
+            {t('business.create.subtitle')}
           </p>
         </div>
 
@@ -81,7 +81,7 @@ export default function NewOrganizationPage() {
               <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
                 <Building2 className="w-5 h-5 text-white" />
               </div>
-              Organisation et licence
+              {t('business.create.cardTitle')}
             </CardTitle>
           </CardHeader>
 
@@ -94,19 +94,19 @@ export default function NewOrganizationPage() {
               <div className="space-y-6">
                 <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
                   <Building2 className="w-4 h-4 text-blue-400" />
-                  <h3 className="font-semibold">Détails de l&apos;organisation</h3>
+                  <h3 className="font-semibold">{t('business.form.sectionOrganization')}</h3>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <Building2 className="w-4 h-4 text-blue-400" />
-                      Nom de l&apos;organisation *
+                      {t('business.form.organizationName')}
                     </label>
                     <Input
                       name="organizationName"
                       type="text"
-                      placeholder="Restaurant Lumière"
+                      placeholder={t('business.form.organizationNamePlaceholder')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300 group-hover:border-slate-500"
                       required
                     />
@@ -115,12 +115,12 @@ export default function NewOrganizationPage() {
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <Mail className="w-4 h-4 text-blue-400" />
-                      Email de l&apos;organisation *
+                      {t('business.form.organizationEmail')}
                     </label>
                     <Input
                       name="organizationEmail"
                       type="email"
-                      placeholder="contact@restaurant.com"
+                      placeholder={t('business.form.organizationEmailPlaceholder')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300 group-hover:border-slate-500"
                       required
                     />
@@ -131,12 +131,12 @@ export default function NewOrganizationPage() {
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-blue-400" />
-                      Lieu / Ville *
+                      {t('business.form.city')}
                     </label>
                     <Input
                       name="city"
                       type="text"
-                      placeholder="Douala, Akwa"
+                      placeholder={t('business.form.cityPlaceholder')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300 group-hover:border-slate-500"
                       required
                     />
@@ -145,7 +145,7 @@ export default function NewOrganizationPage() {
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <Network className="w-4 h-4 text-blue-400" />
-                      Nombre de points autorisés *
+                      {t('business.form.maxPoints')}
                     </label>
                     <Input
                       name="maxPoints"
@@ -162,13 +162,13 @@ export default function NewOrganizationPage() {
                 <div className="space-y-4">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                     <ChevronRight className="w-4 h-4 text-blue-400" />
-                    Modules de la licence (hérités par tous les points)
+                    {t('business.form.licenseModules')}
                   </label>
 
                   {categories.map((category) => (
                     <div key={category}>
                       <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 pl-1">
-                        {MODULE_CATEGORY_LABELS[category] ?? category}
+                        {moduleCategoryLabel(t, category)}
                       </p>
                       <div className="grid gap-2">
                         {modules.filter(m => m.category === category).map((module) => (
@@ -193,8 +193,8 @@ export default function NewOrganizationPage() {
                               </div>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium text-slate-200 text-sm">{module.label}</div>
-                              <div className="text-xs text-slate-500 mt-0.5">{module.description}</div>
+                              <div className="font-medium text-slate-200 text-sm">{moduleLabel(t, module.value)}</div>
+                              <div className="text-xs text-slate-500 mt-0.5">{moduleDescription(t, module.value)}</div>
                             </div>
                           </label>
                         ))}
@@ -203,10 +203,8 @@ export default function NewOrganizationPage() {
                   ))}
 
                   <p className="text-xs text-slate-500 mt-1 pl-1">
-                    {selectedModules.length} module(s) sélectionné(s) ·{' '}
-                    <span className="text-slate-600">
-                      Les modules peuvent être modifiés ultérieurement via les paramètres
-                    </span>
+                    {t('business.form.modulesSelected', { count: selectedModules.length })} ·{' '}
+                    <span className="text-slate-600">{t('business.form.modulesEditable')}</span>
                   </p>
                 </div>
 
@@ -216,19 +214,19 @@ export default function NewOrganizationPage() {
               <div className="space-y-6 pt-4">
                 <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
                   <User className="w-4 h-4 text-purple-400" />
-                  <h3 className="font-semibold">Administrateur de l&apos;organisation</h3>
+                  <h3 className="font-semibold">{t('business.form.sectionAdmin')}</h3>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <User className="w-4 h-4 text-purple-400" />
-                      Prénom *
+                      {t('business.form.firstName')}
                     </label>
                     <Input
                       name="adminFirstName"
                       type="text"
-                      placeholder="Jean"
+                      placeholder={t('business.form.firstNamePlaceholder')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300 group-hover:border-slate-500"
                       required
                     />
@@ -237,12 +235,12 @@ export default function NewOrganizationPage() {
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <User className="w-4 h-4 text-purple-400" />
-                      Nom *
+                      {t('business.form.lastName')}
                     </label>
                     <Input
                       name="adminLastName"
                       type="text"
-                      placeholder="Dupont"
+                      placeholder={t('business.form.lastNamePlaceholder')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300 group-hover:border-slate-500"
                       required
                     />
@@ -253,12 +251,12 @@ export default function NewOrganizationPage() {
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <Mail className="w-4 h-4 text-purple-400" />
-                      Email admin *
+                      {t('business.form.adminEmail')}
                     </label>
                     <Input
                       name="adminEmail"
                       type="email"
-                      placeholder="admin@restaurant.com"
+                      placeholder={t('business.form.adminEmailPlaceholder')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300 group-hover:border-slate-500"
                       required
                     />
@@ -267,7 +265,7 @@ export default function NewOrganizationPage() {
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <Lock className="w-4 h-4 text-purple-400" />
-                      Mot de passe *
+                      {t('business.form.password')}
                     </label>
                     <Input
                       name="adminPassword"
@@ -277,7 +275,7 @@ export default function NewOrganizationPage() {
                       required
                       minLength={8}
                     />
-                    <p className="text-xs text-slate-500 mt-1">Minimum 8 caractères</p>
+                    <p className="text-xs text-slate-500 mt-1">{t('business.form.passwordHint')}</p>
                   </div>
                 </div>
               </div>
@@ -302,11 +300,11 @@ export default function NewOrganizationPage() {
                   {isPending ? (
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Création en cours...
+                      {t('business.create.submitting')}
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      ✨ Créer l&apos;organisation
+                      {t('business.create.submit')}
                     </div>
                   )}
                 </Button>
@@ -316,7 +314,7 @@ export default function NewOrganizationPage() {
                     variant="outline"
                     className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-300 cursor-pointer"
                   >
-                    Annuler
+                    {t('common.cancel')}
                   </Button>
                 </Link>
               </div>
@@ -327,7 +325,7 @@ export default function NewOrganizationPage() {
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-xs text-slate-500">
-            Une fois créée, l&apos;organisation sera immédiatement accessible par son administrateur
+            {t('business.create.footer')}
           </p>
         </div>
       </div>

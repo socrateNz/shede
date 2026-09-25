@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useT } from '@/lib/i18n/client';
 
 import { useAppStore } from '@/lib/store';
 import { ImageUpload } from '@/components/image-upload';
@@ -53,6 +54,7 @@ type CreateProductParams = {
 
 export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptions: ProductOption[] }) {
   const router = useRouter();
+  const { t, format } = useT();
   const queryClient = useQueryClient();
   const hasModule = useAppStore(state => state.hasModule);
   const hasStockModule = hasModule('STOCK');
@@ -68,14 +70,14 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
       const result = await createProduct(params);
 
       if (!result.success) {
-        throw new Error(result.error || 'Échec de la création du produit');
+        throw new Error(result.error || t('products.form.createFailed'));
       }
 
       return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Produit créé avec succès !');
+      toast.success(t('products.form.created'));
       setTimeout(() => {
         router.push('/products');
       }, 1500);
@@ -139,12 +141,12 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
     ]);
     setNewAccompName('');
     setNewAccompPrice(0);
-    toast.success('Accompagnement ajouté');
+    toast.success(t('products.form.accompanimentAdded'));
   };
 
   const removeNewAccomp = (clientId: string) => {
     setNewAccompItems((prev) => prev.filter((x) => x.clientId !== clientId));
-    toast.success('Accompagnement retiré');
+    toast.success(t('products.form.accompanimentRemoved'));
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -183,19 +185,19 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
           className="inline-flex items-center gap-2 text-slate-400 hover:text-blue-400 mb-6 transition-all duration-300 group"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span>Retour aux produits</span>
+          {t('products.form.back')}
         </Link>
 
         {/* Header */}
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
             <Package className="w-4 h-4 text-blue-400" />
-            <span className="text-sm text-blue-400 font-medium">Création d'un produit</span>
+            <span className="text-sm text-blue-400 font-medium">{t('products.form.createBadge')}</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
-            Nouveau produit
+            {t('products.form.createTitle')}
           </h1>
-          <p className="text-slate-400">Ajoutez un nouvel article à votre menu</p>
+          <p className="text-slate-400">{t('products.form.createSubtitle')}</p>
         </div>
 
         <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-xl overflow-hidden">
@@ -206,7 +208,7 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
               <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                 <Plus className="w-4 h-4 text-white" />
               </div>
-              Formulaire de création
+              {t('products.form.createCard')}
             </CardTitle>
           </CardHeader>
 
@@ -216,19 +218,19 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
               <div className="space-y-6">
                 <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
                   <Package className="w-4 h-4 text-blue-400" />
-                  <h3 className="font-semibold">Informations générales</h3>
+                  <h3 className="font-semibold">{t('products.form.general')}</h3>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <Tag className="w-4 h-4 text-blue-400" />
-                      Nom du produit *
+                      {t('products.form.name')}
                     </label>
                     <Input
                       type="text"
                       name="name"
-                      placeholder="Ex: Burger Deluxe"
+                      placeholder={t('products.form.namePlaceholder')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300 group-hover:border-slate-500"
                       required
                     />
@@ -237,7 +239,7 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <Package className="w-4 h-4 text-emerald-400" />
-                      Image du produit
+                      {t('products.form.image')}
                     </label>
                     <ImageUpload 
                       value={imageUrl} 
@@ -249,43 +251,43 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-purple-400" />
-                      Prix *
+                      {t('products.form.price')}
                     </label>
                     <Input
                       type="number"
                       name="price"
-                      placeholder="Ex: 2500"
+                      placeholder={t('products.form.pricePlaceholder')}
                       step="10"
                       min="0"
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300 group-hover:border-slate-500"
                       required
                     />
-                    <p className="text-xs text-slate-500 mt-1">Prix en FCFA</p>
+                    <p className="text-xs text-slate-500 mt-1">{t('products.form.priceHint')}</p>
                   </div>
 
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <Tag className="w-4 h-4 text-orange-400" />
-                      Destination
+                      {t('products.form.destination')}
                     </label>
                     <select
                       name="destination"
                       className="w-full bg-slate-900/50 border border-slate-600 text-slate-50 rounded-lg py-2 px-3 h-10 focus:border-orange-500 focus:ring-orange-500/20 transition-all duration-300"
                     >
-                      <option value="CUISINE">Cuisine</option>
-                      <option value="BAR">Bar</option>
+                      <option value="CUISINE">{t('products.destination.CUISINE')}</option>
+                      <option value="BAR">{t('products.destination.BAR')}</option>
                     </select>
-                    <p className="text-xs text-slate-500 mt-1">Où le produit est-il préparé ?</p>
+                    <p className="text-xs text-slate-500 mt-1">{t('products.form.destinationHint')}</p>
                   </div>
                 </div>
 
                 <div className="space-y-2 group">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                    Description
+                    {t('products.form.description')}
                   </label>
                   <textarea
                     name="description"
-                    placeholder="Description du produit..."
+                    placeholder={t('products.form.descriptionPlaceholder')}
                     className="w-full bg-slate-900/50 border border-slate-600 text-slate-50 placeholder:text-slate-500 rounded-lg p-3 h-24 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300"
                   />
                 </div>
@@ -294,12 +296,12 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                   <div className="space-y-2 group">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <Tag className="w-4 h-4 text-amber-400" />
-                      Catégorie
+                      {t('products.form.category')}
                     </label>
                     <Input
                       type="text"
                       name="category"
-                      placeholder="Ex: Plat principal, Boisson, Dessert"
+                      placeholder={t('products.form.categoryPlaceholder')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-amber-500 focus:ring-amber-500/20 transition-all duration-300 group-hover:border-slate-500"
                     />
                   </div>
@@ -307,7 +309,7 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-green-400" />
-                      Disponibilité
+                      {t('products.form.availability')}
                     </label>
                     <div className="flex items-center gap-4 pt-2">
                       <label className="flex items-center gap-2 cursor-pointer">
@@ -318,7 +320,7 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                           defaultChecked={true}
                           className="w-4 h-4 text-green-500 focus:ring-green-500"
                         />
-                        <span className="text-sm text-slate-300">Disponible</span>
+                        <span className="text-sm text-slate-300">{t('products.form.available')}</span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -327,7 +329,7 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                           value="off"
                           className="w-4 h-4 text-red-500 focus:ring-red-500"
                         />
-                        <span className="text-sm text-slate-300">Indisponible</span>
+                        <span className="text-sm text-slate-300">{t('products.form.unavailable')}</span>
                       </label>
                     </div>
                   </div>
@@ -338,11 +340,11 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                   <div className="space-y-6 pt-4">
                     <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
                       <AlertTriangle className="w-4 h-4 text-amber-500" />
-                      <h3 className="font-semibold">Gestion du Stock</h3>
+                      <h3 className="font-semibold">{t('products.form.stock')}</h3>
                     </div>
                     <div className="max-w-xs space-y-2 group">
                       <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                        Seuil d'alerte *
+                        {t('products.form.threshold')}
                       </label>
                       <Input
                         type="number"
@@ -352,7 +354,7 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                         className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-amber-500 focus:ring-amber-500/20 transition-all duration-300"
                         required
                       />
-                      <p className="text-[10px] text-slate-500">Une alerte sera affichée si le stock tombe en dessous de cette valeur.</p>
+                      <p className="text-[10px] text-slate-500">{t('products.form.thresholdHint')}</p>
                     </div>
                   </div>
                 )}
@@ -362,14 +364,14 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
               <div className="space-y-6">
                 <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
                   <Plus className="w-4 h-4 text-purple-400" />
-                  <h3 className="font-semibold">Accompagnements & extras</h3>
+                  <h3 className="font-semibold">{t('products.form.accompaniments')}</h3>
                 </div>
 
                 {accompanimentOptions.length === 0 ? (
                   <div className="text-center py-8 text-slate-400 bg-slate-900/30 rounded-lg border border-slate-700">
                     <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                    <p>Aucun accompagnement disponible</p>
-                    <p className="text-sm mt-1">Créez d'abord des accompagnements</p>
+                    <p>{t('products.form.noAccompaniments')}</p>
+                    <p className="text-sm mt-1">{t('products.form.createAccompanimentsFirst')}</p>
                   </div>
                 ) : (
                   <div className="grid gap-3">
@@ -394,12 +396,12 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                             />
                             <div className="flex-1">
                               <div className="font-medium text-slate-200">{option.name}</div>
-                              <div className="text-sm text-slate-400">{option.price.toLocaleString()} FCFA</div>
+                              <div className="text-sm text-slate-400">{format.money(option.price)}</div>
                             </div>
                           </div>
                           {isSelected && (
                             <div className="flex items-center gap-2">
-                              <label className="text-sm text-slate-400">Qté:</label>
+                              <label className="text-sm text-slate-400">{t('products.form.qty')}</label>
                               <input
                                 type="number"
                                 min="1"
@@ -420,21 +422,21 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                 <div className="pt-4 border-t border-slate-700 space-y-4">
                   <p className="text-slate-100 font-medium flex items-center gap-2">
                     <Plus className="w-4 h-4 text-green-400" />
-                    Ajouter un nouvel accompagnement
+                    {t('products.form.addNewAccompaniment')}
                   </p>
                   <div className="grid grid-cols-2 gap-3">
                     <Input
                       type="text"
                       value={newAccompName}
                       onChange={(e) => setNewAccompName(e.target.value)}
-                      placeholder="Nom"
+                      placeholder={t('products.form.accompanimentName')}
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500"
                     />
                     <Input
                       type="number"
                       value={Number.isFinite(newAccompPrice) ? newAccompPrice : 0}
                       onChange={(e) => setNewAccompPrice(Number(e.target.value))}
-                      placeholder="Prix"
+                      placeholder={t('products.form.accompanimentPrice')}
                       step="10"
                       min="0"
                       className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500"
@@ -446,17 +448,17 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                     className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Ajouter l'accompagnement
+                    {t('products.form.addAccompaniment')}
                   </Button>
 
                   {newAccompItems.length > 0 && (
                     <div className="space-y-2 mt-4">
-                      <p className="text-sm text-slate-400">Nouveaux accompagnements :</p>
+                      <p className="text-sm text-slate-400">{t('products.form.newAccompaniments')}</p>
                       {newAccompItems.map((n) => (
                         <div key={n.clientId} className="flex items-center justify-between p-3 rounded-lg bg-slate-700/50">
                           <div>
                             <p className="text-slate-50 font-medium">{n.name}</p>
-                            <p className="text-slate-400 text-sm">{n.price.toLocaleString()} FCFA</p>
+                            <p className="text-slate-400 text-sm">{format.money(n.price)}</p>
                           </div>
                           <Button
                             type="button"
@@ -487,7 +489,7 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                 <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-4 text-sm text-green-400 animate-in slide-in-from-top-2">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4" />
-                    Produit créé avec succès ! Redirection...
+                    {t('products.form.createdRedirect')}
                   </div>
                 </div>
               )}
@@ -502,12 +504,12 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                   {isPending ? (
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Création en cours...
+                      {t('products.form.creating')}
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
                       <Save className="w-4 h-4" />
-                      Créer le produit
+                      {t('products.form.create')}
                     </div>
                   )}
                 </Button>
@@ -519,7 +521,7 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                     className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-300"
                   >
                     <X className="w-4 h-4 mr-2" />
-                    Annuler
+                    {t('common.cancel')}
                   </Button>
                 </Link>
               </div>
@@ -530,7 +532,7 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
         {/* Footer */}
         <div className="mt-6 text-center">
           <p className="text-xs text-slate-500">
-            Le produit sera immédiatement disponible dans le menu après création
+            {t('products.form.createFooter')}
           </p>
         </div>
       </div>

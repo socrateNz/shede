@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { openShift, closeShift, getActiveShift } from '@/app/actions/shifts';
 import { Lock, Unlock, AlertCircle, Receipt, Download, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatFCFA } from '@/lib/utils';
+import { useT } from '@/lib/i18n/client';
 import { RapportZ } from './reporting/rapport-z';
 
 export function ShiftStatusIndicator() {
@@ -30,6 +30,7 @@ export function ShiftStatusIndicator() {
   const [lastClosedShift, setLastClosedShift] = useState<any>(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
+  const { t } = useT();
 
   useEffect(() => {
     fetchActiveShift();
@@ -44,11 +45,11 @@ export function ShiftStatusIndicator() {
     setLoading(true);
     const res = await openShift(Number(openingBalance));
     if (res.success) {
-      toast.success('Caisse ouverte avec succès.');
+      toast.success(t('analytics.register.opened'));
       setActiveShift(res.shift);
       setIsOpeningModal(false);
     } else {
-      toast.error(res.error || "Erreur lors de l'ouverture.");
+      toast.error(res.error || t('analytics.register.openError'));
     }
     setLoading(false);
   }
@@ -57,13 +58,13 @@ export function ShiftStatusIndicator() {
     setLoading(true);
     const res = await closeShift(Number(actualAmount), notes);
     if (res.success) {
-      toast.success('Caisse clôturée avec succès.');
+      toast.success(t('analytics.register.closed'));
       setLastClosedShift(res.shift);
       setActiveShift(null);
       setIsClosingModal(false);
       setIsReportModal(true);
     } else {
-      toast.error(res.error || "Erreur lors de la clôture.");
+      toast.error(res.error || t('analytics.register.closeError'));
     }
     setLoading(false);
   }
@@ -75,8 +76,8 @@ export function ShiftStatusIndicator() {
       const { downloadElementAsPdf } = await import('@/lib/pdf-utils');
       await downloadElementAsPdf(reportRef.current, `rapport-z_${lastClosedShift.id.slice(0, 8)}.pdf`);
     } catch (error) {
-      console.error('Erreur lors du téléchargement du rapport:', error);
-      toast.error('Erreur lors de la génération du PDF.');
+      console.error('[ShiftStatusIndicator] PDF error:', error);
+      toast.error(t('analytics.shifts.pdfError'));
     } finally {
       setDownloadingReport(false);
     }
@@ -93,7 +94,7 @@ export function ShiftStatusIndicator() {
             className="w-full bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"
           >
             <Unlock className="w-4 h-4 mr-2" />
-            Fermer la caisse
+            {t('analytics.register.close')}
           </Button>
         ) : (
           <Button
@@ -103,7 +104,7 @@ export function ShiftStatusIndicator() {
             className="w-full bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20"
           >
             <Lock className="w-4 h-4 mr-2" />
-            Ouvrir la caisse
+            {t('analytics.register.open')}
           </Button>
         )}
       </div>
@@ -114,15 +115,15 @@ export function ShiftStatusIndicator() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Unlock className="w-5 h-5 text-green-400" />
-              Ouvrir la caisse
+              {t('analytics.register.open')}
             </DialogTitle>
             <DialogDescription className="text-slate-400">
-              Saisissez le montant initial présent dans le tiroir-caisse (fond de caisse).
+              {t('analytics.register.openHint')}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="openingBalance">Fond de caisse (FCFA)</Label>
+              <Label htmlFor="openingBalance">{t('analytics.register.openingBalance')}</Label>
               <Input
                 id="openingBalance"
                 type="number"
@@ -133,13 +134,13 @@ export function ShiftStatusIndicator() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsOpeningModal(false)}>Annuler</Button>
+            <Button variant="ghost" onClick={() => setIsOpeningModal(false)}>{t('common.cancel')}</Button>
             <Button
               onClick={handleOpenShift}
               disabled={loading}
               className="bg-green-600 hover:bg-green-700"
             >
-              Confirmer l'ouverture
+              {t('analytics.register.confirmOpen')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -151,49 +152,49 @@ export function ShiftStatusIndicator() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Lock className="w-5 h-5 text-red-400" />
-              Clôturer la caisse (Rapport Z)
+              {t('analytics.register.closeTitle')}
             </DialogTitle>
             <DialogDescription className="text-slate-400">
-              Veuillez compter l'argent liquide et les autres modes de paiement présents dans la caisse.
+              {t('analytics.register.closeHint')}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="actualAmount">Montant réel compté (FCFA)</Label>
+              <Label htmlFor="actualAmount">{t('analytics.register.actualAmount')}</Label>
               <Input
                 id="actualAmount"
                 type="number"
                 value={actualAmount}
                 onChange={(e) => setActualAmount(e.target.value)}
-                placeholder="Ex: 50000"
+                placeholder={t('analytics.register.actualAmountPlaceholder')}
                 className="bg-slate-800 border-slate-700 focus:ring-blue-500 text-lg font-bold"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes / Observations</Label>
+              <Label htmlFor="notes">{t('analytics.register.notes')}</Label>
               <Input
                 id="notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="R.A.S"
+                placeholder={t('analytics.register.notesPlaceholder')}
                 className="bg-slate-800 border-slate-700 focus:ring-blue-500"
               />
             </div>
             <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 flex gap-3 text-sm">
               <AlertCircle className="w-5 h-5 text-blue-400 shrink-0" />
               <p className="text-blue-200">
-                L'écart de caisse sera calculé automatiquement par rapport au chiffre d'affaires théorique.
+                {t('analytics.register.differenceHint')}
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsClosingModal(false)}>Annuler</Button>
+            <Button variant="ghost" onClick={() => setIsClosingModal(false)}>{t('common.cancel')}</Button>
             <Button
               onClick={handleCloseShift}
               disabled={loading}
               className="bg-red-600 hover:bg-red-700"
             >
-              Clôturer et générer le rapport
+              {t('analytics.register.confirmClose')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -205,7 +206,7 @@ export function ShiftStatusIndicator() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-green-400" />
-              Caisse Clôturée - Rapport Z
+              {t('analytics.register.closedTitle')}
             </DialogTitle>
           </DialogHeader>
           <div className="max-h-[70vh] overflow-y-auto pr-2">
@@ -214,9 +215,9 @@ export function ShiftStatusIndicator() {
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={handleDownloadReport} disabled={downloadingReport} className="gap-2">
               {downloadingReport ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              {downloadingReport ? 'Génération...' : 'Télécharger le rapport (PDF)'}
+              {downloadingReport ? t('analytics.shifts.generating') : t('analytics.register.downloadReport')}
             </Button>
-            <Button onClick={() => setIsReportModal(false)}>Fermer</Button>
+            <Button onClick={() => setIsReportModal(false)}>{t('common.close')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

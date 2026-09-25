@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Bell, BellOff, Loader2 } from 'lucide-react';
 import { subscribePush, unsubscribePush, getPublicKey, sendTestNotification } from '@/app/actions/push';
 import { toast } from 'sonner';
+import { useT } from '@/lib/i18n/client';
 
 export function PushSubscriptionToggle() {
   const [isSupported, setIsSupported] = useState(false);
@@ -12,6 +13,7 @@ export function PushSubscriptionToggle() {
   const [loading, setLoading] = useState(true);
   const [isTesting, setIsTesting] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>('default');
+  const { t } = useT();
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
@@ -78,14 +80,14 @@ export function PushSubscriptionToggle() {
         await subscription.unsubscribe();
         await unsubscribePush(endpoint);
         setSubscription(null);
-        toast.success('Notifications désactivées');
+        toast.success(t('settings.push.turnedOff'));
       } else {
         // Subscribe
         const permissionResult = await Notification.requestPermission();
         setPermission(permissionResult);
         
         if (permissionResult !== 'granted') {
-          toast.error('Permission refusée');
+          toast.error(t('settings.push.permissionDenied'));
           return;
         }
 
@@ -93,7 +95,7 @@ export function PushSubscriptionToggle() {
         const publicKey = await getPublicKey();
         
         if (!publicKey) {
-          toast.error('Configuration Push manquante sur le serveur');
+          toast.error(t('settings.push.missingConfig'));
           return;
         }
 
@@ -112,14 +114,14 @@ export function PushSubscriptionToggle() {
 
         if (res.success) {
           setSubscription(sub);
-          toast.success('Notifications activées avec succès !');
+          toast.success(t('settings.push.turnedOn'));
         } else {
-          toast.error(res.error || 'Erreur lors de l\'abonnement');
+          toast.error(res.error || t('settings.push.subscribeError'));
         }
       }
     } catch (error) {
       console.error('Push toggle error:', error);
-      toast.error('Une erreur est survenue');
+      toast.error(t('common.genericError'));
     } finally {
       setLoading(false);
     }
@@ -130,12 +132,12 @@ export function PushSubscriptionToggle() {
     try {
       const res = await sendTestNotification();
       if (res.success) {
-        toast.info('Notification de test envoyée !');
+        toast.info(t('settings.push.testSent'));
       } else {
-        toast.error('Échec de l\'envoi du test');
+        toast.error(t('settings.push.testFailed'));
       }
     } catch (error) {
-      toast.error('Erreur lors du test');
+      toast.error(t('settings.push.testFailed'));
     } finally {
       setIsTesting(false);
     }
@@ -144,7 +146,7 @@ export function PushSubscriptionToggle() {
   if (!isSupported) {
     return (
       <div className="text-sm text-slate-500 italic">
-        Votre navigateur ne supporte pas les notifications push.
+        {t('settings.push.unsupported')}
       </div>
     );
   }
@@ -157,10 +159,10 @@ export function PushSubscriptionToggle() {
         </div>
         <div>
           <p className="text-sm font-medium text-slate-200">
-            {subscription ? 'Notifications activées' : 'Notifications désactivées'}
+            {subscription ? t('settings.push.enabled') : t('settings.push.disabled')}
           </p>
           <p className="text-xs text-slate-500">
-            {subscription ? 'Vous recevrez des alertes en temps réel sur cet appareil.' : 'Activez-les pour ne rien manquer.'}
+            {subscription ? t('settings.push.enabledHint') : t('settings.push.disabledHint')}
           </p>
         </div>
       </div>
@@ -173,7 +175,7 @@ export function PushSubscriptionToggle() {
             onClick={handleTest}
             className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
           >
-            {isTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Tester'}
+            {isTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : t('settings.push.test')}
           </Button>
         )}
         <Button
@@ -186,9 +188,9 @@ export function PushSubscriptionToggle() {
           {loading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : subscription ? (
-            'Désactiver'
+            t('settings.push.disable')
           ) : (
-            'Activer'
+            t('settings.push.enable')
           )}
         </Button>
       </div>
