@@ -26,8 +26,8 @@ export default async function EditUserPage({
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8">
-        <div className="max-w-4xl mx-auto">
+      <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8">
+        <div className="w-full">
           <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-red-400">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4" />
@@ -52,14 +52,14 @@ export default async function EditUserPage({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
+    <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       {/* Background Decoratif */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="max-w-4xl relative">
+      <div className="w-full relative">
         {/* Back Button */}
         <Link
           href="/users"

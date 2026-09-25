@@ -156,15 +156,27 @@ export async function closeShift(actualAmount: number, notes: string) {
 }
 
 export async function getShiftReport(shiftId: string) {
+  const session = await getSession();
+  if (!session) return null;
+
   const admin = getAdminSupabase();
 
   const { data: shift, error: shiftError } = await admin
     .from('shifts')
-    .select('*, users(first_name, last_name), structures(name, address, phone, modules)')
+    .select('*, users(first_name, last_name), structures(name, address, phone, modules, organization_id)')
     .eq('id', shiftId)
     .single();
 
   if (shiftError) return null;
+
+  // Personnel du point, propriétaire de l'organisation ou super admin uniquement.
+  const canRead =
+    session.role === 'SUPER_ADMIN' ||
+    session.structureId === shift.structure_id ||
+    (session.role === 'ORG_ADMIN' &&
+      Boolean(session.organizationId) &&
+      shift.structures?.organization_id === session.organizationId);
+  if (!canRead) return null;
 
   const shiftOpening = new Date(shift.opened_at).getTime();
   const shiftClosing = new Date(shift.closed_at || new Date()).getTime() + 60000;

@@ -30,8 +30,8 @@ export default async function DeliveryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
-      <div className="max-w-5xl mx-auto">
+    <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
+      <div className="w-full">
         {/* Header */}
         <div className="mb-8 flex items-center gap-3">
           <div className="p-3 bg-cyan-500/10 rounded-xl">

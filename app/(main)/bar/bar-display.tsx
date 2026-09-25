@@ -54,10 +54,10 @@ export function BarDisplay({ initialOrders, structureId }: BarDisplayProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="flex-1 bg-slate-950 text-white">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur border-b border-slate-700/50 px-4 py-3">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+        <div className="w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-amber-500/10 rounded-lg">
               <Beer className="w-6 h-6 text-amber-400" />
@@ -83,7 +83,7 @@ export function BarDisplay({ initialOrders, structureId }: BarDisplayProps) {
       </div>
 
       {/* Corps */}
-      <div className="max-w-5xl mx-auto p-4 md:p-6">
+      <div className="w-full p-4 md:p-6">
         {orders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="p-6 bg-slate-800/50 rounded-full mb-4">

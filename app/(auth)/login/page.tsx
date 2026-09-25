@@ -18,6 +18,8 @@ function LoginForm() {
   });
 
   const licenseExpired = searchParams.get('error') === 'license_expired';
+  const pointInactive = searchParams.get('error') === 'point_inactive';
+  const passwordReset = searchParams.get('reset') === '1';
   const redirectAfterLogin = searchParams.get('redirect');
 
   useEffect(() => {
@@ -61,6 +63,22 @@ function LoginForm() {
                 Votre licence a expiré. Contactez le support pour prolonger votre abonnement.
               </div>
             )}
+            {passwordReset && (
+              <div
+                role="status"
+                className="mb-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-200"
+              >
+                Mot de passe enregistré. Vous pouvez vous connecter.
+              </div>
+            )}
+            {pointInactive && (
+              <div
+                role="alert"
+                className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200"
+              >
+                Ce point a été désactivé. Contactez l&apos;administrateur de votre organisation.
+              </div>
+            )}
 
             <form action={formAction} className="space-y-5">
               <div className="space-y-2">
@@ -78,10 +96,15 @@ function LoginForm() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-200 flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-slate-400" />
-                  Mot de passe
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-slate-200 flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-slate-400" />
+                    Mot de passe
+                  </label>
+                  <Link href="/forgot-password" className="text-xs font-medium text-blue-400 hover:text-blue-300">
+                    Mot de passe oublié ?
+                  </Link>
+                </div>
                 <Input
                   type="password"
                   name="password"

@@ -7,6 +7,7 @@ import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { PromoBanner } from '@/components/promo-banner';
 import { getAllGlobalActivePromotions } from '@/app/actions/promotions';
+import { isStructureVisible, STRUCTURE_LICENSE_SELECT } from '@/lib/license';
 
 export default async function ClientDashboardPage() {
   const session = await getSession();
@@ -30,22 +31,13 @@ export default async function ClientDashboardPage() {
     .or(`client_id.eq.${session.userId},user_id.eq.${session.userId}`)
     .order('created_at', { ascending: false });
 
-  // Fetch all structures with their licenses
+  // Points visibles : actifs et dont l'organisation a une licence valide
   const { data: rawStructures } = await supabase
     .from('structures')
-    .select('*, licenses(is_active, expires_at)')
+    .select(`*, ${STRUCTURE_LICENSE_SELECT}`)
     .order('created_at', { ascending: false });
 
-  const structures = rawStructures?.filter((s: any) => {
-    const license = Array.isArray(s.licenses) ? s.licenses[0] : s.licenses;
-    if (!license) return false;
-    if (license.is_active !== true) return false;
-    if (license.expires_at) {
-      const isExpired = new Date(license.expires_at).getTime() < Date.now();
-      if (isExpired) return false;
-    }
-    return true;
-  }).filter(x => x.name !== "Shede HQ") || [];
+  const structures = rawStructures?.filter(isStructureVisible).filter(x => x.name !== "Shede HQ") || [];
 
   const globalPromotions = await getAllGlobalActivePromotions();
 

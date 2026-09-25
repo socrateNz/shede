@@ -65,7 +65,8 @@ export function MainShell({
           session={session}
           onMenuClick={() => setMobileNavOpen(true)}
         />
-        <div className="min-h-0 flex-1 overflow-auto bg-slate-900 print:bg-white print:overflow-visible">{children}</div>
+        {/* flex-col : la racine de chaque page (flex-1) occupe toute la zone disponible */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-auto bg-slate-900 print:block print:bg-white print:overflow-visible">{children}</div>
       </main>
     </div>
   );

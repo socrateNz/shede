@@ -17,7 +17,6 @@ import {
   MapPin,
   User,
   Lock,
-  Briefcase,
   ChevronRight,
   Check,
   Gift,
@@ -93,7 +92,7 @@ export default function RegisterBusinessPage() {
             Créer votre compte business
           </h1>
           <p className="text-slate-400">
-            Enregistrez votre établissement et accédez immédiatement à Shede
+            Enregistrez votre organisation, puis créez vos points et leurs administrateurs
           </p>
         </div>
 
@@ -110,7 +109,7 @@ export default function RegisterBusinessPage() {
                 {BUSINESS_TRIAL_MONTHS} mois d&apos;essai gratuit inclus
               </p>
               <p className="text-sm text-slate-300">
-                À l&apos;inscription, votre établissement bénéficie automatiquement d&apos;une
+                À l&apos;inscription, votre organisation bénéficie automatiquement d&apos;une
                 période d&apos;essai de <strong>{BUSINESS_TRIAL_MONTHS} mois</strong>, sans carte
                 bancaire. Accès complet à la plateforme pendant toute la durée de l&apos;essai.
               </p>
@@ -131,7 +130,7 @@ export default function RegisterBusinessPage() {
               <div className="rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 p-2">
                 <Building2 className="h-5 w-5 text-white" />
               </div>
-              Informations de votre établissement
+              Informations de votre organisation
             </CardTitle>
           </CardHeader>
 
@@ -142,17 +141,17 @@ export default function RegisterBusinessPage() {
               <div className="space-y-6">
                 <div className="flex items-center gap-2 border-b border-slate-700 pb-2 text-slate-300">
                   <Building2 className="h-4 w-4 text-blue-400" />
-                  <h3 className="font-semibold">Détails de l&apos;établissement</h3>
+                  <h3 className="font-semibold">Détails de l&apos;organisation</h3>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="group space-y-2">
                     <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
                       <Building2 className="h-4 w-4 text-blue-400" />
-                      Nom de la structure *
+                      Nom de l&apos;organisation *
                     </label>
                     <Input
-                      name="structureName"
+                      name="organizationName"
                       type="text"
                       placeholder="Restaurant Lumière"
                       className="border-slate-600 bg-slate-900/50 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
@@ -163,10 +162,10 @@ export default function RegisterBusinessPage() {
                   <div className="group space-y-2">
                     <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
                       <Mail className="h-4 w-4 text-blue-400" />
-                      Email de la structure *
+                      Email de l&apos;organisation *
                     </label>
                     <Input
-                      name="structureEmail"
+                      name="organizationEmail"
                       type="email"
                       placeholder="contact@restaurant.com"
                       className="border-slate-600 bg-slate-900/50 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
@@ -190,27 +189,12 @@ export default function RegisterBusinessPage() {
                     />
                   </div>
 
-                  <div className="group space-y-2">
-                    <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
-                      <Briefcase className="h-4 w-4 text-blue-400" />
-                      Type de structure *
-                    </label>
-                    <select
-                      name="structureType"
-                      className="w-full cursor-pointer rounded-lg border border-slate-600 bg-slate-900/50 px-3 py-2 text-sm text-slate-50 transition-all duration-300 hover:border-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
-                      required
-                    >
-                      <option value="RESTAURANT">🍽️ Restaurant</option>
-                      <option value="HOTEL">🏨 Hôtel</option>
-                      <option value="MIXTE">🍽️🏨 Mixte (Restaurant + Hôtel)</option>
-                    </select>
-                  </div>
                 </div>
 
                 <div className="space-y-3">
                   <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
                     <ChevronRight className="h-4 w-4 text-blue-400" />
-                    Modules à activer
+                    Modules à activer (disponibles dans tous vos points)
                   </label>
                   <div className="grid gap-3">
                     {MODULE_OPTIONS.map((module) => (
@@ -252,7 +236,7 @@ export default function RegisterBusinessPage() {
               <div className="space-y-6 pt-4">
                 <div className="flex items-center gap-2 border-b border-slate-700 pb-2 text-slate-300">
                   <User className="h-4 w-4 text-purple-400" />
-                  <h3 className="font-semibold">Administrateur principal</h3>
+                  <h3 className="font-semibold">Administrateur de l&apos;organisation</h3>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2">

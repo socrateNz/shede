@@ -83,7 +83,7 @@ export function QRCodesClient({
 
   return (
     <>
-      <div className="max-w-5xl mx-auto mb-8 flex flex-wrap items-center justify-end gap-4 print:hidden -mt-16">
+      <div className="w-full mb-8 flex flex-wrap items-center justify-end gap-4 print:hidden -mt-16">
         <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2">
           <LayoutGrid className="w-4 h-4 text-slate-500" />
           <span className="text-sm text-slate-600">Grille d'impression :</span>
@@ -113,7 +113,7 @@ export function QRCodesClient({
         </button>
       </div>
 
-      <div className="max-w-5xl mx-auto space-y-12 print:space-y-0">
+      <div className="w-full space-y-12 print:space-y-0">
         {pages.map((page, pageIndex) => (
           <div
             key={pageIndex}

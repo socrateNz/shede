@@ -73,14 +73,14 @@ export default function AdjustStockPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
+    <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       {/* Background Decoratif */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="max-w-2xl relative">
+      <div className="w-full relative">
         <div className="flex items-center gap-4 mb-6">
           <Link href="/stock">
             <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-200">

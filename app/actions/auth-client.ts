@@ -2,6 +2,7 @@
 
 import { getAdminSupabase } from '@/lib/supabase';
 import { hashPassword, createSession } from '@/lib/auth';
+import { buildClientWelcomeMail, queueMail } from '@/lib/emails';
 
 export async function registerClient(
   _prevState: { success: boolean; error: string },
@@ -50,6 +51,8 @@ export async function registerClient(
       console.error('Client registration error:', error);
       return { success: false, error: 'Failed to create account.' };
     }
+
+    queueMail(async () => buildClientWelcomeMail({ email: user.email, firstName }));
 
     // 3. Log them in automatically
     await createSession({

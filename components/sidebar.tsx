@@ -11,7 +11,6 @@ import {
   Settings,
   LogOut,
   Home,
-  Building2,
   Bell,
   Bed,
   CalendarDays,
@@ -21,10 +20,8 @@ import {
   ChefHat,
   Beer,
   Truck,
-  BookOpen,
-  UserCog,
-  Tags,
   LayoutDashboard,
+  Network,
 } from 'lucide-react';
 import { ShiftStatusIndicator } from './shift-status-indicator';
 import { logout } from '@/app/actions/auth';
@@ -46,7 +43,12 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
   const storeHasModule = useAppStore(state => state.hasModule);
   const [counts, setCounts] = useState({ orders: 0, stock: 0, bookings: 0, notifications: 0 });
 
+  const role = session.role;
+  const isOrgAdmin = role === 'ORG_ADMIN';
+
   useEffect(() => {
+    // ORG_ADMIN et SUPER_ADMIN ne sont rattachés à aucun point : pas de compteurs opérationnels.
+    if (!session.structureId) return;
     const fetchCounts = async () => {
       const res = await getSidebarCounts();
       setCounts(res);
@@ -54,31 +56,47 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     fetchCounts();
     const interval = setInterval(fetchCounts, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [session.structureId]);
 
-  const role = session.role;
-  const hasHotelModule = structure?.modules?.includes('HOTEL') || storeHasModule('HOTEL');
-  const hasStockModule = structure?.modules?.includes('STOCK') || storeHasModule('STOCK');
-  const hasPromoModule = structure?.modules?.includes('PROMOTION') || storeHasModule('PROMOTION');
-  const hasCuisineModule = structure?.modules?.includes('CUISINE') || storeHasModule('CUISINE');
-  const hasBarModule = structure?.modules?.includes('BAR') || storeHasModule('BAR');
-  const hasLivraisonModule = structure?.modules?.includes('LIVRAISON') || storeHasModule('LIVRAISON');
-  const hasRHModule = structure?.modules?.includes('RH') || storeHasModule('RH');
-  const hasCRMModule = structure?.modules?.includes('CRM') || storeHasModule('CRM');
-  const hasTablesModule = structure?.modules?.includes('TABLES') || storeHasModule('TABLES');
+  const hasModule = (moduleName: string) =>
+    Boolean(structure?.modules?.includes(moduleName)) || storeHasModule(moduleName);
   const canManageShift = ['CAISSE', 'RECEPTION', 'ADMIN', 'MANAGER'].includes(role);
 
-  const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(role);
-  const isManagerOrAdmin = ['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(role);
-  const isOps = ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR'].includes(role);
+  /**
+   * `roles` = rôles qui peuvent réellement ouvrir la page : intersection de la
+   * règle du middleware (middleware.ts) et du requireRole() de la page. Un lien
+   * n'est affiché que s'il mène à une page utilisable par le rôle connecté.
+   */
+  type NavItem = {
+    name: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+    roles: string[];
+    module?: string;
+    /** Actif uniquement sur l'URL exacte (pas sur ses sous-pages). */
+    exact?: boolean;
+    badge?: number;
+    badgeColor?: string;
+  };
 
-  const navigationItems = [
-    // ── Général ──
+  const superAdminItems: NavItem[] = [
+    { name: 'Tableau de bord', href: '/dashboard', icon: Home, roles: ['SUPER_ADMIN'] },
+    { name: 'Organisations', href: '/structures', icon: Network, roles: ['SUPER_ADMIN'] },
+  ];
+
+  const orgAdminItems: NavItem[] = [
+    { name: 'Vue propriétaire', href: '/organization', icon: BarChart3, roles: ['ORG_ADMIN'], exact: true },
+    { name: 'Rapports de caisse', href: '/organization/cash', icon: HistoryIcon, roles: ['ORG_ADMIN'] },
+    { name: 'Points & licence', href: '/organization/points', icon: Network, roles: ['ORG_ADMIN'] },
+  ];
+
+  const pointItems: NavItem[] = [
+    // ── Général ── (pas de tableau de bord dédié au livreur)
     {
       name: 'Tableau de bord',
       href: '/dashboard',
       icon: Home,
-      visible: true,
+      roles: ['ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR', 'RECEPTION', 'CUISINIER', 'BAR', 'COMPTABLE', 'MAGASINIER', 'RH'],
     },
 
     // ── Commandes ──
@@ -86,135 +104,69 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       name: 'Commandes',
       href: '/orders',
       icon: ShoppingCart,
-      visible: isOps,
+      roles: ['ADMIN', 'CAISSE', 'SERVEUR'],
       badge: counts.orders,
       badgeColor: 'bg-red-500',
-    },
-
-    // ── Cuisine & Bar ──
-    {
-      name: 'Cuisine (KDS)',
-      href: '/kitchen',
-      icon: ChefHat,
-      visible: hasCuisineModule && (isManagerOrAdmin || role === 'CUISINIER'),
-    },
-    {
-      name: 'Bar',
-      href: '/bar',
-      icon: Beer,
-      visible: hasBarModule && (isManagerOrAdmin || role === 'BAR'),
-    },
-
-    // ── Catalogue ──
-    {
-      name: 'Catégories',
-      href: '/categories',
-      icon: Tags,
-      visible: isManagerOrAdmin,
     },
     {
       name: 'Plan de salle',
       href: '/floor-manager',
       icon: LayoutDashboard,
-      visible: hasTablesModule && (isManagerOrAdmin || role === 'CAISSE' || role === 'SERVEUR'),
+      roles: ['ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR'],
+      module: 'TABLES',
     },
-    {
-      name: 'Produits',
-      href: '/products',
-      icon: Package,
-      visible: isManagerOrAdmin,
-    },
-    {
-      name: 'Accompagnements',
-      href: '/accompaniments',
-      icon: Package,
-      visible: isManagerOrAdmin,
-    },
+
+    // ── Cuisine & Bar ──
+    { name: 'Cuisine (KDS)', href: '/kitchen', icon: ChefHat, roles: ['ADMIN', 'MANAGER', 'CUISINIER'], module: 'CUISINE' },
+    { name: 'Bar', href: '/bar', icon: Beer, roles: ['ADMIN', 'MANAGER', 'BAR'], module: 'BAR' },
+
+    // ── Catalogue ──
+    { name: 'Produits', href: '/products', icon: Package, roles: ['ADMIN'] },
+    { name: 'Accompagnements', href: '/accompaniments', icon: Package, roles: ['ADMIN', 'MANAGER'] },
 
     // ── Stock ──
     {
       name: 'Stock',
       href: '/stock',
       icon: Boxes,
-      visible: (hasStockModule && isManagerOrAdmin) || role === 'MAGASINIER',
+      roles: ['ADMIN', 'MANAGER', 'MAGASINIER'],
+      module: 'STOCK',
       badge: counts.stock,
       badgeColor: 'bg-orange-500',
     },
 
     // ── Livraison ──
-    {
-      name: 'Livraisons',
-      href: '/delivery',
-      icon: Truck,
-      visible: hasLivraisonModule && (isManagerOrAdmin || role === 'LIVREUR'),
-    },
+    { name: 'Livraisons', href: '/delivery', icon: Truck, roles: ['ADMIN', 'MANAGER', 'LIVREUR'], module: 'LIVRAISON' },
 
     // ── Hôtel ──
-    {
-      name: 'Chambres',
-      href: '/rooms',
-      icon: Bed,
-      visible: hasHotelModule && (isManagerOrAdmin || role === 'RECEPTION'),
-    },
+    { name: 'Chambres', href: '/rooms', icon: Bed, roles: ['ADMIN', 'RECEPTION'], module: 'HOTEL' },
     {
       name: 'Réservations',
       href: '/bookings',
       icon: CalendarDays,
-      visible: hasHotelModule && (isManagerOrAdmin || role === 'RECEPTION'),
+      roles: ['ADMIN', 'RECEPTION'],
+      module: 'HOTEL',
       badge: counts.bookings,
       badgeColor: 'bg-purple-500',
     },
 
     // ── Marketing ──
-    {
-      name: 'Promotions',
-      href: '/promotions',
-      icon: Tag,
-      visible: hasPromoModule && isManagerOrAdmin,
-    },
+    { name: 'Promotions', href: '/promotions', icon: Tag, roles: ['ADMIN'], module: 'PROMOTION' },
 
     // ── Équipe & CRM ──
-    {
-      name: 'Clients (CRM)',
-      href: '/clients',
-      icon: Users, // Or Handshake
-      visible: hasCRMModule && (isManagerOrAdmin || role === 'CAISSE'),
-    },
-    {
-      name: 'Utilisateurs',
-      href: '/users',
-      icon: Users,
-      visible: isAdmin || (hasRHModule && role === 'RH'),
-    },
+    { name: 'Clients (CRM)', href: '/clients', icon: Users, roles: ['ADMIN', 'MANAGER', 'CAISSE'], module: 'CRM' },
+    { name: 'Utilisateurs', href: '/users', icon: Users, roles: ['ADMIN'] },
 
     // ── Finances & Stats ──
-    {
-      name: 'Statistiques',
-      href: '/statistics',
-      icon: BarChart3,
-      visible: isManagerOrAdmin || role === 'COMPTABLE',
-    },
-    {
-      name: 'Sessions de caisse',
-      href: '/shifts',
-      icon: HistoryIcon,
-      visible: isAdmin || role === 'COMPTABLE',
-    },
-
-    // ── Super Admin ──
-    {
-      name: 'Structures',
-      href: '/structures',
-      icon: Building2,
-      visible: role === 'SUPER_ADMIN',
-    },
+    { name: 'Statistiques', href: '/statistics', icon: BarChart3, roles: ['ADMIN'] },
+    { name: 'Sessions de caisse', href: '/shifts', icon: HistoryIcon, roles: ['ADMIN'] },
 
     // ── Global ──
     {
       name: 'Notifications',
       href: '/notifications',
       icon: Bell,
-      visible: true,
+      roles: ['ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR', 'RECEPTION', 'CUISINIER', 'BAR', 'LIVREUR', 'COMPTABLE', 'MAGASINIER', 'RH'],
       badge: counts.notifications,
       badgeColor: 'bg-blue-600',
     },
@@ -222,12 +174,18 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       name: 'Paramètres',
       href: '/settings',
       icon: Settings,
-      visible: true,
+      roles: ['ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR', 'RECEPTION', 'CUISINIER', 'BAR', 'LIVREUR', 'COMPTABLE', 'MAGASINIER', 'RH'],
     },
   ];
 
+  const navigationItems = (
+    role === 'SUPER_ADMIN' ? superAdminItems : isOrgAdmin ? orgAdminItems : pointItems
+  ).filter((item) => item.roles.includes(role) && (!item.module || hasModule(item.module)));
+  const homeHref = isOrgAdmin ? '/organization' : '/dashboard';
+
   const ROLE_LABELS: Record<string, string> = {
     SUPER_ADMIN: 'Super Admin',
+    ORG_ADMIN: 'Admin organisation',
     ADMIN: 'Administrateur',
     MANAGER: 'Manager',
     CAISSE: 'Caisse',
@@ -252,7 +210,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     >
       {/* Logo */}
       <div className="p-6 border-b border-slate-700">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href={homeHref} className="flex items-center gap-2">
           <img src="/logo.webp" alt="Shede" className="w-8 h-8 rounded-lg" />
           <h1 className="text-xl font-bold text-slate-50">Shede</h1>
         </Link>
@@ -261,10 +219,8 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navigationItems.map((item) => {
-          if (!item.visible) return null;
-
           const Icon = item.icon;
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          const isActive = pathname === item.href || (!item.exact && pathname.startsWith(item.href + '/'));
 
           return (
             <Link
@@ -280,13 +236,13 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
             >
               <Icon className={cn('w-5 h-5 shrink-0', !isActive && 'group-hover:text-slate-200')} />
               <span className="font-medium flex-1 truncate">{item.name}</span>
-              {(item as any).badge > 0 && (
+              {(item.badge ?? 0) > 0 && (
                 <span className={cn(
                   'inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-bold leading-none text-white rounded-full min-w-5 h-5',
-                  (item as any).badgeColor || 'bg-red-500',
+                  item.badgeColor || 'bg-red-500',
                   !isActive && 'animate-pulse'
                 )}>
-                  {(item as any).badge > 99 ? '99+' : (item as any).badge}
+                  {(item.badge ?? 0) > 99 ? '99+' : item.badge}
                 </span>
               )}
             </Link>
@@ -306,6 +262,11 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
           <p className="text-sm font-medium text-slate-50">
             {ROLE_LABELS[role] || role}
           </p>
+          {structure?.name && (
+            <p className="text-xs text-slate-400 truncate mt-0.5" title={structure.name}>
+              {structure.name}
+            </p>
+          )}
         </div>
         <form action={logout}>
           <button

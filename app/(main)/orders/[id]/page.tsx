@@ -224,7 +224,7 @@ export default function OrderDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
           <p className="text-slate-400">Chargement de la commande...</p>
@@ -235,8 +235,8 @@ export default function OrderDetailPage() {
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8">
-        <div className="max-w-4xl mx-auto">
+      <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8">
+        <div className="w-full">
           <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-red-400">
             Commande non trouvée
           </div>
@@ -252,14 +252,14 @@ export default function OrderDetailPage() {
   const StatusIcon = currentStatus.icon;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
+    <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       {/* Background Decoratif */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="max-w-7xl mx-auto relative">
+      <div className="w-full relative">
         {/* Back Button */}
         <Link href="/orders" className="inline-flex items-center gap-2 text-slate-400 hover:text-blue-400 mb-6 transition-all duration-300 group">
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />

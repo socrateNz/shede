@@ -6,6 +6,7 @@ import { getSessionFromRequest, hasModule } from '@/lib/auth-session';
 /** Tous les rôles staff (hors CLIENT) */
 const STAFF_ROLES = [
   'SUPER_ADMIN',
+  'ORG_ADMIN',
   'ADMIN',
   'MANAGER',
   'CAISSE',
@@ -28,6 +29,8 @@ const PUBLIC_EXACT = new Set([
   '/docs',
   '/unauthorized',
   '/cart',
+  '/forgot-password',
+  '/reset-password',
 ]);
 
 /** Préfixes publics (catalogue B2C, assets) */
@@ -35,6 +38,7 @@ const PUBLIC_PREFIXES = [
   '/client/structure',
   '/_next',
   '/api/setup',
+  '/api/cron', // protégé par CRON_SECRET dans la route
 ];
 
 /** Espace client connecté */
@@ -60,7 +64,13 @@ const STAFF_PREFIXES = [
   '/bar',
   '/delivery',
   '/hr',
+  '/clients',
+  '/floor-manager',
+  '/organization',
 ];
+
+/** Espace de l'administrateur d'organisation (il n'opère pas dans les points). */
+const ORG_ADMIN_PREFIXES = ['/organization'];
 
 type RouteRule = {
   prefix: string;
@@ -75,6 +85,9 @@ type RouteRule = {
 const ROUTE_RULES: RouteRule[] = [
   // Administration globale
   { prefix: '/structures', roles: ['SUPER_ADMIN'] },
+
+  // Administration d'organisation (points + admins de point)
+  { prefix: '/organization', roles: ['ORG_ADMIN'] },
 
   // Gestion équipe & RH
   { prefix: '/users',    roles: ['ADMIN', 'SUPER_ADMIN', 'RH'] },
@@ -117,7 +130,7 @@ const ROUTE_RULES: RouteRule[] = [
   { prefix: '/floor-manager', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SERVEUR', 'CAISSE'], modules: ['TABLES'] },
 ];
 
-const AUTH_ONLY_PATHS = new Set(['/login', '/register-client', '/register-business']);
+const AUTH_ONLY_PATHS = new Set(['/login', '/register-client', '/register-business', '/forgot-password']);
 
 function isStaticAsset(pathname: string): boolean {
   return /\.(webp|png|jpg|jpeg|gif|svg|ico|woff2?|ttf|css|js|map)$/i.test(pathname);
@@ -140,6 +153,7 @@ function matchesPrefix(pathname: string, prefixes: string[]): boolean {
 function getStaffHome(session: SessionPayload): string {
   switch (session.role) {
     case 'SUPER_ADMIN':  return '/structures';
+    case 'ORG_ADMIN':    return '/organization';
     case 'CLIENT':       return '/client';
     case 'CUISINIER':    return '/kitchen';
     case 'BAR':          return '/bar';
@@ -153,7 +167,8 @@ function getStaffHome(session: SessionPayload): string {
 
 function checkRouteRule(
   pathname: string,
-  session: SessionPayload
+  session: SessionPayload,
+  requestUrl: string
 ): NextResponse | null {
   if (session.role === 'SUPER_ADMIN') return null;
 
@@ -162,10 +177,10 @@ function checkRouteRule(
       continue;
     }
     if (!rule.roles.includes(session.role)) {
-      return NextResponse.redirect(new URL('/unauthorized', pathname));
+      return NextResponse.redirect(new URL('/unauthorized', requestUrl));
     }
     if (rule.modules?.length && !rule.modules.every((m) => hasModule(session, m))) {
-      const url = new URL('/unauthorized', pathname);
+      const url = new URL('/unauthorized', requestUrl);
       url.searchParams.set('error', 'module_required');
       url.searchParams.set('module', rule.modules[0]);
       return NextResponse.redirect(url);
@@ -194,7 +209,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (
-    session.structureId &&
+    (session.structureId || session.organizationId) &&
     session.licenseActive === false &&
     matchesPrefix(pathname, STAFF_PREFIXES)
   ) {
@@ -220,8 +235,11 @@ export async function middleware(request: NextRequest) {
     if (!STAFF_ROLES.includes(session.role as (typeof STAFF_ROLES)[number])) {
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
+    if (session.role === 'ORG_ADMIN' && !matchesPrefix(pathname, ORG_ADMIN_PREFIXES)) {
+      return NextResponse.redirect(new URL('/organization', request.url));
+    }
 
-    const ruleRedirect = checkRouteRule(pathname, session);
+    const ruleRedirect = checkRouteRule(pathname, session, request.url);
     if (ruleRedirect) return ruleRedirect;
 
     return NextResponse.next();

@@ -23,9 +23,12 @@ import { RapportZ } from './reporting/rapport-z';
 
 interface ShiftsHistoryTableProps {
   shifts: any[];
+  /** Vue propriétaire : affiche le point de chaque session (`shift.pointName`). */
+  showPoint?: boolean;
 }
 
-export function ShiftsHistoryTable({ shifts }: ShiftsHistoryTableProps) {
+export function ShiftsHistoryTable({ shifts, showPoint = false }: ShiftsHistoryTableProps) {
+  const columnCount = showPoint ? 7 : 6;
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
@@ -50,6 +53,7 @@ export function ShiftsHistoryTable({ shifts }: ShiftsHistoryTableProps) {
         <Table>
           <TableHeader>
             <TableRow className="border-slate-700 hover:bg-transparent">
+              {showPoint && <TableHead className="text-slate-300">Point</TableHead>}
               <TableHead className="text-slate-300">Caissier</TableHead>
               <TableHead className="text-slate-300">Période</TableHead>
               <TableHead className="text-slate-300 text-right">Attendu</TableHead>
@@ -61,7 +65,7 @@ export function ShiftsHistoryTable({ shifts }: ShiftsHistoryTableProps) {
           <TableBody>
             {shifts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-slate-500 italic">
+                <TableCell colSpan={columnCount} className="text-center py-12 text-slate-500 italic">
                   Aucune session de caisse enregistrée.
                 </TableCell>
               </TableRow>
@@ -70,6 +74,9 @@ export function ShiftsHistoryTable({ shifts }: ShiftsHistoryTableProps) {
                 const diff = Number(shift.difference || 0);
                 return (
                   <TableRow key={shift.id} className="border-slate-700 hover:bg-slate-700/30 transition-colors">
+                    {showPoint && (
+                      <TableCell className="text-slate-200">{shift.pointName}</TableCell>
+                    )}
                     <TableCell className="font-medium text-slate-200">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 text-xs font-bold">

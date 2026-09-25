@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Building2, MapPin, Store, ArrowLeft, ChevronRight, Search } from 'lucide-react';
+import { isStructureVisible, STRUCTURE_LICENSE_SELECT } from '@/lib/license';
 
 export default async function ClientStructuresPage() {
   const session = await getSession();
@@ -12,22 +13,13 @@ export default async function ClientStructuresPage() {
 
   const supabase = getAdminSupabase();
 
-  // Fetch all structures with their licenses
+  // Points visibles : actifs et dont l'organisation a une licence valide
   const { data: rawStructures } = await supabase
     .from('structures')
-    .select('*, licenses(is_active, expires_at)')
+    .select(`*, ${STRUCTURE_LICENSE_SELECT}`)
     .order('name', { ascending: true });
 
-  const structures = rawStructures?.filter((s: any) => {
-    const license = Array.isArray(s.licenses) ? s.licenses[0] : s.licenses;
-    if (!license) return false;
-    if (license.is_active !== true) return false;
-    if (license.expires_at) {
-      const isExpired = new Date(license.expires_at).getTime() < Date.now();
-      if (isExpired) return false;
-    }
-    return true;
-  }).filter(x => x.name !== "Shede HQ") || [];
+  const structures = rawStructures?.filter(isStructureVisible).filter(x => x.name !== "Shede HQ") || [];
 
   return (
     <div className="min-h-screen bg-slate-50 selection:bg-blue-200">

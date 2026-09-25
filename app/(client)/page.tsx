@@ -3,25 +3,16 @@ import Link from 'next/link';
 import { Building2, Search, Utensils, Bed, MapPin, Star, ArrowRight, TrendingUp } from 'lucide-react';
 import { getAllGlobalActivePromotions } from '@/app/actions/promotions';
 import { PromoBanner } from '@/components/promo-banner';
+import { isStructureVisible, STRUCTURE_LICENSE_SELECT } from '@/lib/license';
 
 export default async function ClientHomePage() {
-  // Fetch available structures joining their licenses
+  // Points visibles : actifs et dont l'organisation a une licence valide
   const { data: rawStructures, error } = await supabase
     .from('structures')
-    .select('*, licenses(is_active, expires_at)')
+    .select(`*, ${STRUCTURE_LICENSE_SELECT}`)
     .order('created_at', { ascending: false });
 
-  // Explicitly filter in JS to guarantee correctness
-  const structures = rawStructures?.filter((s: any) => {
-    const license = Array.isArray(s.licenses) ? s.licenses[0] : s.licenses;
-    if (!license) return false;
-    if (license.is_active !== true) return false;
-    if (license.expires_at) {
-      const isExpired = new Date(license.expires_at).getTime() < Date.now();
-      if (isExpired) return false;
-    }
-    return true;
-  }) || [];
+  const structures = rawStructures?.filter(isStructureVisible) || [];
 
   if (error) {
     console.error('Error fetching structures:', error);

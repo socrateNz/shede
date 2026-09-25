@@ -191,7 +191,7 @@ export function NewOrderForm({
   }, [state.success, state.orderId, router]);
 
   return (
-    <Card className="bg-slate-800 border-slate-700 max-w-3xl">
+    <Card className="bg-slate-800 border-slate-700 w-full">
       <CardHeader>
         <CardTitle className="text-slate-50">Create New Order</CardTitle>
       </CardHeader>

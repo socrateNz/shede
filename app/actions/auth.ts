@@ -1,25 +1,64 @@
 'use server';
 
-import { createSession, deleteSession, getSession, hashPassword, verifyPassword } from '@/lib/auth';
+import { createSession, deleteSession, getSession, verifyPassword } from '@/lib/auth';
 export { getSession }; // Allow client components to import this server-side function indirectly if needed via 'use server'
 import { getAdminSupabase } from '@/lib/supabase';
-import type { User } from '@/lib/supabase';
+import { isLicenseValid, isStructureVisible, STRUCTURE_LICENSE_SELECT } from '@/lib/license';
 import { redirect } from 'next/navigation';
 
-async function isStructureLicenseActive(structureId: string | null | undefined) {
-  if (!structureId) return true; // B2C clients have no structure
+type AccessCheck = { ok: true } | { ok: false; reason: 'license_expired' | 'point_inactive' };
+
+async function getOrganizationLicenseActive(organizationId: string) {
   const admin = getAdminSupabase();
   const { data: license } = await admin
     .from('licenses')
     .select('is_active, expires_at')
-    .eq('structure_id', structureId)
-    .single();
+    .eq('organization_id', organizationId)
+    .maybeSingle();
+  return isLicenseValid(license);
+}
 
-  const isExpired = Boolean(
-    license?.expires_at && new Date(license.expires_at).getTime() < Date.now()
-  );
+/**
+ * Vérifie que le compte peut accéder au back-office :
+ * - staff d'un point : point actif + licence de l'organisation valide
+ * - ORG_ADMIN : licence de l'organisation valide
+ * - SUPER_ADMIN / CLIENT : pas de licence
+ */
+async function checkAccountAccess(
+  structureId: string | null | undefined,
+  organizationId: string | null | undefined
+): Promise<AccessCheck> {
+  if (structureId) {
+    const admin = getAdminSupabase();
+    const { data: structure } = await admin
+      .from('structures')
+      .select(`is_active, ${STRUCTURE_LICENSE_SELECT}`)
+      .eq('id', structureId)
+      .maybeSingle();
+    if (!structure) return { ok: false, reason: 'license_expired' };
+    if (structure.is_active === false) return { ok: false, reason: 'point_inactive' };
+    return isStructureVisible(structure) ? { ok: true } : { ok: false, reason: 'license_expired' };
+  }
 
-  return Boolean(license && license.is_active && !isExpired);
+  if (organizationId) {
+    return (await getOrganizationLicenseActive(organizationId))
+      ? { ok: true }
+      : { ok: false, reason: 'license_expired' };
+  }
+
+  return { ok: true };
+}
+
+const ACCESS_ERRORS: Record<'license_expired' | 'point_inactive', string> = {
+  license_expired: 'Votre licence a expiré, veuillez contacter le support.',
+  point_inactive: "Ce point a été désactivé par l'administrateur de l'organisation.",
+};
+
+function getHomeForRole(role: string) {
+  if (role === 'SUPER_ADMIN') return '/structures';
+  if (role === 'ORG_ADMIN') return '/organization';
+  if (role === 'CLIENT') return '/client';
+  return '/dashboard';
 }
 
 export async function login(
@@ -39,7 +78,7 @@ export async function login(
     // Get user from database
     const { data: users, error } = await admin
       .from('users')
-      .select('*, structures(*)')
+      .select('*, structures(id, modules, organization_id), organizations(id, modules)')
       .eq('email', email)
       .single();
 
@@ -58,28 +97,33 @@ export async function login(
       return { success: false, error: 'User account is inactive' };
     }
 
-    const licenseActive = await isStructureLicenseActive(users.structure_id);
-    if (!licenseActive) {
-      return {
-        success: false,
-        error: 'Votre licence a expiré, veuillez contacter le support.',
-      };
+    const organizationId: string | null =
+      users.organization_id ?? users.structures?.organization_id ?? null;
+
+    const access = await checkAccountAccess(users.structure_id, organizationId);
+    if (!access.ok) {
+      return { success: false, error: ACCESS_ERRORS[access.reason] };
     }
 
-    // Create session
+    // Les modules viennent de la licence de l'organisation ; structures.modules
+    // en est une copie synchronisée (repli pour les données non migrées).
+    const modules: string[] =
+      users.organizations?.modules || users.structures?.modules || [];
+
     await createSession({
       userId: users.id,
       email: users.email,
       role: users.role,
-      structureId: users.structure_id,
-      modules: users.structures?.modules || [],
-      licenseActive: users.structure_id ? licenseActive : undefined,
+      structureId: users.structure_id ?? undefined,
+      organizationId: organizationId ?? undefined,
+      modules,
+      licenseActive: organizationId ? true : undefined,
     });
 
-    return { 
-      success: true, 
-      error: '', 
-      redirect: users.role === 'SUPER_ADMIN' ? '/structures' : users.role === 'CLIENT' ? '/client' : '/dashboard' 
+    return {
+      success: true,
+      error: '',
+      redirect: getHomeForRole(users.role),
     };
   } catch (error) {
     console.error('Login error:', error);
@@ -90,90 +134,6 @@ export async function login(
 export async function logout() {
   await deleteSession();
   redirect('/login');
-}
-
-export async function register(
-  _prevState: { success: boolean; error: string; redirect?: string },
-  formData: FormData
-) {
-  try {
-    const structureName = String(formData.get('structureName') || '').trim();
-    const structureEmail = String(formData.get('structureEmail') || '').trim().toLowerCase();
-    const city = String(formData.get('city') || '').trim();
-    const firstName = String(formData.get('firstName') || '').trim();
-    const lastName = String(formData.get('lastName') || '').trim();
-    const email = String(formData.get('email') || '').trim().toLowerCase();
-    const password = String(formData.get('password') || '');
-
-    if (!structureName || !email || !password) {
-      return { success: false, error: 'Veuillez remplir les informations obligatoires.' };
-    }
-
-    const admin = getAdminSupabase();
-
-    // Create structure with default POS module
-    const { data: structure, error: structureError } = await admin
-      .from('structures')
-      .insert({
-        name: structureName,
-        email: structureEmail,
-        city: city || null,
-        modules: ['POS'],
-      })
-      .select()
-      .single();
-
-    if (structureError || !structure) {
-      return { success: false, error: 'Failed to create structure' };
-    }
-
-    // Hash password
-    const passwordHash = await hashPassword(password);
-
-    // Create user
-    const { data: user, error: userError } = await admin
-      .from('users')
-      .insert({
-        structure_id: structure.id,
-        email,
-        password_hash: passwordHash,
-        first_name: firstName,
-        last_name: lastName,
-        role: 'ADMIN', // First user is admin
-        is_active: true,
-      })
-      .select()
-      .single();
-
-    if (userError || !user) {
-      // Clean up structure if user creation fails
-      await admin.from('structures').delete().eq('id', structure.id);
-      return { success: false, error: 'Failed to create user' };
-    }
-
-    // Create license for structure
-    await admin.from('licenses').insert({
-      structure_id: structure.id,
-      plan: 'FREE',
-      max_users: 5,
-      max_tables: 10,
-      is_active: true,
-    });
-
-    // Create session
-    await createSession({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      structureId: structure.id,
-      modules: (structure as any).modules || ['POS'],
-    });
-
-    return { success: true, error: '', redirect: '/setup/products' };
-  } catch (error) {
-    console.error('Register error:', error);
-    return { success: false, error: 'Registration failed' };
-  }
 }
 
 export async function getCurrentUser() {
@@ -202,11 +162,9 @@ export async function requireAuth() {
     redirect('/login');
   }
 
-  if (session.structureId) {
-    const licenseActive = await isStructureLicenseActive(session.structureId);
-    if (!licenseActive) {
-      redirect('/login?error=license_expired');
-    }
+  const access = await checkAccountAccess(session.structureId, session.organizationId);
+  if (!access.ok) {
+    redirect(`/login?error=${access.reason}`);
   }
 
   return session;

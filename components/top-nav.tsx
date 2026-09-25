@@ -15,8 +15,11 @@ interface TopNavProps {
 
 export function TopNav({ session, onMenuClick }: TopNavProps) {
   const [unreadCount, setUnreadCount] = useState(0);
+  // Les notifications sont rattachées à un point : l'ORG_ADMIN n'en reçoit pas.
+  const showNotifications = session.role !== 'ORG_ADMIN';
 
   useEffect(() => {
+    if (!showNotifications) return;
     const fetchCount = async () => {
       const count = await getUnreadNotificationsCount();
       setUnreadCount(count);
@@ -26,7 +29,7 @@ export function TopNav({ session, onMenuClick }: TopNavProps) {
     // Simple interval for polling notifications (every 30s)
     const interval = setInterval(fetchCount, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [showNotifications]);
   return (
     <header className="print:hidden flex shrink-0 items-center justify-between gap-3 border-b border-slate-700 bg-slate-800 px-4 py-3 sm:px-6 sm:py-4">
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
@@ -50,6 +53,7 @@ export function TopNav({ session, onMenuClick }: TopNavProps) {
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+        {showNotifications && (
         <Link href="/notifications">
           <Button
             variant="ghost"
@@ -65,6 +69,7 @@ export function TopNav({ session, onMenuClick }: TopNavProps) {
             )}
           </Button>
         </Link>
+        )}
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 sm:h-10 sm:w-10">
           <span className="text-sm font-medium text-white">
             {session.email.charAt(0).toUpperCase()}

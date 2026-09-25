@@ -70,7 +70,7 @@ export function PromotionFormClient({
   }
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full">
       <Link href="/promotions" className="inline-flex items-center text-sm text-slate-400 hover:text-white mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4 mr-2" />
         Retour aux promotions

@@ -8,8 +8,9 @@ const secretKey = new TextEncoder().encode(
 
 /**
  * Rôles utilisateurs du système.
- * SUPER_ADMIN : accès global à toutes les structures.
- * ADMIN       : responsable d'un établissement.
+ * SUPER_ADMIN : accès global à toutes les organisations.
+ * ORG_ADMIN   : administrateur d'une organisation (crée les points et leurs admins).
+ * ADMIN       : administrateur d'un point (gère son point de façon indépendante).
  * MANAGER     : gestion opérationnelle (sans admin sensible).
  * CAISSE      : caissier/caissière.
  * SERVEUR     : prise de commandes en salle.
@@ -24,6 +25,7 @@ const secretKey = new TextEncoder().encode(
  */
 export type UserRole =
   | 'SUPER_ADMIN'
+  | 'ORG_ADMIN'
   | 'ADMIN'
   | 'MANAGER'
   | 'CAISSE'
@@ -41,9 +43,12 @@ export interface SessionPayload {
   userId: string;
   email: string;
   role: UserRole;
+  /** Point auquel est rattaché le staff (absent pour ORG_ADMIN / SUPER_ADMIN / CLIENT). */
   structureId?: string;
+  /** Organisation propriétaire de la licence (ORG_ADMIN et staff des points). */
+  organizationId?: string;
   modules?: string[];
-  /** Présent pour le staff rattaché à une structure (vérifié à la connexion). */
+  /** Présent pour les comptes rattachés à une organisation (vérifié à la connexion). */
   licenseActive?: boolean;
   iat: number;
   exp: number;

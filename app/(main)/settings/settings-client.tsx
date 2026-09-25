@@ -98,14 +98,14 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
+    <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       {/* Blobs décoratifs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="max-w-3xl mx-auto relative">
+      <div className="w-full relative">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-2 text-slate-500 text-sm mb-3">

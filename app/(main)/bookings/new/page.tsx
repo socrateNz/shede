@@ -41,7 +41,7 @@ export default function NewBookingPage() {
         Back to Bookings
       </Link>
 
-      <Card className="bg-slate-800 border-slate-700 max-w-2xl">
+      <Card className="bg-slate-800 border-slate-700 w-full">
         <CardHeader>
           <CardTitle className="text-slate-50">Create Reservation</CardTitle>
         </CardHeader>

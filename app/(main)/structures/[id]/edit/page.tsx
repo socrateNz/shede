@@ -1,116 +1,81 @@
 import { requireRole } from '@/app/actions/auth';
-import { updateStructure } from '@/app/actions/structures';
+import { createOrganizationAdmin, updateOrganization } from '@/app/actions/structures';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Building2, Mail, MapPin, Briefcase, ChevronRight, Save, Check } from 'lucide-react';
+import { ArrowLeft, Mail, MapPin, ChevronRight, Save, Network, ShieldCheck, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import { getAdminSupabase } from '@/lib/supabase';
 import { redirect } from 'next/navigation';
+import { MODULE_OPTIONS, MODULE_CATEGORY_LABELS, sanitizeModules } from '@/lib/modules';
+import { AdminAccountForm } from '@/components/organization/admin-account-form';
 
-export default async function EditStructurePage({
+const inputClass =
+  'bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20';
+
+export default async function EditOrganizationPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   await requireRole('SUPER_ADMIN');
-  const { id: structureId } = await params;
+  const { id: organizationId } = await params;
+  const { error } = await searchParams;
   const admin = getAdminSupabase();
 
-  const { data: structure } = await admin
-    .from('structures')
-    .select('*')
-    .eq('id', structureId)
-    .single();
+  const [{ data: organization }, { data: points }, { data: orgAdmins }] = await Promise.all([
+    admin.from('organizations').select('*').eq('id', organizationId).maybeSingle(),
+    admin
+      .from('structures')
+      .select('id, name, city, is_active')
+      .eq('organization_id', organizationId)
+      .order('created_at', { ascending: true }),
+    admin
+      .from('users')
+      .select('id, email, first_name, last_name, is_active')
+      .eq('organization_id', organizationId)
+      .eq('role', 'ORG_ADMIN'),
+  ]);
 
-  if (!structure) {
+  if (!organization) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8">
-        <div className="max-w-4xl">
-          <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-red-400">
-            Structure non trouvée
-          </div>
+      <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8">
+        <div className="w-full rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-red-400">
+          Organisation non trouvée
         </div>
       </div>
     );
   }
 
-  const selectedModules = Array.isArray(structure.modules) ? structure.modules : [];
-
-  const modules = [
-    // ── Core ──
-    { value: 'POS',        label: '🖥️ Caisse (POS)',              description: 'Point de vente, commandes, paiements',                category: 'Core' },
-    { value: 'CLIENT_APP', label: '📱 Application Client (B2C)',   description: 'Catalogue public, panier, commandes en ligne',         category: 'Core' },
-
-    // ── Restauration ──
-    { value: 'CUISINE',    label: '🍳 Kitchen Display (KDS)',       description: 'Affichage cuisine en temps réel, gestion commandes',  category: 'Restauration' },
-    { value: 'BAR',        label: '🍺 Bar Display',                description: 'Affichage des commandes bar/boissons',                category: 'Restauration' },
-    { value: 'LIVRAISON',  label: '🛵 Livraison',                  description: 'Gestion des commandes à livrer, suivi livreurs',      category: 'Restauration' },
-    { value: 'TABLES',     label: '🪑 Plan de salle',              description: 'Floor manager interactif pour la gestion des tables', category: 'Restauration' },
-
-    // ── Gestion ──
-    { value: 'HOTEL',      label: '🏨 Hôtel (PMS)',                description: 'Chambres, réservations, check-in/check-out',          category: 'Gestion' },
-    { value: 'STOCK',      label: '📦 Stock (Inventaire)',          description: "Mouvements de stock, seuils d'alerte, recettes",      category: 'Gestion' },
-    { value: 'PROMOTION',  label: '🏷️ Promotions',                description: 'Codes promo, remises automatiques, offres spéciales', category: 'Gestion' },
-    { value: 'RH',         label: '👥 Ressources Humaines',        description: 'Gestion du personnel, planning, congés',              category: 'Gestion' },
-    { value: 'CRM',        label: '🤝 CRM Clients',                description: 'Base de données clients, fiches, historique commandes', category: 'Gestion' },
-  ];
-
-  const categories = Array.from(new Set(modules.map(m => m.category)));
-
+  const selectedModules = sanitizeModules(organization.modules);
+  const categories = Array.from(new Set(MODULE_OPTIONS.map((m) => m.category)));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
-      {/* Background Decoratif */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
-      </div>
-
-      <div className="max-w-4xl relative">
-        {/* Back Button */}
+    <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
+      <div className="w-full space-y-8">
         <Link
           href="/structures"
-          className="inline-flex items-center gap-2 text-slate-400 hover:text-blue-400 mb-6 transition-all duration-300 group cursor-pointer"
+          className="inline-flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span>Retour aux structures</span>
+          <ArrowLeft className="w-4 h-4" />
+          <span>Retour aux organisations</span>
         </Link>
 
-        {/* Header */}
-        <div className="mb-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
-            <span className="text-sm text-blue-400 font-medium">Modification</span>
-          </div>
+        <div>
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
-            Modifier la structure
+            {organization.name}
           </h1>
-          <p className="text-slate-400">Mettez à jour les informations de l'établissement</p>
+          <p className="text-slate-400">Informations, modules de la licence et administrateurs</p>
         </div>
 
-        {/* Info Card */}
-        <div className="mb-6 p-4 rounded-lg bg-slate-800/30 border border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20">
-              <Building2 className="w-5 h-5 text-blue-400" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-400">Structure en cours de modification</p>
-              <p className="text-slate-50 font-medium">{structure.name}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Formulaire Card */}
-        <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-2xl hover:shadow-blue-500/5 transition-all duration-500 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 pointer-events-none" />
-
-          <CardHeader className="border-b border-slate-700/50 pb-6">
-            <CardTitle className="text-2xl font-bold text-white flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
-                <Building2 className="w-5 h-5 text-white" />
-              </div>
-              Informations de la structure
+        {/* Informations + modules */}
+        <Card className="bg-slate-800/50 border-slate-700/50">
+          <CardHeader className="border-b border-slate-700/50">
+            <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+              <Network className="w-5 h-5 text-blue-400" />
+              Informations de l&apos;organisation
             </CardTitle>
           </CardHeader>
 
@@ -118,163 +83,96 @@ export default async function EditStructurePage({
             <form
               action={async (formData) => {
                 'use server';
-                // `updateStructure` (via parseModulesFromFormData) already reads every
-                // checked "modules" checkbox directly from formData.getAll('modules') —
-                // no extra encoding needed here. A previous version of this handler
-                // re-stringified the selection into a single JSON blob and appended it
-                // as one more "modules" entry; parseModulesFromFormData's comma-split
-                // logic then shredded that blob into malformed fragments (e.g. `["POS"`)
-                // stored alongside the real values.
-                const result = await updateStructure(structureId, { success: false, error: '' }, formData);
+                const result = await updateOrganization(organizationId, { success: false, error: '' }, formData);
                 if (!result.success) {
-                  redirect(`/structures/${structureId}/edit?error=${result.error}`);
+                  redirect(`/structures/${organizationId}/edit?error=${encodeURIComponent(result.error)}`);
                 }
                 redirect('/structures');
               }}
               className="space-y-8"
             >
-              {/* Section Structure */}
-              <div className="space-y-6">
-                <div className="flex items-center gap-2 text-slate-300 border-b border-slate-700 pb-2">
-                  <Building2 className="w-4 h-4 text-blue-400" />
-                  <h3 className="font-semibold">Détails de l'établissement</h3>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2 group">
-                    <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-blue-400" />
-                      Nom de la structure *
-                    </label>
-                    <Input
-                      name="structureName"
-                      type="text"
-                      defaultValue={structure.name || ''}
-                      placeholder="Restaurant Lumière"
-                      className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300 group-hover:border-slate-500"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2 group">
-                    <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-blue-400" />
-                      Email de la structure *
-                    </label>
-                    <Input
-                      name="structureEmail"
-                      type="email"
-                      defaultValue={structure.email || ''}
-                      placeholder="contact@restaurant.com"
-                      className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300 group-hover:border-slate-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2 group">
-                    <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-blue-400" />
-                      Lieu / Ville *
-                    </label>
-                    <Input
-                      name="city"
-                      type="text"
-                      defaultValue={structure.city || ''}
-                      placeholder="Douala, Akwa"
-                      className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300 group-hover:border-slate-500"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2 group">
-                    <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                      <Briefcase className="w-4 h-4 text-blue-400" />
-                      Type de structure *
-                    </label>
-                    <select
-                      name="structureType"
-                      defaultValue={structure.type || 'RESTAURANT'}
-                      className="w-full bg-slate-900/50 border border-slate-600 text-slate-50 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300 hover:border-slate-500 cursor-pointer"
-                      required
-                    >
-                      <option value="RESTAURANT">🍽️ Restaurant</option>
-                      <option value="HOTEL">🏨 Hôtel</option>
-                      <option value="MIXTE">🍽️🏨 Mixte (Restaurant + Hôtel)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Modules avec Checkboxes — groupés par catégorie */}
-                <div className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                    <ChevronRight className="w-4 h-4 text-blue-400" />
-                    Modules activés
+                    <Network className="w-4 h-4 text-blue-400" />
+                    Nom de l&apos;organisation *
                   </label>
-
-                  {categories.map((category) => (
-                    <div key={category}>
-                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 pl-1">
-                        {category === 'Core' ? '⚡ Essentiels' : category === 'Restauration' ? '🍽️ Restauration' : '🏢 Gestion'}
-                      </p>
-                      <div className="grid gap-2">
-                        {modules.filter(m => m.category === category).map((module) => {
-                          const isChecked = selectedModules.includes(module.value);
-                          return (
-                            <label
-                              key={module.value}
-                              className={`flex items-start gap-3 p-3.5 rounded-lg border transition-all duration-300 cursor-pointer ${
-                                isChecked
-                                  ? 'bg-blue-500/10 border-blue-500/50'
-                                  : 'bg-slate-900/30 border-slate-600/50 hover:border-slate-500'
-                              }`}
-                            >
-                              <div className="flex-shrink-0 mt-0.5">
-                                <input
-                                  type="checkbox"
-                                  name="modules"
-                                  value={module.value}
-                                  defaultChecked={isChecked}
-                                  className="w-5 h-5 rounded border-slate-500 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-                                />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium text-slate-200 text-sm">{module.label}</div>
-                                <div className="text-xs text-slate-500 mt-0.5">{module.description}</div>
-                              </div>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-
-                  <p className="text-xs text-slate-500 mt-1 pl-1">
-                    {selectedModules.length} module(s) activé(s)
-                  </p>
+                  <Input name="organizationName" defaultValue={organization.name || ''} className={inputClass} required />
                 </div>
-
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-blue-400" />
+                    Email de l&apos;organisation *
+                  </label>
+                  <Input name="organizationEmail" type="email" defaultValue={organization.email || ''} className={inputClass} required />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-blue-400" />
+                    Ville
+                  </label>
+                  <Input name="city" defaultValue={organization.city || ''} className={inputClass} />
+                </div>
               </div>
 
-              {/* Actions */}
+              <div className="space-y-4">
+                <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                  <ChevronRight className="w-4 h-4 text-blue-400" />
+                  Modules de la licence (appliqués à tous les points)
+                </label>
+
+                {categories.map((category) => (
+                  <div key={category}>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 pl-1">
+                      {MODULE_CATEGORY_LABELS[category] ?? category}
+                    </p>
+                    <div className="grid gap-2">
+                      {MODULE_OPTIONS.filter((m) => m.category === category).map((module) => {
+                        const isChecked = selectedModules.includes(module.value);
+                        return (
+                          <label
+                            key={module.value}
+                            className={`flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer ${
+                              isChecked
+                                ? 'bg-blue-500/10 border-blue-500/50'
+                                : 'bg-slate-900/30 border-slate-600/50 hover:border-slate-500'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              name="modules"
+                              value={module.value}
+                              defaultChecked={isChecked}
+                              className="mt-0.5 w-5 h-5 rounded border-slate-500 text-blue-500 cursor-pointer"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-slate-200 text-sm">{module.label}</div>
+                              <div className="text-xs text-slate-500 mt-0.5">{module.description}</div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {error && (
+                <div role="alert" className="rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-sm text-red-400">
+                  {error}
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-slate-700">
                 <Button
                   type="submit"
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-2.5 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-blue-500/25 cursor-pointer"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 font-semibold"
                 >
-                  <div className="flex items-center gap-2">
-                    <Save className="w-4 h-4" />
-                    Enregistrer les modifications
-                  </div>
+                  <Save className="w-4 h-4 mr-2" />
+                  Enregistrer les modifications
                 </Button>
-
-                <Link href="/structures" className="flex-1 sm:flex-none">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-300 cursor-pointer"
-                  >
+                <Link href="/structures" className="sm:flex-none">
+                  <Button type="button" variant="outline" className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white">
                     Annuler
                   </Button>
                 </Link>
@@ -283,12 +181,73 @@ export default async function EditStructurePage({
           </CardContent>
         </Card>
 
-        {/* Footer */}
-        <div className="mt-8 text-center">
-          <p className="text-xs text-slate-500">
-            Les modifications seront appliquées immédiatement
-          </p>
-        </div>
+        {/* Points */}
+        <Card className="bg-slate-800/50 border-slate-700/50">
+          <CardHeader className="border-b border-slate-700/50">
+            <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+              <Building2 className="w-5 h-5 text-blue-400" />
+              Points ({points?.length ?? 0})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            {!points?.length ? (
+              <p className="text-sm text-slate-400">
+                Aucun point. L&apos;administrateur de l&apos;organisation les crée depuis son espace.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {points.map((point) => (
+                  <li key={point.id} className="flex items-center justify-between rounded-lg border border-slate-700 px-4 py-3 text-sm">
+                    <span className="text-slate-100">
+                      {point.name}
+                      {point.city ? <span className="text-slate-500"> · {point.city}</span> : null}
+                    </span>
+                    <span className={point.is_active === false ? 'text-red-400' : 'text-green-400'}>
+                      {point.is_active === false ? 'Désactivé' : 'Actif'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Administrateurs de l'organisation */}
+        <Card className="bg-slate-800/50 border-slate-700/50">
+          <CardHeader className="border-b border-slate-700/50">
+            <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+              <ShieldCheck className="w-5 h-5 text-purple-400" />
+              Administrateurs de l&apos;organisation
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-6">
+            {!orgAdmins?.length ? (
+              <p className="text-sm text-amber-400">
+                Aucun administrateur : personne ne peut créer de points pour cette organisation.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {orgAdmins.map((user) => (
+                  <li key={user.id} className="rounded-lg border border-slate-700 px-4 py-3 text-sm">
+                    <span className="text-slate-100">
+                      {`${user.first_name ?? ''} ${user.last_name ?? ''}`.trim() || user.email}
+                    </span>
+                    <span className="text-slate-500"> · {user.email}</span>
+                    {!user.is_active && <span className="text-red-400"> · inactif</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <AdminAccountForm
+              action={createOrganizationAdmin.bind(null, organizationId)}
+              submitLabel="Créer un administrateur d'organisation"
+            />
+          </CardContent>
+        </Card>
+
+        <p className="text-xs text-slate-500 text-center">
+          Les modules modifiés sont disponibles dans les points à la prochaine connexion de leur personnel
+        </p>
       </div>
     </div>
   );

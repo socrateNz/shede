@@ -21,9 +21,9 @@ export default async function QRCodesPage() {
   const structureName = structure?.name || 'Restaurant';
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+    <div className="flex-1 bg-slate-50 p-4 md:p-8">
       {/* Non-printable header */}
-      <div className="max-w-5xl mx-auto mb-8 flex items-center justify-between print:hidden">
+      <div className="w-full mb-8 flex items-center justify-between print:hidden">
         <div>
           <Link href="/floor-manager" className="inline-flex items-center text-slate-500 hover:text-slate-800 mb-2">
             <ArrowLeft className="w-4 h-4 mr-1" /> Retour au plan de salle

@@ -2,8 +2,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function MainLoading() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8 animate-pulse">
-      <div className="max-w-7xl mx-auto">
+    <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8 animate-pulse">
+      <div className="w-full">
         {/* Header skeleton */}
         <div className="mb-8 flex items-center justify-between">
           <div>

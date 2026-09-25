@@ -34,8 +34,26 @@ export function getAdminSupabase() {
 }
 
 // Database type definitions
+
+/** Organisation : porte la licence et les modules, possède un ou plusieurs points. */
+export interface Organization {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  city?: string;
+  country?: string;
+  modules?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+/** Point (établissement) d'une organisation. Toutes les données métier y sont rattachées. */
 export interface Structure {
   id: string;
+  organization_id?: string;
+  /** Un point désactivé par l'ORG_ADMIN bloque la connexion de son staff. */
+  is_active?: boolean;
   name: string;
   email: string;
   phone?: string;
@@ -43,6 +61,7 @@ export interface Structure {
   city?: string;
   country?: string;
   type?: 'RESTAURANT' | 'HOTEL' | 'MIXTE';
+  /** Copie des modules de l'organisation (synchronisée par l'application). */
   modules?: string[];
   /** Code devise ISO 4217 (ex: XOF, EUR, USD) */
   currency?: string;
@@ -61,6 +80,7 @@ import { UserRole } from './auth';
 export interface User {
   id: string;
   structure_id?: string;
+  organization_id?: string;
   email: string;
   password_hash: string;
   first_name?: string;
@@ -161,11 +181,15 @@ export interface Booking {
 
 export interface License {
   id: string;
-  structure_id: string;
+  organization_id: string;
+  /** Obsolète : les licences sont rattachées à l'organisation. */
+  structure_id?: string;
   license_key?: string;
-  plan: 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE';
+  plan: 'FREE' | 'TRIAL' | 'STARTER' | 'PRO' | 'ENTERPRISE';
   max_users: number;
   max_tables: number;
+  /** Nombre maximum de points pour l'organisation. */
+  max_points: number;
   features: Record<string, unknown>;
   is_active: boolean;
   expires_at?: string;

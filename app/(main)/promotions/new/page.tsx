@@ -7,7 +7,7 @@ export default async function NewPromotionPage() {
   const products = await getProducts();
 
   return (
-    <div className="min-h-screen bg-slate-950 p-4 md:p-8">
+    <div className="flex-1 bg-slate-950 p-4 md:p-8">
       <PromotionFormClient products={products} />
     </div>
   );

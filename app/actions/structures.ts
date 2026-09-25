@@ -1,14 +1,28 @@
 'use server';
 
-import { createSession, getSession, hashPassword } from '@/lib/auth';
+import { createSession, getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 import { notifyStructureStaff } from '@/app/actions/push';
+import { insertUserAccount, isUserEmailTaken, parseAccountFormData, type AccountInput } from '@/lib/accounts';
+import { sanitizeModules } from '@/lib/modules';
+import { getBusinessTrialEndDate } from '@/lib/trial';
 import {
-  BUSINESS_TRIAL_MONTHS,
-  formatTrialDateFr,
-  getBusinessTrialEndDate,
-} from '@/lib/trial';
+  buildAccountCreatedMail,
+  buildBusinessWelcomeMail,
+  buildLicenseChangedMail,
+  buildModulesChangedMail,
+  getOrganizationAdminEmails,
+  queueMail,
+} from '@/lib/emails';
+
+// ─────────────────────────────────────────────────────────
+// Organisations (Super Admin + inscription publique)
+//
+// Une organisation porte la licence et les modules. Son ORG_ADMIN crée
+// ensuite les points (structures) et leurs administrateurs depuis
+// /organization — voir app/actions/organizations.ts.
+// ─────────────────────────────────────────────────────────
 
 function parseModulesFromFormData(formData: FormData): string[] {
   const raw = formData.getAll('modules').flatMap((value) =>
@@ -17,187 +31,159 @@ function parseModulesFromFormData(formData: FormData): string[] {
       .map((part) => part.trim())
       .filter(Boolean)
   );
-  const unique = [...new Set(raw)];
-  return unique.length > 0 ? unique : ['POS'];
+  return sanitizeModules(raw);
 }
 
-type StructureRegistrationInput = {
-  structureName: string;
-  structureEmail: string;
-  city: string;
-  structureType: string;
-  modules: string[];
-  adminFirstName: string;
-  adminLastName: string;
-  adminEmail: string;
-  adminPassword: string;
-  license: {
-    plan: string;
-    maxUsers: number;
-    maxTables: number;
-    expiresAt: string | null;
-  };
+function parsePositiveInt(value: FormDataEntryValue | null, fallback: number): number {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+type LicenseInput = {
+  plan: string;
+  maxUsers: number;
+  maxTables: number;
+  maxPoints: number;
+  expiresAt: string | null;
 };
 
-function parseStructureRegistrationFormData(
-  formData: FormData
-): { data: StructureRegistrationInput } | { error: string } {
-  const structureName = String(formData.get('structureName') || '').trim();
-  const structureEmail = String(formData.get('structureEmail') || '').trim().toLowerCase();
-  const city = String(formData.get('city') || '').trim();
-  const adminFirstName = String(formData.get('adminFirstName') || '').trim();
-  const adminLastName = String(formData.get('adminLastName') || '').trim();
-  const adminEmail = String(formData.get('adminEmail') || '').trim().toLowerCase();
-  const adminPassword = String(formData.get('adminPassword') || '');
-  const structureType = String(formData.get('structureType') || 'RESTAURANT');
-  const modules = parseModulesFromFormData(formData);
+type OrganizationRegistrationInput = {
+  organizationName: string;
+  organizationEmail: string;
+  city: string;
+  modules: string[];
+  admin: AccountInput;
+  license: LicenseInput;
+};
 
-  if (
-    !structureName ||
-    !structureEmail ||
-    !city ||
-    !adminFirstName ||
-    !adminLastName ||
-    !adminEmail ||
-    !adminPassword
-  ) {
+function parseOrganizationRegistrationFormData(
+  formData: FormData
+): { data: OrganizationRegistrationInput } | { error: string } {
+  const organizationName = String(formData.get('organizationName') || '').trim();
+  const organizationEmail = String(formData.get('organizationEmail') || '').trim().toLowerCase();
+  const city = String(formData.get('city') || '').trim();
+
+  if (!organizationName || !organizationEmail || !city) {
     return { error: 'Tous les champs obligatoires doivent être remplis.' };
   }
 
-  if (adminPassword.length < 8) {
-    return {
-      error: 'Le mot de passe doit contenir au moins 8 caractères.',
-    };
-  }
+  const account = parseAccountFormData(formData, 'admin');
+  if ('error' in account) return account;
 
   return {
     data: {
-      structureName,
-      structureEmail,
+      organizationName,
+      organizationEmail,
       city,
-      structureType,
-      modules,
-      adminFirstName,
-      adminLastName,
-      adminEmail,
-      adminPassword,
+      modules: parseModulesFromFormData(formData),
+      admin: account.data,
       license: {
         plan: 'FREE',
         maxUsers: 5,
         maxTables: 10,
+        maxPoints: parsePositiveInt(formData.get('maxPoints'), 1),
         expiresAt: null,
       },
     },
   };
 }
 
-async function createStructureWithAdminCore(
-  input: StructureRegistrationInput,
-  options?: {
-    autoLogin?: boolean;
-    welcomeBody?: string;
-  }
+async function createOrganizationWithAdminCore(
+  input: OrganizationRegistrationInput,
+  options?: { autoLogin?: boolean }
 ): Promise<{
   success: boolean;
   error: string;
-  structureId?: string;
+  organizationId?: string;
   redirect?: string;
   trialEndsAt?: string;
 }> {
   try {
     const admin = getAdminSupabase();
 
-    const { data: existingStructure } = await admin
-      .from('structures')
+    const { data: existingOrganization } = await admin
+      .from('organizations')
       .select('id')
-      .eq('email', input.structureEmail)
+      .eq('email', input.organizationEmail)
       .maybeSingle();
 
-    if (existingStructure) {
-      return {
-        success: false,
-        error: 'Une structure utilise déjà cet email professionnel.',
-      };
+    if (existingOrganization) {
+      return { success: false, error: 'Une organisation utilise déjà cet email professionnel.' };
     }
 
-    const { data: existingUser } = await admin
-      .from('users')
-      .select('id')
-      .eq('email', input.adminEmail)
-      .maybeSingle();
-
-    if (existingUser) {
-      return {
-        success: false,
-        error: 'Un compte existe déjà avec cet email administrateur.',
-      };
+    if (await isUserEmailTaken(input.admin.email)) {
+      return { success: false, error: 'Un compte existe déjà avec cet email administrateur.' };
     }
 
-    const { data: structure, error: structureError } = await admin
-      .from('structures')
+    const { data: organization, error: organizationError } = await admin
+      .from('organizations')
       .insert({
-        name: input.structureName,
-        email: input.structureEmail,
+        name: input.organizationName,
+        email: input.organizationEmail,
         city: input.city,
-        type: input.structureType,
         modules: input.modules,
       })
       .select('id, modules')
       .single();
 
-    if (structureError || !structure) {
-      return { success: false, error: 'Échec de la création de la structure.' };
+    if (organizationError || !organization) {
+      return { success: false, error: "Échec de la création de l'organisation." };
     }
 
-    const passwordHash = await hashPassword(input.adminPassword);
-
-    const { data: user, error: userError } = await admin
-      .from('users')
-      .insert({
-        structure_id: structure.id,
-        email: input.adminEmail,
-        password_hash: passwordHash,
-        first_name: input.adminFirstName,
-        last_name: input.adminLastName,
-        role: 'ADMIN',
-        is_active: true,
-      })
-      .select('id, email, role')
-      .single();
-
-    if (userError || !user) {
-      await admin.from('structures').delete().eq('id', structure.id);
-      return { success: false, error: 'Échec de la création du compte administrateur.' };
-    }
-
-    await admin.from('licenses').insert({
-      structure_id: structure.id,
+    const { error: licenseError } = await admin.from('licenses').insert({
+      organization_id: organization.id,
       plan: input.license.plan,
       max_users: input.license.maxUsers,
       max_tables: input.license.maxTables,
+      max_points: input.license.maxPoints,
       is_active: true,
       expires_at: input.license.expiresAt,
     });
 
-    const trialEndsAt = input.license.expiresAt ?? undefined;
+    const created = licenseError
+      ? { error: 'Échec de la création de la licence.' }
+      : await insertUserAccount(input.admin, {
+          role: 'ORG_ADMIN',
+          organizationId: organization.id,
+        });
 
-    await notifyStructureStaff({
-      structureId: structure.id,
-      title: 'Bienvenue chez Shede !',
-      body:
-        options?.welcomeBody ??
-        `Votre structure ${input.structureName} a été enregistrée avec succès.`,
-      url: '/dashboard',
-      roles: ['ADMIN', 'MANAGER', 'SUPER_ADMIN'],
-    });
+    if ('error' in created) {
+      // ON DELETE CASCADE supprime aussi la licence éventuellement créée.
+      await admin.from('organizations').delete().eq('id', organization.id);
+      return { success: false, error: created.error };
+    }
+
+    const adminUser = created.user;
+    if (options?.autoLogin) {
+      // Inscription publique : l'administrateur connaît son mot de passe.
+      queueMail(async () =>
+        buildBusinessWelcomeMail({
+          email: adminUser.email,
+          firstName: input.admin.firstName,
+          organizationName: input.organizationName,
+          trialEndsAt: input.license.expiresAt,
+        })
+      );
+    } else {
+      // Créée par le super admin : identifiant + lien pour choisir son mot de passe.
+      queueMail(() =>
+        buildAccountCreatedMail({
+          userId: adminUser.id,
+          email: adminUser.email,
+          firstName: input.admin.firstName,
+          role: 'ORG_ADMIN',
+          scopeName: input.organizationName,
+        })
+      );
+    }
 
     if (options?.autoLogin) {
       await createSession({
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        structureId: structure.id,
-        modules: (structure.modules as string[]) || input.modules,
+        userId: created.user.id,
+        email: created.user.email,
+        role: 'ORG_ADMIN',
+        organizationId: organization.id,
+        modules: (organization.modules as string[]) || input.modules,
         licenseActive: true,
       });
     }
@@ -205,53 +191,87 @@ async function createStructureWithAdminCore(
     return {
       success: true,
       error: '',
-      structureId: structure.id,
-      redirect: options?.autoLogin ? '/dashboard' : undefined,
-      trialEndsAt,
+      organizationId: organization.id,
+      redirect: options?.autoLogin ? '/organization' : undefined,
+      trialEndsAt: input.license.expiresAt ?? undefined,
     };
   } catch {
-    return { success: false, error: 'Échec de la création de la structure.' };
+    return { success: false, error: "Échec de la création de l'organisation." };
   }
 }
 
-export async function getAllStructures() {
+async function requireSuperAdmin() {
   const session = await getSession();
-  if (!session || session.role !== 'SUPER_ADMIN') {
-    return [];
-  }
+  return session?.role === 'SUPER_ADMIN' ? session : null;
+}
+
+/** Notifie les responsables de chaque point d'une organisation. */
+async function notifyOrganizationPoints(
+  organizationId: string,
+  notification: { title: string; body: string; url?: string }
+) {
+  const admin = getAdminSupabase();
+  const { data: points } = await admin
+    .from('structures')
+    .select('id')
+    .eq('organization_id', organizationId);
+
+  await Promise.all(
+    (points || []).map((point) =>
+      notifyStructureStaff({
+        structureId: point.id,
+        ...notification,
+        roles: ['ADMIN', 'MANAGER'],
+      })
+    )
+  );
+}
+
+export async function getAllOrganizations() {
+  if (!(await requireSuperAdmin())) return [];
 
   try {
     const admin = getAdminSupabase();
     const { data, error } = await admin
-      .from('structures')
-      .select('id, name, email, created_at, licenses(is_active, expires_at, plan, max_users, max_tables)')
+      .from('organizations')
+      .select(
+        'id, name, email, city, modules, created_at, ' +
+          'licenses!organization_id(is_active, expires_at, plan, max_users, max_tables, max_points), ' +
+          'structures!organization_id(id, name, city, is_active), ' +
+          'users!organization_id(id, email, first_name, last_name, role, is_active)'
+      )
       .order('created_at', { ascending: false });
 
     if (error) {
+      console.error('[getAllOrganizations] error:', error);
       return [];
     }
 
-    return data || [];
-  } catch (error) {
+    return (data || []).map(({ users, ...organization }: any) => ({
+      ...organization,
+      orgAdmins: (users || []).filter((u: any) => u.role === 'ORG_ADMIN'),
+    }));
+  } catch {
     return [];
   }
 }
 
-export async function createStructureWithAdmin(
-  _prevState: { success: boolean; error: string; structureId?: string },
+export async function createOrganizationWithAdmin(
+  _prevState: { success: boolean; error: string; organizationId?: string },
   formData: FormData
 ) {
-  const session = await getSession();
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!(await requireSuperAdmin())) {
     return { success: false, error: 'Unauthorized' };
   }
 
-  const parsed = parseStructureRegistrationFormData(formData);
+  const parsed = parseOrganizationRegistrationFormData(formData);
   if ('error' in parsed) {
     return { success: false, error: parsed.error };
   }
 
-  return createStructureWithAdminCore(parsed.data);
+  const result = await createOrganizationWithAdminCore(parsed.data);
+  if (result.success) revalidatePath('/structures');
+  return result;
 }
 
 export async function registerBusiness(
@@ -263,29 +283,25 @@ export async function registerBusiness(
   },
   formData: FormData
 ) {
-  const parsed = parseStructureRegistrationFormData(formData);
+  const parsed = parseOrganizationRegistrationFormData(formData);
   if ('error' in parsed) {
     return { success: false, error: parsed.error };
   }
 
-  const trialEnd = getBusinessTrialEndDate();
-  const trialEndIso = trialEnd.toISOString();
-  const trialEndLabel = formatTrialDateFr(trialEnd);
+  const trialEndIso = getBusinessTrialEndDate().toISOString();
 
-  const result = await createStructureWithAdminCore(
+  const result = await createOrganizationWithAdminCore(
     {
       ...parsed.data,
       license: {
         plan: 'TRIAL',
         maxUsers: 5,
         maxTables: 10,
+        maxPoints: 3,
         expiresAt: trialEndIso,
       },
     },
-    {
-      autoLogin: true,
-      welcomeBody: `Votre établissement est actif avec ${BUSINESS_TRIAL_MONTHS} mois d'essai gratuit, jusqu'au ${trialEndLabel}.`,
-    }
+    { autoLogin: true }
   );
 
   if (!result.success) {
@@ -295,68 +311,87 @@ export async function registerBusiness(
   return {
     success: true,
     error: '',
-    redirect: result.redirect ?? '/dashboard',
+    redirect: result.redirect ?? '/organization',
     trialEndsAt: result.trialEndsAt ?? trialEndIso,
   };
 }
 
-export async function updateStructureLicense(
-  structureId: string,
+export async function updateOrganizationLicense(
+  organizationId: string,
   _prevState: { success: boolean; error: string },
   formData: FormData
 ) {
-  const session = await getSession();
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!(await requireSuperAdmin())) {
     return { success: false, error: 'Unauthorized' };
   }
 
   const isActive = String(formData.get('isActive') || 'false') === 'true';
   const expiresAtRaw = String(formData.get('expiresAt') || '').trim();
   const expiresAt = expiresAtRaw ? new Date(expiresAtRaw).toISOString() : null;
+  const maxPoints = parsePositiveInt(formData.get('maxPoints'), 1);
 
   try {
     const admin = getAdminSupabase();
     const { error } = await admin
       .from('licenses')
-      .update({
-        is_active: isActive,
-        expires_at: expiresAt,
-      })
-      .eq('structure_id', structureId);
+      .upsert(
+        {
+          organization_id: organizationId,
+          is_active: isActive,
+          expires_at: expiresAt,
+          max_points: maxPoints,
+        },
+        { onConflict: 'organization_id' }
+      );
 
     if (error) {
       return { success: false, error: 'Failed to update license' };
     }
 
-    await notifyStructureStaff({
-      structureId: structureId,
+    queueMail(async () => {
+      const [{ data: organization }, to] = await Promise.all([
+        getAdminSupabase().from('organizations').select('name').eq('id', organizationId).maybeSingle(),
+        getOrganizationAdminEmails(organizationId),
+      ]);
+      if (!to.length) return null;
+      return buildLicenseChangedMail({
+        to,
+        organizationName: organization?.name ?? 'votre organisation',
+        isActive,
+        expiresAt,
+        maxPoints,
+      });
+    });
+
+    await notifyOrganizationPoints(organizationId, {
       title: 'Mise à jour de licence',
-      body: `Le statut de votre licence a été mis à jour par le Super Administrateur (Actif: ${isActive}).`,
+      body: `Le statut de la licence de votre organisation a été mis à jour par le Super Administrateur (Actif: ${isActive}).`,
       url: '/dashboard',
-      roles: ['ADMIN', 'MANAGER', 'SUPER_ADMIN'],
     });
 
     revalidatePath('/structures');
     return { success: true, error: '' };
-  } catch (error) {
+  } catch {
     return { success: false, error: 'Failed to update license' };
   }
 }
 
-export async function updateStructure(
-  structureId: string,
+/**
+ * Met à jour une organisation. Les modules de la licence sont recopiés sur
+ * tous ses points (structures.modules), lus par le reste de l'application.
+ */
+export async function updateOrganization(
+  organizationId: string,
   _prevState: { success: boolean; error: string },
   formData: FormData
 ) {
-  const session = await getSession();
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!(await requireSuperAdmin())) {
     return { success: false, error: 'Unauthorized' };
   }
 
-  const name = String(formData.get('structureName') || '').trim();
-  const email = String(formData.get('structureEmail') || '').trim().toLowerCase();
+  const name = String(formData.get('organizationName') || '').trim();
+  const email = String(formData.get('organizationEmail') || '').trim().toLowerCase();
   const city = String(formData.get('city') || '').trim();
-  const type = String(formData.get('structureType') || '');
   const modules = parseModulesFromFormData(formData);
 
   if (!name || !email) {
@@ -365,60 +400,118 @@ export async function updateStructure(
 
   try {
     const admin = getAdminSupabase();
+    const { data: previous } = await admin
+      .from('organizations')
+      .select('modules')
+      .eq('id', organizationId)
+      .maybeSingle();
+    const previousModules = sanitizeModules(previous?.modules);
+
     const { error } = await admin
-      .from('structures')
+      .from('organizations')
       .update({
         name,
         email,
         ...(city ? { city } : {}),
-        ...(type ? { type } : {}),
-        ...(modules.length > 0 ? { modules } : {}),
+        modules,
+        updated_at: new Date().toISOString(),
       })
-      .eq('id', structureId);
+      .eq('id', organizationId);
 
     if (error) {
-      console.error('Structure Update Error:', error);
-      return { success: false, error: error.message || 'Failed to update structure' };
+      console.error('Organization Update Error:', error);
+      return { success: false, error: error.message || 'Failed to update organization' };
     }
 
-    await notifyStructureStaff({
-      structureId: structureId,
-      title: 'Informations de structure modifiées',
-      body: `Les détails de l'établissement ${name} ont été mis à jour par le Super Administrateur.`,
+    const { error: syncError } = await admin
+      .from('structures')
+      .update({ modules })
+      .eq('organization_id', organizationId);
+
+    if (syncError) {
+      console.error('Organization modules sync error:', syncError);
+      return { success: false, error: 'Modules non propagés aux points.' };
+    }
+
+    const added = modules.filter((m) => !previousModules.includes(m));
+    const removed = previousModules.filter((m) => !modules.includes(m));
+    if (added.length || removed.length) {
+      queueMail(async () => {
+        const to = await getOrganizationAdminEmails(organizationId);
+        return to.length ? buildModulesChangedMail({ to, organizationName: name, added, removed }) : null;
+      });
+    }
+
+    await notifyOrganizationPoints(organizationId, {
+      title: 'Licence modifiée',
+      body: `Les modules de l'organisation ${name} ont été mis à jour. Reconnectez-vous pour en profiter.`,
       url: '/settings',
-      roles: ['ADMIN', 'MANAGER', 'SUPER_ADMIN'],
     });
 
     revalidatePath('/structures');
     return { success: true, error: '' };
   } catch (error: any) {
-    console.error('Structure Update Catch Error:', error);
-    return { success: false, error: error.message || 'Failed to update structure' };
+    console.error('Organization Update Catch Error:', error);
+    return { success: false, error: error.message || 'Failed to update organization' };
   }
 }
 
-export async function deleteStructure(structureId: string) {
-  const session = await getSession();
-  if (!session || session.role !== 'SUPER_ADMIN') {
+/** Crée un administrateur d'organisation (ex. organisations migrées sans ORG_ADMIN). */
+export async function createOrganizationAdmin(
+  organizationId: string,
+  _prevState: { success: boolean; error: string },
+  formData: FormData
+) {
+  if (!(await requireSuperAdmin())) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const account = parseAccountFormData(formData, 'admin');
+  if ('error' in account) return { success: false, error: account.error };
+
+  const created = await insertUserAccount(account.data, {
+    role: 'ORG_ADMIN',
+    organizationId,
+  });
+  if ('error' in created) return { success: false, error: created.error };
+
+  queueMail(async () => {
+    const { data: organization } = await getAdminSupabase()
+      .from('organizations')
+      .select('name')
+      .eq('id', organizationId)
+      .maybeSingle();
+    return buildAccountCreatedMail({
+      userId: created.user.id,
+      email: created.user.email,
+      firstName: account.data.firstName,
+      role: 'ORG_ADMIN',
+      scopeName: organization?.name ?? 'votre organisation',
+    });
+  });
+
+  revalidatePath('/structures');
+  return { success: true, error: '' };
+}
+
+export async function deleteOrganization(organizationId: string) {
+  if (!(await requireSuperAdmin())) {
     return { success: false, error: 'Unauthorized' };
   }
 
   try {
     const admin = getAdminSupabase();
-    // This assumes cascading deletes are configured via foreign keys for related items (users, rooms, orders, etc.)
-    const { error } = await admin
-      .from('structures')
-      .delete()
-      .eq('id', structureId);
+    // ON DELETE CASCADE : points, licence, comptes et données des points.
+    const { error } = await admin.from('organizations').delete().eq('id', organizationId);
 
     if (error) {
-      return { success: false, error: 'Failed to delete structure' };
+      return { success: false, error: 'Failed to delete organization' };
     }
 
     revalidatePath('/structures');
     return { success: true };
-  } catch (error) {
-    return { success: false, error: 'Failed to delete structure' };
+  } catch {
+    return { success: false, error: 'Failed to delete organization' };
   }
 }
 

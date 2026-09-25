@@ -50,13 +50,13 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
+    <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-pink-500/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-rose-500/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="max-w-5xl mx-auto relative">
+      <div className="w-full relative">
         <div className="flex items-center justify-between mb-6">
           <Link
             href="/clients"
