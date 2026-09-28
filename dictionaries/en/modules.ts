@@ -13,6 +13,7 @@ const modules: typeof fr = {
     PROMOTION: 'Promotions',
     RH: 'Human resources',
     CRM: 'Customer CRM',
+    COMPTABILITE: 'Accounting (SYSCOHADA)',
   },
   descriptions: {
     POS: 'Point of sale, orders, payments',
@@ -26,6 +27,7 @@ const modules: typeof fr = {
     PROMOTION: 'Promo codes, automatic discounts, special offers',
     RH: 'Staff management',
     CRM: 'Customer records, profiles, order history',
+    COMPTABILITE: 'Automatic entries, expenses, ledger, trial balance, balance sheet, VAT',
   },
   categories: {
     Core: '⚡ Essentials',

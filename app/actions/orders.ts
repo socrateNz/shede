@@ -7,6 +7,7 @@ import { validatePromoCode, recordPromoUsage } from './promotions';
 import { getActiveShift, getStructureActiveShift } from './shifts';
 import { computeTax } from '@/lib/tax';
 import { getStructureTaxSettings, saveTaxSnapshot } from '@/lib/fiscal';
+import { postSaleSafely } from '@/lib/accounting/posting';
 import { resolveDelivery } from '@/lib/delivery';
 
 type ProductAccompanimentMapping = {
@@ -965,6 +966,7 @@ export async function updateOrderStatus(
     // REDUIRE LE STOCK SI COMMANDE TERMINEE
     if (status === 'COMPLETED') {
       await processOrderStock(orderId);
+      await postSaleSafely('ORDER', orderId);
     }
 
     // Notify client if applicable

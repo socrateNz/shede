@@ -67,10 +67,11 @@ const STAFF_PREFIXES = [
   '/clients',
   '/floor-manager',
   '/organization',
+  '/accounting',
 ];
 
 /** Espace de l'administrateur d'organisation (il n'opère pas dans les points). */
-const ORG_ADMIN_PREFIXES = ['/organization'];
+const ORG_ADMIN_PREFIXES = ['/organization', '/accounting'];
 
 type RouteRule = {
   prefix: string;
@@ -120,6 +121,9 @@ const ROUTE_RULES: RouteRule[] = [
   { prefix: '/statistics', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'COMPTABLE'] },
   { prefix: '/shifts',     roles: ['ADMIN', 'SUPER_ADMIN', 'CAISSE', 'COMPTABLE'] },
 
+  // Comptabilité (les pages restreignent ensuite par rôle : le manager ne voit que les dépenses)
+  { prefix: '/accounting', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'COMPTABLE', 'ORG_ADMIN'], modules: ['COMPTABILITE'] },
+
   // RH
   { prefix: '/hr', roles: ['ADMIN', 'SUPER_ADMIN', 'RH'], modules: ['RH'] },
 
@@ -159,7 +163,8 @@ function getStaffHome(session: SessionPayload): string {
     case 'BAR':          return '/bar';
     case 'LIVREUR':      return '/delivery';
     case 'MAGASINIER':   return '/stock';
-    case 'COMPTABLE':    return '/statistics';
+    // La page Statistiques est réservée à l'administrateur : le comptable va à sa comptabilité.
+    case 'COMPTABLE':    return hasModule(session, 'COMPTABILITE') ? '/accounting' : '/dashboard';
     case 'RH':           return '/users';
     default:             return '/dashboard';
   }

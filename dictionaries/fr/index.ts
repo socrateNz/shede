@@ -23,6 +23,7 @@ import floor from './floor';
 import errors from './errors';
 import notify from './notify';
 import landing from './landing';
+import accounting from './accounting';
 
 /** Dictionnaire français (langue de référence : l'anglais doit avoir les mêmes clés). */
 export const fr = {
@@ -51,4 +52,5 @@ export const fr = {
   errors,
   notify,
   landing,
+  accounting,
 };

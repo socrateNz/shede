@@ -22,6 +22,8 @@ import {
   Truck,
   LayoutDashboard,
   Network,
+  BookOpenCheck,
+  Receipt,
 } from 'lucide-react';
 import { ShiftStatusIndicator } from './shift-status-indicator';
 import { logout } from '@/app/actions/auth';
@@ -44,6 +46,7 @@ const GROUP_STYLES = {
   hotel: 'text-fuchsia-400',
   customers: 'text-rose-400',
   management: 'text-amber-400',
+  accounting: 'text-lime-400',
   account: 'text-slate-400',
 } as const;
 
@@ -76,7 +79,10 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
   }, [session.structureId]);
 
   const hasModule = (moduleName: string) =>
-    Boolean(structure?.modules?.includes(moduleName)) || storeHasModule(moduleName);
+    Boolean(structure?.modules?.includes(moduleName)) ||
+    storeHasModule(moduleName) ||
+    // ORG_ADMIN : pas de point, modules de la licence de l'organisation
+    Boolean(session.modules?.includes(moduleName));
   const canManageShift = ['CAISSE', 'RECEPTION', 'ADMIN', 'MANAGER'].includes(role);
 
   /**
@@ -107,6 +113,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     { group: 'organization', name: t('nav.ownerView'), href: '/organization', icon: BarChart3, roles: ['ORG_ADMIN'], exact: true },
     { group: 'organization', name: t('nav.cashReports'), href: '/organization/cash', icon: HistoryIcon, roles: ['ORG_ADMIN'] },
     { group: 'organization', name: t('nav.pointsLicense'), href: '/organization/points', icon: Network, roles: ['ORG_ADMIN'] },
+    { group: 'accounting', name: t('nav.accounting'), href: '/accounting', icon: BookOpenCheck, roles: ['ORG_ADMIN'], module: 'COMPTABILITE' },
   ];
 
   const pointItems: NavItem[] = [
@@ -176,6 +183,10 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
 
     { group: 'management', name: t('nav.statistics'), href: '/statistics', icon: BarChart3, roles: ['ADMIN'] },
     { group: 'management', name: t('nav.shifts'), href: '/shifts', icon: HistoryIcon, roles: ['ADMIN'] },
+
+    // Le manager ne fait que saisir les dépenses ; l'admin et le comptable ont tout le module.
+    { group: 'accounting', name: t('nav.accounting'), href: '/accounting', icon: BookOpenCheck, roles: ['ADMIN', 'COMPTABLE'], module: 'COMPTABILITE' },
+    { group: 'accounting', name: t('nav.expenses'), href: '/accounting/expenses', icon: Receipt, roles: ['MANAGER'], module: 'COMPTABILITE' },
 
     {
       group: 'account',

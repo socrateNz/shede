@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { notifyUser } from '@/lib/notifications';
 import { getActiveShift, getStructureActiveShift } from './shifts';
 import { assignInvoiceNumber, priceBooking, saveBookingTax } from '@/lib/fiscal';
+import { postSaleSafely } from '@/lib/accounting/posting';
 import { te } from '@/lib/i18n/server';
 
 export async function getBookings(structureId: string) {
@@ -178,6 +179,7 @@ export async function updateBookingStatus(bookingId: string, status: string, roo
     // Auto-update room status based on booking status
     if (status === 'COMPLETED' || status === 'CANCELLED') {
       await admin.from('rooms').update({ status: 'AVAILABLE' }).eq('id', roomId);
+      if (status === 'COMPLETED') await postSaleSafely('BOOKING', bookingId);
     } else if (status === 'IN_PROGRESS' || status === 'CONFIRMED') {
       await admin.from('rooms').update({ status: 'OCCUPIED' }).eq('id', roomId);
     }
@@ -234,6 +236,7 @@ export async function markBookingAsPaid(bookingId: string) {
 
     // Numéro de facture continu du point (idempotent).
     await assignInvoiceNumber('BOOKING', bookingId);
+    await postSaleSafely('BOOKING', bookingId);
 
     revalidatePath('/bookings');
     return { success: true };

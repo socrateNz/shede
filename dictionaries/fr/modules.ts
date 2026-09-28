@@ -12,6 +12,7 @@ const modules = {
     PROMOTION: 'Promotions',
     RH: 'Ressources humaines',
     CRM: 'CRM clients',
+    COMPTABILITE: 'Comptabilité (SYSCOHADA)',
   },
   descriptions: {
     POS: 'Point de vente, commandes, paiements',
@@ -25,6 +26,7 @@ const modules = {
     PROMOTION: 'Codes promo, remises automatiques, offres spéciales',
     RH: 'Gestion du personnel',
     CRM: 'Fichier clients, fiches, historique des commandes',
+    COMPTABILITE: 'Écritures automatiques, dépenses, grand livre, balance, bilan, TVA',
   },
   categories: {
     Core: '⚡ Essentiels',

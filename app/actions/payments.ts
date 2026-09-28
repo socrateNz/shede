@@ -5,6 +5,7 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { getStructureActiveShift } from './shifts';
 import { processOrderStock } from './stock';
 import { assignInvoiceNumber } from '@/lib/fiscal';
+import { postSaleSafely } from '@/lib/accounting/posting';
 import { te } from '@/lib/i18n/server';
 
 export async function createPayment(
@@ -78,6 +79,8 @@ export async function createPayment(
 
     // Numéro de facture continu du point (idempotent : conservé si déjà attribué).
     await assignInvoiceNumber('ORDER', orderId);
+    // Écriture de vente (module Comptabilité) ; n'interrompt jamais l'encaissement.
+    await postSaleSafely('ORDER', orderId);
 
     return { success: true, paymentId: payment.id };
   } catch (error) {

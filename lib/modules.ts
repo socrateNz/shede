@@ -21,6 +21,7 @@ export const MODULE_OPTIONS = [
   { value: 'PROMOTION', icon: '🏷️', category: 'Gestion' },
   { value: 'RH', icon: '👥', category: 'Gestion' },
   { value: 'CRM', icon: '🤝', category: 'Gestion' },
+  { value: 'COMPTABILITE', icon: '📒', category: 'Gestion' },
 ] as const;
 
 export type ModuleCode = (typeof MODULE_OPTIONS)[number]['value'];
