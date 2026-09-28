@@ -21,6 +21,18 @@ const shell = {
     CLIENT: 'Client',
   },
   nav: {
+    groups: {
+      administration: 'Administration',
+      organization: 'Organisation',
+      general: 'Général',
+      sales: 'Ventes',
+      production: 'Cuisine & bar',
+      catalog: 'Catalogue',
+      hotel: 'Hôtel',
+      customers: 'Clients & marketing',
+      management: 'Gestion',
+      account: 'Compte',
+    },
     dashboard: 'Tableau de bord',
     organizations: 'Organisations',
     ownerView: 'Vue propriétaire',

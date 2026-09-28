@@ -22,6 +22,18 @@ const shell: typeof fr = {
     CLIENT: 'Customer',
   },
   nav: {
+    groups: {
+      administration: 'Administration',
+      organization: 'Organization',
+      general: 'General',
+      sales: 'Sales',
+      production: 'Kitchen & bar',
+      catalog: 'Catalogue',
+      hotel: 'Hotel',
+      customers: 'Customers & marketing',
+      management: 'Management',
+      account: 'Account',
+    },
     dashboard: 'Dashboard',
     organizations: 'Organizations',
     ownerView: 'Owner view',
