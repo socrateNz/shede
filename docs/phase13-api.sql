@@ -226,18 +226,20 @@ GRANT EXECUTE ON FUNCTION public.claim_due_webhooks(INTEGER, UUID) TO service_ro
 --     Supabase appelle /api/cron/webhooks grâce aux extensions pg_cron et pg_net.
 --     1) Dashboard Supabase → Database → Extensions : activez « pg_cron » et « pg_net ».
 --     2) Remplacez <DOMAINE> et <CRON_SECRET> (la valeur de CRON_SECRET de votre
---        hébergement), puis exécutez une seule fois :
+--        hébergement), puis exécutez une seule fois, à part (copiez le bloc sans
+--        les « -- » dans un nouvel onglet du SQL Editor) — ne le décommentez pas
+--        ici : ré-exécuter ce fichier écraserait la tâche avec les valeurs génériques.
 --
-SELECT cron.schedule(
-  'shede-webhooks',
-  '* * * * *',
-  $cron$
-  SELECT net.http_get(
-    url := 'https://<DOMAINE>/api/cron/webhooks',
-    headers := jsonb_build_object('Authorization', 'Bearer <CRON_SECRET>')
-  );
-  $cron$
-);
+-- SELECT cron.schedule(
+--   'shede-webhooks',
+--   '* * * * *',
+--   $cron$
+--   SELECT net.http_get(
+--     url := 'https://<DOMAINE>/api/cron/webhooks',
+--     headers := jsonb_build_object('Authorization', 'Bearer <CRON_SECRET>')
+--   );
+--   $cron$
+-- );
 --
 --     Pour arrêter : SELECT cron.unschedule('shede-webhooks');
 
