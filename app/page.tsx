@@ -372,6 +372,7 @@ export default async function HomePage() {
               <h4 className="text-white font-semibold mb-4">{t('landing.footer.resources')}</h4>
               <ul className="space-y-2 text-sm text-slate-400">
                 <li><Link href="/docs" className="hover:text-purple-400 transition">{t('landing.footer.docs')}</Link></li>
+                <li><Link href="/docs/api" className="hover:text-purple-400 transition">{t('landing.footer.api')}</Link></li>
               </ul>
             </div>
             <div>

@@ -105,6 +105,7 @@ const landing = {
     pricing: 'Tarifs',
     resources: 'Ressources',
     docs: 'Documentation',
+    api: 'API pour marketplaces',
     contact: 'Contact',
     rights: '© {year} Shede Tech. Tous droits réservés.',
     designBy: 'Design par',

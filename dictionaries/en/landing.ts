@@ -106,6 +106,7 @@ const landing: typeof fr = {
     pricing: 'Pricing',
     resources: 'Resources',
     docs: 'Documentation',
+    api: 'Marketplace API',
     contact: 'Contact',
     rights: '© {year} Shede Tech. All rights reserved.',
     designBy: 'Design by',

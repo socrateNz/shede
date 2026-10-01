@@ -173,6 +173,12 @@ export default function DocsPage() {
               <ArrowLeft className="w-4 h-4" /> {c.header.back}
             </Link>
             <Link
+              href="/docs/api"
+              className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium text-purple-600 hover:text-purple-800 transition"
+            >
+              API
+            </Link>
+            <Link
               href="/register-client"
               className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-xl shadow-md transition hover:-translate-y-0.5"
             >

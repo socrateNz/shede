@@ -27,6 +27,7 @@ const PUBLIC_EXACT = new Set([
   '/register-client',
   '/register-business',
   '/docs',
+  '/docs/api',
   '/unauthorized',
   '/cart',
   '/forgot-password',
