@@ -244,7 +244,8 @@ export async function getAllOrganizations() {
       .from('organizations')
       .select(
         'id, name, email, city, modules, created_at, ' +
-          'licenses!organization_id(is_active, expires_at, plan, max_users, max_tables, max_points), ' +
+          // * : inclut api_monthly_orders après docs/phase13-api.sql sans casser avant
+          'licenses!organization_id(*), ' +
           'structures!organization_id(id, name, city, is_active), ' +
           'users!organization_id(id, email, first_name, last_name, role, is_active)'
       )
@@ -357,6 +358,18 @@ export async function updateOrganizationLicense(
 
     if (error) {
       return { success: false, error: t('business.errors.licenseUpdateFailed') };
+    }
+
+    // Quota de commandes API (docs/phase13-api.sql), enregistré à part pour ne
+    // pas bloquer la licence si la migration n'est pas encore appliquée.
+    if (formData.has('apiMonthlyOrders')) {
+      const raw = String(formData.get('apiMonthlyOrders') || '').trim();
+      const quota = raw === '' ? null : Math.max(0, Number.parseInt(raw, 10) || 0);
+      const { error: quotaError } = await admin
+        .from('licenses')
+        .update({ api_monthly_orders: quota })
+        .eq('organization_id', organizationId);
+      if (quotaError) console.warn('[updateOrganizationLicense] quota API non enregistré :', quotaError.message);
     }
 
     queueMail(async () => {

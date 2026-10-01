@@ -191,7 +191,7 @@ export default async function StructuresPage() {
                           const { updateOrganizationLicense } = await import('@/app/actions/structures');
                           await updateOrganizationLicense(organization.id, { success: false, error: '' }, formData);
                         }}
-                        className="grid md:grid-cols-4 gap-4 mb-4"
+                        className="grid md:grid-cols-5 gap-4 mb-4"
                       >
                         <div className="space-y-1">
                           <label className="text-xs font-medium text-slate-400 flex items-center gap-1">
@@ -231,6 +231,20 @@ export default async function StructuresPage() {
                             name="maxPoints"
                             min={1}
                             defaultValue={license?.max_points ?? 1}
+                            className="w-full bg-slate-900/50 border border-slate-600 text-slate-100 rounded-lg px-3 py-2 text-sm"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium text-slate-400" title={t('api.keys.quotaHint')}>
+                            {t('api.keys.quotaLabel')}
+                          </label>
+                          <input
+                            type="number"
+                            name="apiMonthlyOrders"
+                            min={0}
+                            placeholder={t('api.keys.quotaHint')}
+                            defaultValue={license && 'api_monthly_orders' in license ? (license.api_monthly_orders ?? '') : 500}
                             className="w-full bg-slate-900/50 border border-slate-600 text-slate-100 rounded-lg px-3 py-2 text-sm"
                           />
                         </div>

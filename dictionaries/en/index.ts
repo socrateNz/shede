@@ -25,6 +25,7 @@ import errors from './errors';
 import notify from './notify';
 import landing from './landing';
 import accounting from './accounting';
+import api from './api';
 
 export const en: Dictionary = {
   common,
@@ -53,4 +54,5 @@ export const en: Dictionary = {
   notify,
   landing,
   accounting,
+  api,
 };

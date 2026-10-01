@@ -39,6 +39,7 @@ const PUBLIC_PREFIXES = [
   '/_next',
   '/api/setup',
   '/api/cron', // protégé par CRON_SECRET dans la route
+  '/api/v1', // API publique : authentifiée par la clé du point dans chaque route
 ];
 
 /** Espace client connecté */

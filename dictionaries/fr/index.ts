@@ -24,6 +24,7 @@ import errors from './errors';
 import notify from './notify';
 import landing from './landing';
 import accounting from './accounting';
+import api from './api';
 
 /** Dictionnaire français (langue de référence : l'anglais doit avoir les mêmes clés). */
 export const fr = {
@@ -53,4 +54,5 @@ export const fr = {
   notify,
   landing,
   accounting,
+  api,
 };

@@ -1,0 +1,121 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { getSession } from '@/lib/auth';
+import { getAdminSupabase } from '@/lib/supabase';
+import { te } from '@/lib/i18n/server';
+import { firstOf } from '@/lib/license';
+import { API_MODULE, generateApiKey } from '@/lib/api/keys';
+
+// Clés d'API des points (docs/phase13-api.sql), gérées uniquement par
+// l'administrateur de l'organisation propriétaire du point.
+
+type Result<T = undefined> = { success: true; data?: T } | { success: false; error: string };
+
+async function requireOwnedPoint(pointId: string) {
+  const session = await getSession();
+  if (!session || session.role !== 'ORG_ADMIN' || !session.organizationId) return null;
+  const { data: point } = await getAdminSupabase()
+    .from('structures')
+    .select('id, organization_id, organizations!organization_id(modules, licenses(*))')
+    .eq('id', pointId)
+    .eq('organization_id', session.organizationId)
+    .maybeSingle();
+  if (!point) return null;
+  const organization = firstOf(point.organizations as { modules?: string[]; licenses?: unknown } | null);
+  const license = firstOf(organization?.licenses as Record<string, any> | Record<string, any>[] | null);
+  return {
+    session,
+    point,
+    moduleEnabled: Boolean(organization?.modules?.includes(API_MODULE)),
+    quota: license && 'api_monthly_orders' in license ? (license.api_monthly_orders as number | null) : 500,
+  };
+}
+
+export type PointApiStatus = {
+  moduleEnabled: boolean;
+  installed: boolean;
+  credential: { prefix: string; createdAt: string; lastUsedAt: string | null } | null;
+  usage: { month: string; requests: number; orders: number; organizationOrders: number };
+  quota: number | null;
+};
+
+/** État de l'API pour un point : clé active, consommation du mois, quota de l'organisation. */
+export async function getPointApiStatus(pointId: string): Promise<PointApiStatus | null> {
+  const owned = await requireOwnedPoint(pointId);
+  if (!owned) return null;
+  const admin = getAdminSupabase();
+  const month = new Date();
+  const monthStart = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}-01`;
+  const empty = { month: monthStart, requests: 0, orders: 0, organizationOrders: 0 };
+
+  const { data: credential, error } = await admin
+    .from('point_api_credentials')
+    .select('key_prefix, created_at, last_used_at')
+    .eq('structure_id', pointId)
+    .maybeSingle();
+  if (error) {
+    return { moduleEnabled: owned.moduleEnabled, installed: false, credential: null, usage: empty, quota: owned.quota };
+  }
+
+  // Le quota porte sur toute l'organisation : on additionne les commandes de ses points.
+  const { data: points } = await admin.from('structures').select('id').eq('organization_id', owned.point.organization_id);
+  const { data: usage } = await admin
+    .from('api_usage')
+    .select('structure_id, requests, orders')
+    .eq('month', monthStart)
+    .in('structure_id', (points || []).map((p) => p.id));
+  const own = (usage || []).find((u) => u.structure_id === pointId);
+
+  return {
+    moduleEnabled: owned.moduleEnabled,
+    installed: true,
+    credential: credential
+      ? { prefix: credential.key_prefix, createdAt: credential.created_at, lastUsedAt: credential.last_used_at }
+      : null,
+    usage: {
+      month: monthStart,
+      requests: own?.requests ?? 0,
+      orders: own?.orders ?? 0,
+      organizationOrders: (usage || []).reduce((s, u) => s + (u.orders || 0), 0),
+    },
+    quota: owned.quota,
+  };
+}
+
+/** Génère (ou régénère) la clé du point. L'ancienne cesse immédiatement de fonctionner. */
+export async function generatePointApiKey(pointId: string): Promise<Result<{ key: string }>> {
+  const owned = await requireOwnedPoint(pointId);
+  if (!owned) return { success: false, error: await te('api.errorsAction.forbidden') };
+  if (!owned.moduleEnabled) return { success: false, error: await te('api.errorsAction.moduleRequired') };
+
+  const { key, prefix, hash } = generateApiKey();
+  const { error } = await getAdminSupabase()
+    .from('point_api_credentials')
+    .upsert(
+      {
+        structure_id: pointId,
+        key_prefix: prefix,
+        key_hash: hash,
+        created_by: owned.session.userId,
+        created_at: new Date().toISOString(),
+        last_used_at: null,
+      },
+      { onConflict: 'structure_id' }
+    );
+  if (error) {
+    console.error('[api-keys] génération :', error.message);
+    return { success: false, error: await te('api.errorsAction.failed') };
+  }
+  revalidatePath(`/organization/points/${pointId}`);
+  return { success: true, data: { key } };
+}
+
+export async function revokePointApiKey(pointId: string): Promise<Result> {
+  const owned = await requireOwnedPoint(pointId);
+  if (!owned) return { success: false, error: await te('api.errorsAction.forbidden') };
+  const { error } = await getAdminSupabase().from('point_api_credentials').delete().eq('structure_id', pointId);
+  if (error) return { success: false, error: await te('api.errorsAction.failed') };
+  revalidatePath(`/organization/points/${pointId}`);
+  return { success: true };
+}

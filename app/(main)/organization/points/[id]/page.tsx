@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Building2, ShieldCheck, Power } from 'lucide-react';
+import { ArrowLeft, Building2, ShieldCheck, Power, Plug } from 'lucide-react';
+import { getPointApiStatus } from '@/app/actions/api-keys';
+import { PointApiCard } from '@/components/organization/point-api-card';
 import { requireRole } from '@/app/actions/auth';
 import {
   addPointAdmin,
@@ -23,6 +25,7 @@ export default async function PointPage({ params }: { params: Promise<{ id: stri
   if (!point) notFound();
 
   const isActive = point.is_active !== false;
+  const apiStatus = await getPointApiStatus(point.id);
 
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -130,6 +133,21 @@ export default async function PointPage({ params }: { params: Promise<{ id: stri
             </div>
           </CardContent>
         </Card>
+
+        {apiStatus && (
+          <Card className="bg-slate-800/50 border-slate-700/50">
+            <CardHeader className="border-b border-slate-700/50">
+              <CardTitle className="text-xl text-white flex items-center gap-3">
+                <Plug className="w-5 h-5 text-emerald-400" />
+                {t('api.keys.title')}
+              </CardTitle>
+              <p className="text-sm text-slate-400">{t('api.keys.subtitle')}</p>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <PointApiCard pointId={point.id} status={apiStatus} />
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

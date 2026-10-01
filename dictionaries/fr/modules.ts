@@ -13,6 +13,7 @@ const modules = {
     RH: 'Ressources humaines',
     CRM: 'CRM clients',
     COMPTABILITE: 'Comptabilité (SYSCOHADA)',
+    API: 'API (marketplaces)',
   },
   descriptions: {
     POS: 'Point de vente, commandes, paiements',
@@ -27,6 +28,7 @@ const modules = {
     RH: 'Gestion du personnel',
     CRM: 'Fichier clients, fiches, historique des commandes',
     COMPTABILITE: 'Écritures automatiques, dépenses, grand livre, balance, bilan, TVA',
+    API: 'Clé d’API par point pour connecter une marketplace de livraison',
   },
   categories: {
     Core: '⚡ Essentiels',

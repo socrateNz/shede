@@ -14,6 +14,7 @@ const modules: typeof fr = {
     RH: 'Human resources',
     CRM: 'Customer CRM',
     COMPTABILITE: 'Accounting (SYSCOHADA)',
+    API: 'API (marketplaces)',
   },
   descriptions: {
     POS: 'Point of sale, orders, payments',
@@ -28,6 +29,7 @@ const modules: typeof fr = {
     RH: 'Staff management',
     CRM: 'Customer records, profiles, order history',
     COMPTABILITE: 'Automatic entries, expenses, ledger, trial balance, balance sheet, VAT',
+    API: 'One API key per outlet to connect a delivery marketplace',
   },
   categories: {
     Core: '⚡ Essentials',
