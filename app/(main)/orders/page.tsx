@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Plus, ShoppingCart, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { OrdersLiveList } from '@/components/orders-live-list';
+import { getMarketplaceInbox } from '@/app/actions/marketplace-orders';
+import { MarketplaceInbox } from '@/components/marketplace/marketplace-inbox';
 
 async function getOrdersStats(orders: any[]) {
   const total = orders.length;
@@ -36,6 +38,8 @@ export default async function OrdersPage() {
   const activeShift = await getStructureActiveShift(session.structureId!);
   const stats = await getOrdersStats(orders);
   const canManageStatus = ['ADMIN', 'CAISSE'].includes(session.role!);
+  // Module API : commandes des marketplaces à accepter (null sans le module ou avant la migration)
+  const marketplace = await getMarketplaceInbox();
 
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -86,6 +90,10 @@ export default async function OrdersPage() {
               </p>
             </div>
           </div>
+        )}
+
+        {marketplace && (
+          <MarketplaceInbox orders={marketplace.orders} paused={marketplace.paused} canDecide={marketplace.canDecide} />
         )}
 
         {/* Stats Cards */}

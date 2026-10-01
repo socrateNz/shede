@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { generatePointApiKey, revokePointApiKey, type PointApiStatus } from '@/app/actions/api-keys';
 import { useT } from '@/lib/i18n/client';
+import { WebhookSettings } from '@/components/organization/webhook-settings';
 
 /** Section « API » de la fiche d'un point (administrateur d'organisation). */
 export function PointApiCard({ pointId, status }: { pointId: string; status: PointApiStatus }) {
@@ -91,6 +92,13 @@ export function PointApiCard({ pointId, status }: { pointId: string; status: Poi
           )}
         </div>
       </div>
+
+      {status.credential &&
+        (status.webhook ? (
+          <WebhookSettings pointId={pointId} webhook={status.webhook} />
+        ) : (
+          <p className="text-sm text-amber-400">{t('api.webhooks.notInstalled')}</p>
+        ))}
 
       <div>
         <p className="mb-2 text-sm font-medium text-slate-300">{t('api.keys.usageTitle', { month: monthLabel })}</p>

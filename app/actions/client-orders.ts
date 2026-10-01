@@ -4,7 +4,7 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { notifyStructureStaff } from '@/lib/notifications';
 import { validatePromoCode, recordPromoUsage } from './promotions';
-import { updateOrderTotal } from './orders';
+import { recomputeOrderTotal } from '@/lib/order-totals';
 import { resolveDelivery, type DeliveryRequest } from '@/lib/delivery';
 import { te } from '@/lib/i18n/server';
 
@@ -175,7 +175,7 @@ export async function createClientOrder(
       }
     }
 
-    await updateOrderTotal(order.id);
+    await recomputeOrderTotal(order.id);
 
     if (verifiedPromo && clientId) {
        await recordPromoUsage(verifiedPromo.promotionId as string, clientId);

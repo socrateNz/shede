@@ -25,6 +25,7 @@ import notify from './notify';
 import landing from './landing';
 import accounting from './accounting';
 import api from './api';
+import marketplace from './marketplace';
 
 /** Dictionnaire français (langue de référence : l'anglais doit avoir les mêmes clés). */
 export const fr = {
@@ -55,4 +56,5 @@ export const fr = {
   landing,
   accounting,
   api,
+  marketplace,
 };

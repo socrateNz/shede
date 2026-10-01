@@ -36,6 +36,7 @@ export const STANDARD_ACCOUNTS: ChartAccount[] = [
   { number: '401', fr: 'Fournisseurs', en: 'Suppliers' },
   { number: '408', fr: 'Fournisseurs, factures non parvenues', en: 'Suppliers, invoices not received' },
   { number: '411', fr: 'Clients', en: 'Customers' },
+  { number: '4111', fr: 'Clients — marketplaces de livraison', en: 'Customers — delivery marketplaces' },
   { number: '421', fr: 'Personnel, avances et acomptes', en: 'Staff advances' },
   { number: '422', fr: 'Personnel, rémunérations dues', en: 'Salaries payable' },
   { number: '431', fr: 'Sécurité sociale (CNPS)', en: 'Social security (CNPS)' },

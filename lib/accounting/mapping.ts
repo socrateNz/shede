@@ -14,6 +14,8 @@ export const PAYMENT_ACCOUNTS: Record<string, string> = {
   CHEQUE: '513',
   MOBILE: '552',
   AUTRE: '571',
+  // Encaissé par la marketplace, qui reverse ensuite au restaurant : créance sur elle.
+  MARKETPLACE: '4111',
 };
 export const PAYMENT_METHODS = ['CASH', 'MOBILE', 'CARD', 'TRANSFER', 'CHEQUE'] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];

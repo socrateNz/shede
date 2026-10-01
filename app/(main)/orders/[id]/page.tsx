@@ -28,6 +28,8 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { PrintOrderButton } from '@/components/print-order-button';
 import { ThermalReceiptPrintButton } from '@/components/thermal-receipt';
+import { DecisionButtons } from '@/components/marketplace/decision-buttons';
+import { Bike } from 'lucide-react';
 
 interface OrderDetail {
   id: string;
@@ -291,6 +293,42 @@ export default function OrderDetailPage() {
           <p className="text-slate-400">{t('orders.detail.subtitle')}</p>
         </div>
 
+        {/* Commande marketplace : origine, décision, livreur */}
+        {(order as any).source === 'API' && (
+          <div className="mb-8 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="flex items-center gap-2 font-semibold text-emerald-200">
+                  <Bike className="h-4 w-4" />
+                  {t('marketplace.orderFrom', {
+                    partner: ((order as any).partner || t('orders.source.API')).toUpperCase(),
+                    ref: (order as any).external_id ?? order.id.slice(0, 8),
+                  })}
+                </p>
+                <p className="mt-1 text-sm text-emerald-100/80">
+                  {[(order as any).customer_name, (order as any).phone].filter(Boolean).join(' · ')}
+                </p>
+                <p className="mt-1 text-sm text-emerald-100/80">
+                  {(order as any).acceptance === 'PENDING'
+                    ? t('marketplace.awaiting')
+                    : (order as any).acceptance === 'REJECTED'
+                      ? t('marketplace.rejectedWith', { reason: (order as any).rejection_reason ?? '—' })
+                      : (order as any).courier_status
+                        ? t('marketplace.courier', {
+                            status: t(`marketplace.courierStatus.${(order as any).courier_status as 'ASSIGNED'}`),
+                            name: (order as any).courier_name ?? '—',
+                          })
+                        : t('marketplace.acceptedWith', { minutes: (order as any).prep_minutes ?? '—' })}
+                </p>
+              </div>
+              {(order as any).acceptance === 'PENDING' && order.status !== 'CANCELLED' && userRole !== 'SERVEUR' && (
+                <DecisionButtons orderId={order.id} onDone={refreshOrderAndAccomp} />
+              )}
+            </div>
+            <p className="mt-2 text-xs text-emerald-100/60">{t('marketplace.paidByPartner')}</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {/* Informations commande */}
           <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-xl">
@@ -356,7 +394,7 @@ export default function OrderDetailPage() {
                     <select
                       value={order.status}
                       onChange={(e) => handleStatusChange(e.target.value)}
-                      disabled={updatingStatus || userRole === 'SERVEUR'}
+                      disabled={updatingStatus || userRole === 'SERVEUR' || (order as any).acceptance === 'PENDING'}
                       className={`bg-slate-700 border border-slate-600 text-slate-50 rounded-lg px-2 py-1 text-sm focus:border-blue-500 ${userRole === 'SERVEUR' ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       {statusOptions.map((status) => (
@@ -486,7 +524,7 @@ export default function OrderDetailPage() {
                     <Plus className="w-4 h-4 mr-2" />
                     {t('orders.detail.add')}
                   </Button>
-                  {order.order_items.length > 0 && userRole !== 'SERVEUR' && (
+                  {order.order_items.length > 0 && userRole !== 'SERVEUR' && (order as any).source !== 'API' && (
                     <Button
                       type="button"
                       onClick={() => setShowPaymentForm(true)}

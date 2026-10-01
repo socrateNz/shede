@@ -22,10 +22,16 @@ export type ApiErrorCode =
   | 'rate_limited'
   | 'not_found'
   | 'validation_error'
+  | 'point_paused'
+  | 'quota_exceeded'
+  | 'invalid_state'
   | 'not_installed'
   | 'internal_error';
 
 const STATUS: Record<ApiErrorCode, number> = {
+  point_paused: 409,
+  quota_exceeded: 403,
+  invalid_state: 409,
   missing_key: 401,
   invalid_key: 401,
   module_disabled: 403,
@@ -131,6 +137,9 @@ async function authenticate(request: Request): Promise<ApiContext | NextResponse
       .from('point_api_credentials')
       .update({ last_used_at: new Date().toISOString() })
       .eq('structure_id', structure.id);
+    // Chaque appel de la marketplace relance aussi ses webhooks en échec.
+    const { processDueWebhooks } = await import('@/lib/api/webhooks');
+    await processDueWebhooks({ structureId: structure.id, limit: 5 });
   });
 
   const { organizations: _org, ...point } = structure;
@@ -143,6 +152,15 @@ async function authenticate(request: Request): Promise<ApiContext | NextResponse
     t: getTranslations(locale).t,
     rate,
   };
+}
+
+/** Corps JSON de la requête, ou null s'il est absent / invalide. */
+export async function readJson(request: Request): Promise<unknown | null> {
+  try {
+    return await request.json();
+  } catch {
+    return null;
+  }
 }
 
 /**

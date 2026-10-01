@@ -12,6 +12,7 @@ const orders = {
     CLIENT: 'Application',
     QR_CODE: 'QR code',
     CAISSE: 'Caisse',
+    API: 'Marketplace',
   },
   list: {
     badge: 'Gestion des commandes',

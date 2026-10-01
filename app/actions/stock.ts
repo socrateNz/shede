@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireModule } from './auth';
 import { revalidatePath } from 'next/cache';
+import { deductOrderStock } from '@/lib/stock';
 
 export type StockItemType = 'product' | 'accompaniment';
 
@@ -171,68 +172,16 @@ export async function processOrderStock(orderId: string) {
   const session = await getSession();
   if (!session || !session.modules?.includes('STOCK')) return;
 
-  const admin = getAdminSupabase();
+  // Uniquement une commande du point de l'utilisateur.
+  const { data: order } = await getAdminSupabase()
+    .from('orders')
+    .select('id')
+    .eq('id', orderId)
+    .eq('structure_id', session.structureId)
+    .maybeSingle();
+  if (!order) return;
 
-  try {
-    // 1. Fetch order items (products)
-    const { data: items } = await admin
-      .from('order_items')
-      .select('product_id, quantity')
-      .eq('order_id', orderId);
-
-    if (!items) return;
-
-    for (const item of items) {
-      // 2. Check if product has a recipe (composition)
-      const { data: recipe } = await admin
-        .from('product_recipes')
-        .select('ingredient_id, quantity')
-        .eq('product_id', item.product_id);
-
-      if (recipe && recipe.length > 0) {
-        for (const ing of recipe) {
-          await addStockMovement(
-            ing.ingredient_id,
-            'OUT',
-            ing.quantity * item.quantity,
-            'sale',
-            'product',
-            orderId
-          );
-        }
-      } else {
-        await addStockMovement(
-          item.product_id,
-          'OUT',
-          item.quantity,
-          'sale',
-          'product',
-          orderId
-        );
-      }
-    }
-
-    // 3. Fetch order accompaniments and deduct their stock
-    const { data: accompChoices } = await admin
-      .from('order_accompaniments')
-      .select('accompaniment_id, quantity')
-      .eq('order_id', orderId);
-
-    if (accompChoices && accompChoices.length > 0) {
-      for (const choice of accompChoices) {
-        await addStockMovement(
-          choice.accompaniment_id,
-          'OUT',
-          choice.quantity,
-          'sale',
-          'accompaniment',
-          orderId
-        );
-      }
-    }
-  } catch (error) {
-    console.error('Error processing order stock:', error);
-  }
+  await deductOrderStock(orderId, session.userId);
 }
 
 export async function getStockMovements(itemId?: string, itemType?: StockItemType) {

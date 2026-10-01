@@ -13,6 +13,7 @@ const orders: typeof fr = {
     CLIENT: 'App',
     QR_CODE: 'QR code',
     CAISSE: 'Till',
+    API: 'Marketplace',
   },
   list: {
     badge: 'Order management',

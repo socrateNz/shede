@@ -3,6 +3,7 @@ import { getTranslations } from '@/lib/i18n/server';
 import { DEFAULT_LOCALE } from '@/lib/i18n/config';
 import {
   EXPENSE_CATEGORIES,
+  PAYMENT_ACCOUNTS,
   SALES_ACCOUNTS,
   SUPPLIERS_ACCOUNT,
   treasuryAccount,
@@ -187,7 +188,13 @@ export async function postOrderSale(orderId: string, options: { force?: boolean 
   const label = tr('accounting.auto.orderSale', { ref });
   const lines: EntryLine[] = [
     ...Object.entries(byAccount).map(([account, debit]) => ({ account, debit })),
-    { account: SALES_ACCOUNTS.receivable, debit: round2(total - paid), label: tr('accounting.auto.receivable', { ref }) },
+    {
+      // Commande marketplace : le reste dû l'est par la marketplace (4111), quel que
+      // soit le chemin de clôture (livreur via l'API ou statut passé à la main).
+      account: order.source === 'API' ? PAYMENT_ACCOUNTS.MARKETPLACE : SALES_ACCOUNTS.receivable,
+      debit: round2(total - paid),
+      label: tr('accounting.auto.receivable', { ref }),
+    },
     ...Object.entries(revenue).map(([account, credit]) => ({ account, credit })),
     { account: SALES_ACCOUNTS.vat, credit: tax },
     { account: SALES_ACCOUNTS.tips, credit: tip, label: tr('accounting.auto.tips', { ref }) },

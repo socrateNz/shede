@@ -6,6 +6,12 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { te } from '@/lib/i18n/server';
 import { firstOf } from '@/lib/license';
 import { API_MODULE, generateApiKey } from '@/lib/api/keys';
+import {
+  generateWebhookSecret,
+  isAllowedWebhookUrl,
+  retryDelivery,
+  sendTestWebhook,
+} from '@/lib/api/webhooks';
 
 // Clés d'API des points (docs/phase13-api.sql), gérées uniquement par
 // l'administrateur de l'organisation propriétaire du point.
@@ -38,7 +44,50 @@ export type PointApiStatus = {
   credential: { prefix: string; createdAt: string; lastUsedAt: string | null } | null;
   usage: { month: string; requests: number; orders: number; organizationOrders: number };
   quota: number | null;
+  /** null tant que l'étape 3 de docs/phase13-api.sql n'est pas exécutée. */
+  webhook: {
+    url: string | null;
+    secret: string | null;
+    deliveries: {
+      id: string;
+      eventType: string;
+      status: 'PENDING' | 'DELIVERED' | 'FAILED';
+      attempts: number;
+      lastStatusCode: number | null;
+      lastError: string | null;
+      createdAt: string;
+    }[];
+  } | null;
 };
+
+async function loadWebhook(pointId: string): Promise<PointApiStatus['webhook']> {
+  const admin = getAdminSupabase();
+  const { data: credential, error } = await admin
+    .from('point_api_credentials')
+    .select('webhook_url, webhook_secret')
+    .eq('structure_id', pointId)
+    .maybeSingle();
+  if (error) return null;
+  const { data: deliveries } = await admin
+    .from('webhook_deliveries')
+    .select('id, event_type, status, attempts, last_status_code, last_error, created_at')
+    .eq('structure_id', pointId)
+    .order('created_at', { ascending: false })
+    .limit(10);
+  return {
+    url: credential?.webhook_url ?? null,
+    secret: credential?.webhook_secret ?? null,
+    deliveries: (deliveries || []).map((d) => ({
+      id: d.id,
+      eventType: d.event_type,
+      status: d.status,
+      attempts: d.attempts,
+      lastStatusCode: d.last_status_code,
+      lastError: d.last_error,
+      createdAt: d.created_at,
+    })),
+  };
+}
 
 /** État de l'API pour un point : clé active, consommation du mois, quota de l'organisation. */
 export async function getPointApiStatus(pointId: string): Promise<PointApiStatus | null> {
@@ -55,7 +104,7 @@ export async function getPointApiStatus(pointId: string): Promise<PointApiStatus
     .eq('structure_id', pointId)
     .maybeSingle();
   if (error) {
-    return { moduleEnabled: owned.moduleEnabled, installed: false, credential: null, usage: empty, quota: owned.quota };
+    return { moduleEnabled: owned.moduleEnabled, installed: false, credential: null, usage: empty, quota: owned.quota, webhook: null };
   }
 
   // Le quota porte sur toute l'organisation : on additionne les commandes de ses points.
@@ -80,7 +129,68 @@ export async function getPointApiStatus(pointId: string): Promise<PointApiStatus
       organizationOrders: (usage || []).reduce((s, u) => s + (u.orders || 0), 0),
     },
     quota: owned.quota,
+    webhook: credential ? await loadWebhook(pointId) : null,
   };
+}
+
+/** Enregistre l'adresse du webhook (vide = désactivé). Un secret est créé au premier enregistrement. */
+export async function saveWebhookUrl(pointId: string, url: string): Promise<Result> {
+  const owned = await requireOwnedPoint(pointId);
+  if (!owned) return { success: false, error: await te('api.errorsAction.forbidden') };
+  const clean = String(url || '').trim();
+  if (clean && !isAllowedWebhookUrl(clean)) return { success: false, error: await te('api.webhooks.invalidUrl') };
+
+  const admin = getAdminSupabase();
+  const { data: credential } = await admin
+    .from('point_api_credentials')
+    .select('webhook_secret')
+    .eq('structure_id', pointId)
+    .maybeSingle();
+  if (!credential) return { success: false, error: await te('api.webhooks.keyFirst') };
+
+  const { error } = await admin
+    .from('point_api_credentials')
+    .update({ webhook_url: clean || null, webhook_secret: credential.webhook_secret ?? generateWebhookSecret() })
+    .eq('structure_id', pointId);
+  if (error) return { success: false, error: await te('api.errorsAction.failed') };
+  revalidatePath(`/organization/points/${pointId}`);
+  return { success: true };
+}
+
+export async function regenerateWebhookSecret(pointId: string): Promise<Result> {
+  const owned = await requireOwnedPoint(pointId);
+  if (!owned) return { success: false, error: await te('api.errorsAction.forbidden') };
+  const { error } = await getAdminSupabase()
+    .from('point_api_credentials')
+    .update({ webhook_secret: generateWebhookSecret() })
+    .eq('structure_id', pointId);
+  if (error) return { success: false, error: await te('api.errorsAction.failed') };
+  revalidatePath(`/organization/points/${pointId}`);
+  return { success: true };
+}
+
+/** Envoie un événement « ping » et renvoie le code HTTP obtenu. */
+export async function testWebhook(pointId: string): Promise<Result<{ delivered: boolean; detail: string }>> {
+  const owned = await requireOwnedPoint(pointId);
+  if (!owned) return { success: false, error: await te('api.errorsAction.forbidden') };
+  const result = await sendTestWebhook(pointId);
+  if (!result) return { success: false, error: await te('api.errorsAction.failed') };
+  revalidatePath(`/organization/points/${pointId}`);
+  return {
+    success: true,
+    data: {
+      delivered: result.status === 'DELIVERED',
+      detail: result.last_status_code ? `HTTP ${result.last_status_code}` : result.last_error ?? '',
+    },
+  };
+}
+
+export async function retryWebhookDelivery(pointId: string, deliveryId: string): Promise<Result> {
+  const owned = await requireOwnedPoint(pointId);
+  if (!owned) return { success: false, error: await te('api.errorsAction.forbidden') };
+  await retryDelivery(pointId, deliveryId);
+  revalidatePath(`/organization/points/${pointId}`);
+  return { success: true };
 }
 
 /** Génère (ou régénère) la clé du point. L'ancienne cesse immédiatement de fonctionner. */

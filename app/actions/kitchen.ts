@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 import { te } from '@/lib/i18n/server';
+import { syncOrderWebhook } from '@/lib/api/webhooks';
 
 const KITCHEN_ROLES = ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CUISINIER'] as const;
 
@@ -30,6 +31,8 @@ export interface KitchenOrder {
 export async function getKitchenOrders(structureId: string): Promise<KitchenOrder[]> {
   const session = await getSession();
   if (!session || !KITCHEN_ROLES.includes(session.role as any)) return [];
+  // Toujours le point de l'utilisateur connecté, jamais celui envoyé par le navigateur.
+  if (session.role !== 'SUPER_ADMIN' && session.structureId !== structureId) return [];
 
   const admin = getAdminSupabase();
   const unknownProduct = await te('errors.unknownProduct');
@@ -53,7 +56,10 @@ export async function getKitchenOrders(structureId: string): Promise<KitchenOrde
       )
     `)
     .eq('structure_id', structureId)
-    .in('kitchen_status', ['PENDING', 'IN_PROGRESS'])
+    // kitchen_status vaut NULL tant que la cuisine n'a pas commencé (aucune valeur par
+    // défaut en base) ; ON_HOLD = commande marketplace pas encore acceptée.
+    .or('kitchen_status.is.null,kitchen_status.in.(PENDING,IN_PROGRESS)')
+    .in('status', ['PENDING', 'IN_PROGRESS'])
     .order('created_at', { ascending: true });
 
   if (error) {
@@ -143,6 +149,7 @@ export async function updateOrderStatusFromKitchen(
     await admin.from('orders').update({ status: 'IN_PROGRESS' }).eq('id', orderId);
   }
 
+  await syncOrderWebhook(orderId); // commande marketplace : « en préparation » / « prête »
   revalidatePath('/kitchen');
   return { success: true };
 }
@@ -153,7 +160,8 @@ export async function updateOrderStatusFromKitchen(
  */
 export async function getBarOrders(structureId: string): Promise<KitchenOrder[]> {
   const session = await getSession();
-  if (!session) return [];
+  if (!session || !['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'BAR'].includes(session.role)) return [];
+  if (session.role !== 'SUPER_ADMIN' && session.structureId !== structureId) return [];
 
   const admin = getAdminSupabase();
   const unknownProduct = await te('errors.unknownProduct');
@@ -177,7 +185,8 @@ export async function getBarOrders(structureId: string): Promise<KitchenOrder[]>
       )
     `)
     .eq('structure_id', structureId)
-    .in('bar_status', ['PENDING', 'IN_PROGRESS'])
+    .or('bar_status.is.null,bar_status.in.(PENDING,IN_PROGRESS)')
+    .in('status', ['PENDING', 'IN_PROGRESS'])
     .order('created_at', { ascending: true });
 
   return (orders || [])
@@ -268,6 +277,7 @@ export async function updateOrderStatusFromBar(
     await admin.from('orders').update({ status: 'IN_PROGRESS' }).eq('id', orderId);
   }
 
+  await syncOrderWebhook(orderId);
   revalidatePath('/bar');
   return { success: true };
 }

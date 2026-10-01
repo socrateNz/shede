@@ -34,6 +34,14 @@ const notify: typeof fr = {
     title: 'New order',
     body: 'Order {ref} created.',
   },
+  marketplaceOrder: {
+    title: 'New {partner} order',
+    body: 'Order {ref} awaiting acceptance.',
+  },
+  marketplaceCancelled: {
+    title: 'Marketplace order cancelled',
+    body: 'The marketplace cancelled order {ref}.',
+  },
   orderUpdated: {
     title: 'Your order has been updated',
     body: 'Your order {ref} is now: {status}.',

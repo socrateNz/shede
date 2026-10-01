@@ -26,6 +26,7 @@ import notify from './notify';
 import landing from './landing';
 import accounting from './accounting';
 import api from './api';
+import marketplace from './marketplace';
 
 export const en: Dictionary = {
   common,
@@ -55,4 +56,5 @@ export const en: Dictionary = {
   landing,
   accounting,
   api,
+  marketplace,
 };

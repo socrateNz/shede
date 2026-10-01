@@ -5,9 +5,9 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { notifyStructureStaff, notifyUser } from '@/lib/notifications';
 import { validatePromoCode, recordPromoUsage } from './promotions';
 import { getActiveShift, getStructureActiveShift } from './shifts';
-import { computeTax } from '@/lib/tax';
-import { getStructureTaxSettings, saveTaxSnapshot } from '@/lib/fiscal';
 import { postSaleSafely } from '@/lib/accounting/posting';
+import { recomputeOrderTotal } from '@/lib/order-totals';
+import { syncOrderWebhook } from '@/lib/api/webhooks';
 import { resolveDelivery } from '@/lib/delivery';
 
 type ProductAccompanimentMapping = {
@@ -265,6 +265,16 @@ export async function createOrderWithItems(
 
     const createdOrderId = order.id as string;
 
+    // Remise manuelle dans sa propre colonne (docs/phase14-fixes.sql) : discount_amount
+    // sera ensuite réécrit avec la remise totale (promotions + manuelle).
+    if (discountAmount > 0) {
+      const { error: manualError } = await admin
+        .from('orders')
+        .update({ manual_discount: discountAmount })
+        .eq('id', createdOrderId);
+      if (manualError) console.warn('[orders] remise manuelle non enregistrée (phase14 à exécuter) :', manualError.message);
+    }
+
     const parentOrderItemsToInsert = consolidatedItems.map((item) => {
       const unitPrice = validProducts.get(item.productId) || 0;
       return {
@@ -440,7 +450,7 @@ export async function createOrderWithItems(
       }
     }
 
-    await updateOrderTotal(createdOrderId);
+    await recomputeOrderTotal(createdOrderId);
 
     if (verifiedPromo) {
       await recordPromoUsage(verifiedPromo.promotionId as string, session.userId);
@@ -504,7 +514,7 @@ export async function addOrderItem(
     }
 
     // Update order totals (respecting price_included)
-    await updateOrderTotal(orderId);
+    await recomputeOrderTotal(orderId);
 
     return { success: true };
   } catch (error) {
@@ -724,7 +734,7 @@ export async function addOrderAccompaniment(
     if (insertErr || !inserted) return { success: false, error: await te('errors.accompanimentAddFailed') };
   }
 
-  await updateOrderTotal(orderId);
+  await recomputeOrderTotal(orderId);
   return { success: true };
 }
 
@@ -759,162 +769,8 @@ export async function setOrderItemPriceCounted(itemId: string, priceCounted: boo
 
   if (updateErr) return { success: false, error: await te('errors.priceFlagFailed') };
 
-  await updateOrderTotal(item.order_id);
+  await recomputeOrderTotal(item.order_id);
   return { success: true };
-}
-
-export async function updateOrderTotal(orderId: string) {
-  const admin = getAdminSupabase();
-
-  // 1. Totals des produits (lignes parent uniquement)
-  const { data: productItems } = await admin
-    .from('order_items')
-    .select('product_id, unit_price, total_price, is_price_counted, quantity')
-    .eq('order_id', orderId)
-    .is('parent_order_item_id', null);
-
-  const productSubtotal =
-    productItems?.reduce((sum, item) => {
-      const counted = item.is_price_counted ?? true;
-      return sum + (counted ? item.total_price : 0);
-    }, 0) || 0;
-
-  // 2. Totals des accompagnements choisis
-  const { data: accChoices } = await admin
-    .from('order_accompaniments')
-    .select('total_price_snapshot, is_price_counted')
-    .eq('order_id', orderId);
-
-  const accSubtotal =
-    accChoices?.reduce((sum, item) => {
-      const counted = item.is_price_counted ?? true;
-      return sum + (counted ? item.total_price_snapshot : 0);
-    }, 0) || 0;
-
-  const subtotal = productSubtotal + accSubtotal;
-
-  // 3. Handle Promotions Logic & Tip & Manual Discount
-  const { data: order } = await admin
-    .from('orders')
-    // * : tolère l'absence de delivery_fee avant docs/phase10-delivery.sql
-    .select('*')
-    .eq('id', orderId)
-    .single();
-
-  if (!order || !productItems) return;
-
-  const now = new Date().toISOString();
-
-  // A. Fetch All Currently Active "STANDARD" and "BUY_X_GET_Y" promos (Auto-applied)
-  const { data: autoPromos } = await admin
-    .from('promotions')
-    .select('*')
-    .eq('structure_id', order.structure_id)
-    .eq('is_active', true)
-    .in('promo_mode', ['STANDARD', 'BUY_X_GET_Y'])
-    .lte('start_date', now)
-    .gte('end_date', now);
-
-  const promosToApply = [...(autoPromos || [])];
-
-  // B. Fetch the specifically attached "CODE" promo (if any)
-  if (order.promotion_id) {
-    const { data: selectedPromo } = await admin
-      .from('promotions')
-      .select('*')
-      .eq('id', order.promotion_id)
-      .single();
-
-    if (selectedPromo && selectedPromo.is_active && selectedPromo.promo_mode === 'CODE') {
-      // Check dates
-      const start = new Date(selectedPromo.start_date);
-      const end = new Date(selectedPromo.end_date);
-      const current = new Date();
-      if (current >= start && current <= end) {
-        promosToApply.push(selectedPromo);
-      }
-    }
-  }
-
-  // C. Apply Cascading Logic
-  let runningSubtotal = 0;
-  
-  // 1. First Pass: Apply PRODUCT-level promotions per item
-  for (const item of productItems) {
-    let itemPriceWithPromo = item.total_price || 0;
-    const productPromos = promosToApply.filter(p => p.scope === 'PRODUCT' && p.product_id === item.product_id);
-    
-    for (const promo of productPromos) {
-      if (promo.promo_mode === 'BUY_X_GET_Y') {
-        const y = promo.required_qty || 1;
-        const x = promo.free_qty || 0;
-        const setSize = y + x;
-        const quantity = item.quantity || 0;
-        
-        let freeUnits = 0;
-        const isCumulative = promo.is_cumulative !== false; // default to true
-        if (isCumulative) {
-          freeUnits = Math.floor(quantity / setSize) * x;
-        } else if (quantity >= setSize) {
-          freeUnits = x;
-        }
-        itemPriceWithPromo -= (freeUnits * (item.unit_price || 0));
-      } else {
-        // STANDARD or CODE with PRODUCT scope
-        if (promo.type === 'PERCENTAGE') {
-          itemPriceWithPromo *= (1 - (promo.value || 0) / 100);
-        } else {
-          itemPriceWithPromo = Math.max(0, itemPriceWithPromo - ((promo.value || 0) * (item.quantity || 0)));
-        }
-      }
-    }
-    runningSubtotal += Math.max(0, itemPriceWithPromo);
-  }
-
-  // Add accompaniments to the intermediate subtotal
-  runningSubtotal += accSubtotal;
-
-  // 2. Second Pass: Apply ORDER-level promotions to the intermediate subtotal
-  const orderPromos = promosToApply.filter(p => p.scope === 'ORDER');
-  for (const promo of orderPromos) {
-    if (runningSubtotal >= (promo.min_order_amount || 0)) {
-      if (promo.type === 'PERCENTAGE') {
-        runningSubtotal *= (1 - (promo.value || 0) / 100);
-      } else {
-        runningSubtotal = Math.max(0, runningSubtotal - (promo.value || 0));
-      }
-    }
-  }
-
-  // 3. Appliquer la remise manuelle et le pourboire
-  const manualDiscount = Number(order.discount_amount) || 0;
-  const tipAmount = Number(order.tip_amount) || 0;
-  const takeawayFee = Number(order.takeaway_fee) || 0;
-  const deliveryFee = Number(order.delivery_fee) || 0;
-  
-  // Le total de la remise globale est la somme de la remise promo et de la remise manuelle
-  const promoDiscountAmount = subtotal - runningSubtotal;
-  const totalDiscount = promoDiscountAmount + manualDiscount;
-  
-  // TVA selon le régime du point (prix TTC : extraite ; prix HT : ajoutée).
-  // Base taxable : ventes nettes de remises + frais d'emballage et de livraison.
-  // Le pourboire n'est pas une recette taxable : il s'ajoute après la TVA.
-  const taxSettings = await getStructureTaxSettings(order.structure_id);
-  const taxable = Math.max(0, runningSubtotal - manualDiscount) + takeawayFee + deliveryFee;
-  const { tax, total: taxedTotal } = computeTax(taxable, taxSettings);
-  const finalTotal = taxedTotal + tipAmount;
-
-  await admin
-    .from('orders')
-    .update({
-      subtotal,
-      discount_amount: totalDiscount,
-      tax,
-      total: finalTotal,
-    })
-    .eq('id', orderId);
-
-  await saveTaxSnapshot('orders', orderId, taxSettings);
 }
 
 import { processOrderStock } from './stock';
@@ -969,6 +825,9 @@ export async function updateOrderStatus(
       await postSaleSafely('ORDER', orderId);
     }
 
+    // Commande marketplace : la marketplace est prévenue du nouveau statut.
+    await syncOrderWebhook(orderId);
+
     // Notify client if applicable
     const { data: order } = await admin.from('orders').select('client_id, user_id').eq('id', orderId).single();
     const targetUserId = order?.client_id || order?.user_id;
@@ -1020,7 +879,7 @@ export async function removeOrderItem(itemId: string) {
     }
 
     if (item) {
-      await updateOrderTotal(item.order_id);
+      await recomputeOrderTotal(item.order_id);
     }
 
     return { success: true };
@@ -1069,7 +928,7 @@ export async function removeOrderAccompaniment(orderAccompanimentId: string) {
       return { success: false, error: await te('errors.accompanimentRemoveFailed') };
     }
 
-    await updateOrderTotal(existing.order_id);
+    await recomputeOrderTotal(existing.order_id);
     return { success: true };
   } catch (error) {
     console.error('Remove order accompaniment error:', error);

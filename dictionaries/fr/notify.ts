@@ -33,6 +33,14 @@ const notify = {
     title: 'Nouvelle commande',
     body: 'Commande {ref} créée.',
   },
+  marketplaceOrder: {
+    title: 'Nouvelle commande {partner}',
+    body: 'Commande {ref} à accepter.',
+  },
+  marketplaceCancelled: {
+    title: 'Commande marketplace annulée',
+    body: 'La marketplace a annulé la commande {ref}.',
+  },
   orderUpdated: {
     title: 'Mise à jour de votre commande',
     body: 'Votre commande {ref} est maintenant : {status}.',

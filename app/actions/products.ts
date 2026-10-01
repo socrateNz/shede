@@ -5,6 +5,7 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { te } from '@/lib/i18n/server';
+import { emitMenuUpdated } from '@/lib/api/webhooks';
 
 export async function getProducts() {
   const session = await getSession();
@@ -221,6 +222,7 @@ export async function createProductWithFormData(
     });
 
     revalidatePath('/products');
+    await emitMenuUpdated(session.structureId as string, { product_id: product.id, change: 'created' });
 
     return { success: true, error: '' };
   } catch (error) {
@@ -296,6 +298,7 @@ export async function createProduct(params: {
     }
 
     revalidatePath('/products');
+    await emitMenuUpdated(session.structureId as string, { product_id: product.id, change: 'created' });
 
     return { success: true, error: '' };
   } catch (error) {
@@ -361,6 +364,11 @@ export async function updateProduct(params: {
 
     revalidatePath('/products');
     revalidatePath(`/products/${params.productId}`);
+    await emitMenuUpdated(session.structureId as string, {
+      product_id: params.productId,
+      change: 'updated',
+      is_available: params.isAvailable,
+    });
 
     return { success: true };
   } catch (error) {
@@ -388,6 +396,7 @@ export async function deleteProduct(productId: string) {
       return { success: false, error: await te('errors.productDeleteFailed') };
     }
 
+    await emitMenuUpdated(session.structureId as string, { product_id: productId, change: 'deleted' });
     return { success: true };
   } catch (error) {
     console.error('Delete product error:', error);

@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 import { te } from '@/lib/i18n/server';
+import { emitMenuUpdated } from '@/lib/api/webhooks';
 
 export async function getAccompaniments() {
   const session = await getSession();
@@ -82,6 +83,7 @@ export async function updateAccompaniment(id: string, name: string, price: numbe
     if (error) return { success: false, error: await te('errors.updateFailed') };
 
     revalidatePath('/accompaniments');
+    await emitMenuUpdated(session.structureId as string, { accompaniment_id: id, change: 'updated', is_available: isAvailable });
     return { success: true };
   } catch (error) {
     return { success: false, error: await te('errors.updateFailed') };
@@ -105,6 +107,7 @@ export async function deleteAccompaniment(id: string) {
     if (error) return { success: false, error: await te('errors.deleteFailed') };
 
     revalidatePath('/accompaniments');
+    await emitMenuUpdated(session.structureId as string, { accompaniment_id: id, change: 'deleted' });
     return { success: true };
   } catch (error) {
     return { success: false, error: await te('errors.deleteFailed') };
