@@ -3,7 +3,7 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { getTranslations } from '@/lib/i18n/server';
 import { localeFromAcceptLanguage, type Locale } from '@/lib/i18n/config';
 import { firstOf, isLicenseValid } from '@/lib/license';
-import { API_MODULE, hashApiKey, looksLikeApiKey } from '@/lib/api/keys';
+import { API_MODULE, apiKeyMode, hashApiKey, type ApiKeyMode } from '@/lib/api/keys';
 
 // Authentification et réponses de l'API publique (/api/v1).
 // Une requête porte la clé d'un point : `Authorization: Bearer shd_live_…`
@@ -52,7 +52,22 @@ export type ApiContext = {
   locale: Locale;
   t: ReturnType<typeof getTranslations>['t'];
   rate: { limit: number; remaining: number };
+  /** 'test' : clé shd_test_ — rien n'est écrit en base, les commandes sont simulées. */
+  mode: ApiKeyMode;
 };
+
+/**
+ * Limitation de débit des clés de test, en mémoire (aucune écriture en base).
+ * Approximative en hébergement multi-instances : suffisant pour un bac à sable.
+ */
+const testWindows = new Map<string, { minute: number; hits: number }>();
+function testHit(structureId: string) {
+  const minute = Math.floor(Date.now() / 60_000);
+  const current = testWindows.get(structureId);
+  const hits = current && current.minute === minute ? current.hits + 1 : 1;
+  testWindows.set(structureId, { minute, hits });
+  return hits;
+}
 
 function rateHeaders(rate?: ApiContext['rate']): Record<string, string> {
   if (!rate) return {};
@@ -92,11 +107,12 @@ async function authenticate(request: Request): Promise<ApiContext | NextResponse
   const locale = localeFromAcceptLanguage(request.headers.get('accept-language'));
   const key = readKey(request);
   if (!key) return apiError(locale, 'missing_key');
-  if (!looksLikeApiKey(key)) return apiError(locale, 'invalid_key');
+  const mode = apiKeyMode(key);
+  if (!mode) return apiError(locale, 'invalid_key');
 
   const admin = getAdminSupabase();
   const { data: credential, error } = await admin
-    .from('point_api_credentials')
+    .from(mode === 'test' ? 'point_api_test_credentials' : 'point_api_credentials')
     .select('structure_id')
     .eq('key_hash', hashApiKey(key))
     .maybeSingle();
@@ -121,18 +137,25 @@ async function authenticate(request: Request): Promise<ApiContext | NextResponse
   if (!(structure.modules as string[] | null)?.includes(API_MODULE)) return apiError(locale, 'module_disabled');
   if (structure.is_active === false) return apiError(locale, 'point_inactive');
 
-  const { data: hits, error: hitError } = await admin.rpc('api_hit', { p_structure_id: structure.id });
-  if (hitError) {
-    console.error('[api] limitation de débit :', hitError.message);
-    return apiError(locale, 'internal_error');
+  let hits: number;
+  if (mode === 'test') {
+    hits = testHit(structure.id);
+  } else {
+    const { data, error: hitError } = await admin.rpc('api_hit', { p_structure_id: structure.id });
+    if (hitError) {
+      console.error('[api] limitation de débit :', hitError.message);
+      return apiError(locale, 'internal_error');
+    }
+    hits = Number(data);
   }
-  const rate = { limit: RATE_LIMIT_PER_MINUTE, remaining: RATE_LIMIT_PER_MINUTE - Number(hits) };
+  const rate = { limit: RATE_LIMIT_PER_MINUTE, remaining: RATE_LIMIT_PER_MINUTE - hits };
   if (rate.remaining < 0) {
     const retryAfter = 60 - new Date().getSeconds();
     return apiError(locale, 'rate_limited', { rate, headers: { 'Retry-After': String(retryAfter) } });
   }
 
-  after(async () => {
+  // Clé de production uniquement : date de dernière utilisation et relance des webhooks.
+  if (mode === 'live') after(async () => {
     await admin
       .from('point_api_credentials')
       .update({ last_used_at: new Date().toISOString() })
@@ -151,6 +174,7 @@ async function authenticate(request: Request): Promise<ApiContext | NextResponse
     locale,
     t: getTranslations(locale).t,
     rate,
+    mode,
   };
 }
 

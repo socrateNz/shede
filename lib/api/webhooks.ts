@@ -108,7 +108,7 @@ export async function deliver(row: DeliveryRow) {
   if (!credential?.webhook_url || !credential.webhook_secret) {
     errorText = 'webhook non configuré';
   } else {
-    const body = JSON.stringify({ id: row.id, type: row.event_type, created_at: row.created_at, data: row.payload });
+    const body = JSON.stringify({ id: row.id, type: row.event_type, created_at: row.created_at, livemode: true, data: row.payload });
     const timestamp = Math.floor(Date.now() / 1000);
     try {
       const response = await fetch(credential.webhook_url, {
@@ -180,6 +180,53 @@ export async function sendTestWebhook(structureId: string) {
     .eq('id', row.id)
     .single();
   return result;
+}
+
+/**
+ * Mode test : envoie un événement signé à l'URL du point sans rien enregistrer
+ * (pas de ligne webhook_deliveries, pas de nouvelle tentative).
+ */
+export async function sendUnrecordedWebhook(structureId: string, type: WebhookEventType, data: unknown) {
+  const { data: credential } = await getAdminSupabase()
+    .from('point_api_credentials')
+    .select('webhook_url, webhook_secret')
+    .eq('structure_id', structureId)
+    .maybeSingle();
+  if (!credential?.webhook_url || !credential.webhook_secret || !isAllowedWebhookUrl(credential.webhook_url)) {
+    return { configured: false as const };
+  }
+
+  const id = 'evt_test_' + randomBytes(12).toString('base64url');
+  const body = JSON.stringify({ id, type, created_at: new Date().toISOString(), livemode: false, data });
+  const timestamp = Math.floor(Date.now() / 1000);
+  let statusCode: number | null = null;
+  let errorText: string | null = null;
+  try {
+    const response = await fetch(credential.webhook_url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Shede-Webhooks/1.0',
+        'Shede-Event': type,
+        'Shede-Delivery': id,
+        'Shede-Signature': `t=${timestamp},v1=${signWebhook(credential.webhook_secret, timestamp, body)}`,
+      },
+      body,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    statusCode = response.status;
+    if (!response.ok) errorText = `HTTP ${response.status}`;
+  } catch (error) {
+    errorText = (error as Error).name === 'TimeoutError' ? 'timeout' : (error as Error).message.slice(0, 200);
+  }
+  return {
+    configured: true as const,
+    id,
+    delivered: statusCode !== null && statusCode >= 200 && statusCode < 300,
+    status_code: statusCode,
+    error: errorText,
+  };
 }
 
 /** Relance planifiée dès maintenant (bouton « Renvoyer »). */

@@ -5,7 +5,7 @@ import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { te } from '@/lib/i18n/server';
 import { firstOf } from '@/lib/license';
-import { API_MODULE, generateApiKey } from '@/lib/api/keys';
+import { API_MODULE, generateApiKey, type ApiKeyMode } from '@/lib/api/keys';
 import {
   generateWebhookSecret,
   isAllowedWebhookUrl,
@@ -42,6 +42,9 @@ export type PointApiStatus = {
   moduleEnabled: boolean;
   installed: boolean;
   credential: { prefix: string; createdAt: string; lastUsedAt: string | null } | null;
+  /** Clé de test (shd_test_) : null si absente ; testInstalled = false avant l'étape 4 de phase13. */
+  testCredential: { prefix: string; createdAt: string } | null;
+  testInstalled: boolean;
   usage: { month: string; requests: number; orders: number; organizationOrders: number };
   quota: number | null;
   /** null tant que l'étape 3 de docs/phase13-api.sql n'est pas exécutée. */
@@ -104,8 +107,22 @@ export async function getPointApiStatus(pointId: string): Promise<PointApiStatus
     .eq('structure_id', pointId)
     .maybeSingle();
   if (error) {
-    return { moduleEnabled: owned.moduleEnabled, installed: false, credential: null, usage: empty, quota: owned.quota, webhook: null };
+    return {
+      moduleEnabled: owned.moduleEnabled,
+      installed: false,
+      credential: null,
+      testCredential: null,
+      testInstalled: false,
+      usage: empty,
+      quota: owned.quota,
+      webhook: null,
+    };
   }
+  const { data: testCredential, error: testError } = await admin
+    .from('point_api_test_credentials')
+    .select('key_prefix, created_at')
+    .eq('structure_id', pointId)
+    .maybeSingle();
 
   // Le quota porte sur toute l'organisation : on additionne les commandes de ses points.
   const { data: points } = await admin.from('structures').select('id').eq('organization_id', owned.point.organization_id);
@@ -122,6 +139,8 @@ export async function getPointApiStatus(pointId: string): Promise<PointApiStatus
     credential: credential
       ? { prefix: credential.key_prefix, createdAt: credential.created_at, lastUsedAt: credential.last_used_at }
       : null,
+    testCredential: testCredential ? { prefix: testCredential.key_prefix, createdAt: testCredential.created_at } : null,
+    testInstalled: !testError,
     usage: {
       month: monthStart,
       requests: own?.requests ?? 0,
@@ -193,26 +212,32 @@ export async function retryWebhookDelivery(pointId: string, deliveryId: string):
   return { success: true };
 }
 
-/** Génère (ou régénère) la clé du point. L'ancienne cesse immédiatement de fonctionner. */
-export async function generatePointApiKey(pointId: string): Promise<Result<{ key: string }>> {
+const KEY_TABLES: Record<ApiKeyMode, string> = {
+  live: 'point_api_credentials',
+  test: 'point_api_test_credentials',
+};
+
+/**
+ * Génère (ou régénère) la clé du point — de production, ou de test (shd_test_ :
+ * accès au menu réel, commandes simulées sans aucune écriture en base).
+ * L'ancienne clé du même mode cesse immédiatement de fonctionner.
+ */
+export async function generatePointApiKey(pointId: string, mode: ApiKeyMode = 'live'): Promise<Result<{ key: string }>> {
   const owned = await requireOwnedPoint(pointId);
   if (!owned) return { success: false, error: await te('api.errorsAction.forbidden') };
   if (!owned.moduleEnabled) return { success: false, error: await te('api.errorsAction.moduleRequired') };
 
-  const { key, prefix, hash } = generateApiKey();
-  const { error } = await getAdminSupabase()
-    .from('point_api_credentials')
-    .upsert(
-      {
-        structure_id: pointId,
-        key_prefix: prefix,
-        key_hash: hash,
-        created_by: owned.session.userId,
-        created_at: new Date().toISOString(),
-        last_used_at: null,
-      },
-      { onConflict: 'structure_id' }
-    );
+  const keyMode: ApiKeyMode = mode === 'test' ? 'test' : 'live';
+  const { key, prefix, hash } = generateApiKey(keyMode);
+  const row = {
+    structure_id: pointId,
+    key_prefix: prefix,
+    key_hash: hash,
+    created_by: owned.session.userId,
+    created_at: new Date().toISOString(),
+    ...(keyMode === 'live' ? { last_used_at: null } : {}),
+  };
+  const { error } = await getAdminSupabase().from(KEY_TABLES[keyMode]).upsert(row, { onConflict: 'structure_id' });
   if (error) {
     console.error('[api-keys] génération :', error.message);
     return { success: false, error: await te('api.errorsAction.failed') };
@@ -221,10 +246,11 @@ export async function generatePointApiKey(pointId: string): Promise<Result<{ key
   return { success: true, data: { key } };
 }
 
-export async function revokePointApiKey(pointId: string): Promise<Result> {
+export async function revokePointApiKey(pointId: string, mode: ApiKeyMode = 'live'): Promise<Result> {
   const owned = await requireOwnedPoint(pointId);
   if (!owned) return { success: false, error: await te('api.errorsAction.forbidden') };
-  const { error } = await getAdminSupabase().from('point_api_credentials').delete().eq('structure_id', pointId);
+  const table = KEY_TABLES[mode === 'test' ? 'test' : 'live'];
+  const { error } = await getAdminSupabase().from(table).delete().eq('structure_id', pointId);
   if (error) return { success: false, error: await te('api.errorsAction.failed') };
   revalidatePath(`/organization/points/${pointId}`);
   return { success: true };

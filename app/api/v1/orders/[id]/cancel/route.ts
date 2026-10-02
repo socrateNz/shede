@@ -1,10 +1,21 @@
 import { apiError, apiOk, readJson, withApi } from '@/lib/api/context';
 import { cancelApiOrder, cancelOrderSchema, loadApiOrder, serializeOrder, zodDetails } from '@/lib/api/orders';
+import { cancelSandboxOrder, loadSandboxOrder } from '@/lib/api/sandbox';
 
 /** POST /api/v1/orders/{id}/cancel — possible tant que la préparation n'a pas commencé. */
 export const POST = withApi<{ id: string }>(async (ctx, request, { id }) => {
   const parsed = cancelOrderSchema.safeParse((await readJson(request)) ?? {});
   if (!parsed.success) return apiError(ctx.locale, 'validation_error', { rate: ctx.rate, details: zodDetails(parsed.error) });
+
+  if (ctx.mode === 'test') {
+    const simulated = loadSandboxOrder(ctx.structureId, id);
+    if (!simulated) return apiError(ctx.locale, 'not_found', { rate: ctx.rate });
+    const outcome = cancelSandboxOrder(simulated, parsed.data.reason);
+    if (!outcome.ok) {
+      return apiError(ctx.locale, 'invalid_state', { rate: ctx.rate, details: [{ field: 'status', code: outcome.status }] });
+    }
+    return apiOk(ctx, outcome.order);
+  }
 
   const order = await loadApiOrder(ctx.structureId, id);
   if (!order) return apiError(ctx.locale, 'not_found', { rate: ctx.rate });

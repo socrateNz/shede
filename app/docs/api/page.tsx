@@ -5,6 +5,7 @@ import { LanguageSwitcher } from '@/components/language-switcher';
 import { getLocale } from '@/lib/i18n/server';
 import { API_DOCS_CONTENT, type ApiDocsContent } from './content';
 import { CopyButton } from './copy-button';
+import { TryItButton, TryItProvider } from './try-it';
 
 export async function generateMetadata() {
   const c = API_DOCS_CONTENT[await getLocale()];
@@ -31,7 +32,7 @@ const examples = (api: string) => ({
   point: `curl ${api}/point \\\n  -H "Authorization: Bearer $SHEDE_KEY"`,
   pointResponse: json({
     data: {
-      id: '3f9d78e3-…', name: 'Restaurant Le Wouri', type: 'RESTAURANT', phone: '+237671234567',
+      id: '3f9d78e3-…', livemode: true, name: 'Restaurant Le Wouri', type: 'RESTAURANT', phone: '+237671234567',
       address: 'Rue Joss', city: 'Douala', country: 'Cameroun', currency: 'XAF',
       tax: { rate: 19.25, prices_include_tax: true }, takeaway_fee: 200, logo_url: null,
     },
@@ -59,7 +60,7 @@ const examples = (api: string) => ({
   })}'`,
   order: json({
     data: {
-      id: 'c42f…', external_id: 'GLV-48213', partner: 'glovo', status: 'accepted',
+      id: 'c42f…', livemode: true, external_id: 'GLV-48213', partner: 'glovo', status: 'accepted',
       created_at: '2026-10-01T12:15:00.000Z', updated_at: '2026-10-01T12:16:10.000Z',
       accepted_at: '2026-10-01T12:16:10.000Z', prep_minutes: 20, estimated_ready_at: '2026-10-01T12:36:10.000Z',
       rejection_reason: null, cancel_reason: null, invoice_number: null,
@@ -86,7 +87,12 @@ Shede-Event: order.status_changed
 Shede-Delivery: 6f1c…
 Shede-Signature: t=1759312345,v1=5d41402abc4b2a76b9719d911017c592…
 
-${json({ id: '6f1c…', type: 'order.status_changed', created_at: '2026-10-01T12:16:10.000Z', data: { previous_status: 'pending_acceptance', order: { '…': '…' } } })}`,
+${json({ id: '6f1c…', type: 'order.status_changed', created_at: '2026-10-01T12:16:10.000Z', livemode: true, data: { previous_status: 'pending_acceptance', order: { '…': '…' } } })}`,
+  testKey: 'Authorization: Bearer shd_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  testWebhook: `curl -X POST ${api}/sandbox/webhooks \\
+  -H "Authorization: Bearer $SHEDE_TEST_KEY" -H "Content-Type: application/json" \\
+  -d '{ "type": "order.status_changed", "order_id": "test_…", "status": "ready" }'`,
+  testWebhookResponse: json({ data: { configured: true, id: 'evt_test_…', delivered: true, status_code: 200, error: null } }),
   signature: `import { createHmac, timingSafeEqual } from 'crypto';
 
 function verifyShedeSignature(secret, header, rawBody) {
@@ -128,12 +134,15 @@ function Code({ code, language, c }: { code: string; language: string; c: ApiDoc
   );
 }
 
-function Endpoint({ method, path }: { method: 'GET' | 'POST'; path: string }) {
+function Endpoint({ method, path, tryId, c }: { method: 'GET' | 'POST'; path: string; tryId?: string; c?: ApiDocsContent }) {
   return (
-    <p className="mb-3 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-mono text-sm shadow-sm">
-      <span className={method === 'GET' ? 'font-bold text-emerald-600' : 'font-bold text-purple-600'}>{method}</span>
-      <span className="text-slate-800">/api/v1{path}</span>
-    </p>
+    <div className="mb-3 flex flex-wrap items-center gap-2">
+      <p className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-mono text-sm shadow-sm">
+        <span className={method === 'GET' ? 'font-bold text-emerald-600' : 'font-bold text-purple-600'}>{method}</span>
+        <span className="text-slate-800">/api/v1{path}</span>
+      </p>
+      {tryId && c && <TryItButton endpointId={tryId} label={c.tryIt.open} />}
+    </div>
   );
 }
 
@@ -174,12 +183,13 @@ function Table({ head, rows }: { head: string[]; rows: (string | React.ReactNode
 }
 
 export default async function ApiDocsPage() {
-  const c = API_DOCS_CONTENT[await getLocale()];
+  const locale = await getLocale();
+  const c = API_DOCS_CONTENT[locale];
   const api = `${await baseUrl()}/api/v1`;
   const ex = examples(api);
 
   const nav: { group: string; items: [string, string][] }[] = [
-    { group: c.groups.start, items: [['intro', c.nav.intro], ['auth', c.nav.auth], ['responses', c.nav.responses], ['limits', c.nav.limits]] },
+    { group: c.groups.start, items: [['intro', c.nav.intro], ['auth', c.nav.auth], ['responses', c.nav.responses], ['limits', c.nav.limits], ['test', c.nav.test]] },
     { group: c.groups.resources, items: [['point', c.nav.point], ['menu', c.nav.menu]] },
     {
       group: c.groups.orders,
@@ -196,6 +206,7 @@ export default async function ApiDocsPage() {
   ];
 
   return (
+    <TryItProvider c={c} locale={locale}>
     <div className="flex min-h-screen flex-col bg-[#fdfdff]">
       <header className="fixed inset-x-0 top-0 z-50 h-16 border-b border-slate-200/60 bg-white/80 backdrop-blur-xl">
         <div className="mx-auto flex h-full max-w-screen-xl items-center justify-between gap-4 px-4">
@@ -212,6 +223,7 @@ export default async function ApiDocsPage() {
             </span>
           </div>
           <div className="flex items-center gap-3">
+            <TryItButton label={c.tryIt.open} variant="header" />
             <LanguageSwitcher tone="light" />
             <Link href="/docs" className="hidden items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 sm:inline-flex">
               <ArrowLeft className="h-4 w-4" /> {c.header.back}
@@ -276,15 +288,33 @@ export default async function ApiDocsPage() {
               <p className="text-slate-600">{c.limits.quota}</p>
             </Section>
 
+            <Section id="test" title={c.test.title}>
+              <p className="text-slate-600">{c.test.text}</p>
+              <Code code={ex.testKey} language="HTTP" c={c} />
+              <ul className="mb-4 list-disc space-y-2 pl-5 text-slate-600">
+                {c.test.rules.map((rule) => (
+                  <li key={rule}>{rule}</li>
+                ))}
+              </ul>
+              <h3 className="mt-6 font-semibold text-slate-800">{c.test.timelineTitle}</h3>
+              <Table head={[c.test.colDelay, c.test.colStatus]} rows={c.test.timeline} />
+              <p className="text-slate-600">{c.test.reject}</p>
+              <h3 className="mt-6 font-semibold text-slate-800">{c.test.webhookTitle}</h3>
+              <Endpoint method="POST" path="/sandbox/webhooks" tryId="sandbox-webhooks" c={c} />
+              <p className="text-slate-600">{c.test.webhook}</p>
+              <Code code={ex.testWebhook} language="bash" c={c} />
+              <Code code={ex.testWebhookResponse} language="JSON" c={c} />
+            </Section>
+
             <Section id="point" title={c.point.title}>
-              <Endpoint method="GET" path="/point" />
+              <Endpoint method="GET" path="/point" tryId="point" c={c} />
               <p className="text-slate-600">{c.point.text}</p>
               <Code code={ex.point} language="bash" c={c} />
               <Code code={ex.pointResponse} language="JSON" c={c} />
             </Section>
 
             <Section id="menu" title={c.menu.title}>
-              <Endpoint method="GET" path="/menu" />
+              <Endpoint method="GET" path="/menu" tryId="menu" c={c} />
               <p className="text-slate-600">{c.menu.text}</p>
               <Code code={ex.menu} language="bash" c={c} />
               <Code code={ex.menuResponse} language="JSON" c={c} />
@@ -298,7 +328,7 @@ export default async function ApiDocsPage() {
             </Section>
 
             <Section id="create-order" title={c.createOrder.title}>
-              <Endpoint method="POST" path="/orders" />
+              <Endpoint method="POST" path="/orders" tryId="create-order" c={c} />
               <Code code={ex.createOrder} language="bash" c={c} />
               <h3 className="mt-6 font-semibold text-slate-800">{c.createOrder.fields}</h3>
               <Table
@@ -322,26 +352,26 @@ export default async function ApiDocsPage() {
             </Section>
 
             <Section id="get-order" title={c.getOrder.title}>
-              <Endpoint method="GET" path="/orders/{id}" />
+              <Endpoint method="GET" path="/orders/{id}" tryId="get-order" c={c} />
               <p className="text-slate-600">{c.getOrder.text}</p>
               <Code code={ex.getOrder} language="bash" c={c} />
               <Code code={ex.order} language="JSON" c={c} />
             </Section>
 
             <Section id="list-orders" title={c.listOrders.title}>
-              <Endpoint method="GET" path="/orders?updated_since=…&limit=50" />
+              <Endpoint method="GET" path="/orders?updated_since=…&limit=50" tryId="list-orders" c={c} />
               <p className="text-slate-600">{c.listOrders.text}</p>
               <Code code={ex.listOrders} language="bash" c={c} />
             </Section>
 
             <Section id="cancel" title={c.cancel.title}>
-              <Endpoint method="POST" path="/orders/{id}/cancel" />
+              <Endpoint method="POST" path="/orders/{id}/cancel" tryId="cancel" c={c} />
               <p className="text-slate-600">{c.cancel.text}</p>
               <Code code={ex.cancel} language="bash" c={c} />
             </Section>
 
             <Section id="delivery" title={c.delivery.title}>
-              <Endpoint method="POST" path="/orders/{id}/delivery-events" />
+              <Endpoint method="POST" path="/orders/{id}/delivery-events" tryId="delivery" c={c} />
               <p className="text-slate-600">{c.delivery.text}</p>
               <Code code={ex.delivery} language="bash" c={c} />
             </Section>
@@ -370,5 +400,6 @@ export default async function ApiDocsPage() {
         </main>
       </div>
     </div>
+    </TryItProvider>
   );
 }

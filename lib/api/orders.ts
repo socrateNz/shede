@@ -91,6 +91,8 @@ export function serializeOrder(order: Record<string, any>) {
       : null;
   return {
     id: order.id as string,
+    // false : commande simulée avec une clé de test (rien n'est enregistré).
+    livemode: order.livemode ?? true,
     external_id: order.external_id ?? null,
     partner: order.partner ?? null,
     status: apiOrderStatus(order),
@@ -165,20 +167,15 @@ export type CreateOrderResult =
   | { kind: 'paused' | 'quota_exceeded' }
   | { kind: 'invalid'; details: { field: string; code: string }[] };
 
-export async function createApiOrder(structure: Record<string, any>, input: CreateOrderInput): Promise<CreateOrderResult> {
-  const admin = getAdminSupabase();
-  const structureId = structure.id as string;
-
-  // Requête rejouée (même numéro de commande marketplace) : on renvoie l'existante.
-  const existing = await loadApiOrder(structureId, input.external_id);
-  if (existing) return { kind: 'replayed', order: existing };
-  if (structure.api_paused) return { kind: 'paused' };
-
-  // 1. Produits et accompagnements du point, relus en base
+/**
+ * Relit en base les produits et accompagnements demandés et vérifie qu'ils
+ * peuvent être commandés. Partagé avec le mode test : mêmes règles qu'en production.
+ */
+export async function validateOrderItems(structureId: string, input: CreateOrderInput) {
   const productIds = [...new Set(input.items.map((i) => i.product_id))];
-  const { data: products, error } = await admin
+  const { data: products, error } = await getAdminSupabase()
     .from('products')
-    .select('id, price, is_available, is_deleted, product_accompaniments(accompaniment_id, quantity, accompaniments(id, price, is_available, is_deleted))')
+    .select('id, name, price, is_available, is_deleted, product_accompaniments(accompaniment_id, quantity, accompaniments(id, name, price, is_available, is_deleted))')
     .eq('structure_id', structureId)
     .in('id', productIds);
   if (error) throw error;
@@ -201,6 +198,20 @@ export async function createApiOrder(structure: Record<string, any>, input: Crea
       }
     });
   });
+  return { details, productById };
+}
+
+export async function createApiOrder(structure: Record<string, any>, input: CreateOrderInput): Promise<CreateOrderResult> {
+  const admin = getAdminSupabase();
+  const structureId = structure.id as string;
+
+  // Requête rejouée (même numéro de commande marketplace) : on renvoie l'existante.
+  const existing = await loadApiOrder(structureId, input.external_id);
+  if (existing) return { kind: 'replayed', order: existing };
+  if (structure.api_paused) return { kind: 'paused' };
+
+  // 1. Produits et accompagnements du point, relus en base
+  const { details, productById } = await validateOrderItems(structureId, input);
   if (details.length) return { kind: 'invalid', details };
 
   // 2. Quota mensuel de l'organisation

@@ -1,5 +1,6 @@
 import { apiError, apiOk, readJson, withApi } from '@/lib/api/context';
 import { createApiOrder, createOrderSchema, listApiOrders, serializeOrder, zodDetails } from '@/lib/api/orders';
+import { createSandboxOrder } from '@/lib/api/sandbox';
 
 /**
  * GET /api/v1/orders?updated_since=ISO&limit=50
@@ -12,6 +13,8 @@ export const GET = withApi(async (ctx, request) => {
   if (since && Number.isNaN(Date.parse(since))) {
     return apiError(ctx.locale, 'validation_error', { rate: ctx.rate, details: [{ field: 'updated_since', code: 'invalid_date' }] });
   }
+  // Mode test : les commandes simulées ne sont pas enregistrées, la liste est vide.
+  if (ctx.mode === 'test') return apiOk(ctx, []);
   const orders = await listApiOrders(ctx.structureId, {
     updatedSince: since ? new Date(since).toISOString() : undefined,
     limit,
@@ -27,6 +30,14 @@ export const POST = withApi(async (ctx, request) => {
   const parsed = createOrderSchema.safeParse(await readJson(request));
   if (!parsed.success) {
     return apiError(ctx.locale, 'validation_error', { rate: ctx.rate, details: zodDetails(parsed.error) });
+  }
+
+  // Mode test : validée et chiffrée comme en production, mais jamais enregistrée.
+  if (ctx.mode === 'test') {
+    const simulated = await createSandboxOrder(ctx.structure, parsed.data);
+    if (simulated.kind === 'created') return apiOk(ctx, simulated.order, 201);
+    if (simulated.kind === 'paused') return apiError(ctx.locale, 'point_paused', { rate: ctx.rate });
+    return apiError(ctx.locale, 'validation_error', { rate: ctx.rate, details: simulated.details });
   }
 
   const result = await createApiOrder(ctx.structure, parsed.data);

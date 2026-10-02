@@ -244,6 +244,22 @@ GRANT EXECUTE ON FUNCTION public.claim_due_webhooks(INTEGER, UUID) TO service_ro
 --     Pour arrêter : SELECT cron.unschedule('shede-webhooks');
 
 -- ============================================================
--- FIN DE LA MIGRATION PHASE 13 (étapes 1, 2 et 3)
+-- Étape 4 : clé de test (mode bac à sable)
+-- ============================================================
+
+-- 15. Clé de test de chaque point (shd_test_…). Avec cette clé, l'API valide et
+--     simule les commandes sans rien écrire en base (ni commande, ni quota, ni
+--     webhook enregistré). Seule l'empreinte SHA-256 est stockée.
+CREATE TABLE IF NOT EXISTS point_api_test_credentials (
+  structure_id UUID PRIMARY KEY REFERENCES structures(id) ON DELETE CASCADE,
+  key_prefix VARCHAR(20) NOT NULL,
+  key_hash CHAR(64) NOT NULL UNIQUE,
+  created_by UUID,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE point_api_test_credentials ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================
+-- FIN DE LA MIGRATION PHASE 13 (étapes 1 à 4)
 -- Activez ensuite le module « API » dans la licence de l'organisation.
 -- ============================================================

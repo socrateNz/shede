@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Copy, KeyRound, Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { Check, Copy, FlaskConical, KeyRound, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -15,30 +15,31 @@ export function PointApiCard({ pointId, status }: { pointId: string; status: Poi
   const { t, format } = useT();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [newKey, setNewKey] = useState<string | null>(null);
+  const [newKey, setNewKey] = useState<{ key: string; mode: 'live' | 'test' } | null>(null);
   const [copied, setCopied] = useState(false);
 
   if (!status.moduleEnabled) return <p className="text-sm text-amber-400">{t('api.keys.moduleRequired')}</p>;
   if (!status.installed) return <p className="text-sm text-amber-400">{t('api.keys.notInstalled')}</p>;
 
-  function generate() {
-    if (status.credential && !confirm(t('api.keys.regenerateConfirm'))) return;
+  function generate(mode: 'live' | 'test' = 'live') {
+    const existing = mode === 'test' ? status.testCredential : status.credential;
+    if (existing && !confirm(t(mode === 'test' ? 'api.keys.testRegenerateConfirm' : 'api.keys.regenerateConfirm'))) return;
     startTransition(async () => {
-      const result = await generatePointApiKey(pointId);
+      const result = await generatePointApiKey(pointId, mode);
       if (!result.success) {
         toast.error(result.error);
         return;
       }
       setCopied(false);
-      setNewKey(result.data!.key);
+      setNewKey({ key: result.data!.key, mode });
       router.refresh();
     });
   }
 
-  function revoke() {
-    if (!confirm(t('api.keys.revokeConfirm'))) return;
+  function revoke(mode: 'live' | 'test' = 'live') {
+    if (!confirm(t(mode === 'test' ? 'api.keys.testRevokeConfirm' : 'api.keys.revokeConfirm'))) return;
     startTransition(async () => {
-      const result = await revokePointApiKey(pointId);
+      const result = await revokePointApiKey(pointId, mode);
       if (!result.success) toast.error(result.error);
       else {
         toast.success(t('api.keys.revoked'));
@@ -49,7 +50,7 @@ export function PointApiCard({ pointId, status }: { pointId: string; status: Poi
 
   async function copy() {
     if (!newKey) return;
-    await navigator.clipboard.writeText(newKey);
+    await navigator.clipboard.writeText(newKey.key);
     setCopied(true);
     toast.success(t('api.keys.copied'));
   }
@@ -61,7 +62,7 @@ export function PointApiCard({ pointId, status }: { pointId: string; status: Poi
       <div className="flex flex-col gap-3 rounded-lg border border-slate-700 bg-slate-900/40 p-4 sm:flex-row sm:items-center sm:justify-between">
         {status.credential ? (
           <div>
-            <p className="text-xs text-slate-400">{t('api.keys.keyPrefix')}</p>
+            <p className="text-xs text-slate-400">{t('api.keys.liveTitle')}</p>
             <p className="font-mono text-slate-100">{status.credential.prefix}••••••••••••</p>
             <p className="mt-1 text-xs text-slate-500">
               {t('api.keys.createdAt', { date: format.dateTime(status.credential.createdAt) })} ·{' '}
@@ -74,7 +75,7 @@ export function PointApiCard({ pointId, status }: { pointId: string; status: Poi
           <p className="text-sm text-slate-400">{t('api.keys.noKey')}</p>
         )}
         <div className="flex gap-2">
-          <Button type="button" onClick={generate} disabled={pending} className="bg-blue-600 text-white hover:bg-blue-700">
+          <Button type="button" onClick={() => generate()} disabled={pending} className="bg-blue-600 text-white hover:bg-blue-700">
             {pending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : status.credential ? (
@@ -85,10 +86,48 @@ export function PointApiCard({ pointId, status }: { pointId: string; status: Poi
             {status.credential ? t('api.keys.regenerate') : t('api.keys.generate')}
           </Button>
           {status.credential && (
-            <Button type="button" variant="outline" onClick={revoke} disabled={pending} className="border-red-900/60 text-red-400 hover:bg-red-900/30 hover:text-red-300">
+            <Button type="button" variant="outline" onClick={() => revoke()} disabled={pending} className="border-red-900/60 text-red-400 hover:bg-red-900/30 hover:text-red-300">
               <Trash2 className="mr-2 h-4 w-4" />
               {t('api.keys.revoke')}
             </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-dashed border-amber-700/60 bg-amber-950/10 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="flex items-center gap-1.5 text-xs font-medium text-amber-300">
+              <FlaskConical className="h-3.5 w-3.5" />
+              {t('api.keys.testTitle')}
+            </p>
+            {!status.testInstalled ? (
+              <p className="mt-1 text-sm text-amber-400">{t('api.keys.testNotInstalled')}</p>
+            ) : status.testCredential ? (
+              <>
+                <p className="font-mono text-slate-100">{status.testCredential.prefix}••••••••••••</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {t('api.keys.createdAt', { date: format.dateTime(status.testCredential.createdAt) })}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-slate-400">{t('api.keys.testNoKey')}</p>
+            )}
+            <p className="mt-1 max-w-xl text-xs text-slate-400">{t('api.keys.testHint')}</p>
+          </div>
+          {status.testInstalled && (
+            <div className="flex shrink-0 gap-2">
+              <Button type="button" variant="outline" onClick={() => generate('test')} disabled={pending} className="border-amber-700/60 text-amber-300 hover:bg-amber-900/30 hover:text-amber-200">
+                {status.testCredential ? <RefreshCw className="mr-2 h-4 w-4" /> : <KeyRound className="mr-2 h-4 w-4" />}
+                {status.testCredential ? t('api.keys.regenerate') : t('api.keys.testGenerate')}
+              </Button>
+              {status.testCredential && (
+                <Button type="button" variant="outline" onClick={() => revoke('test')} disabled={pending} className="border-red-900/60 text-red-400 hover:bg-red-900/30 hover:text-red-300">
+                  <Trash2 className="h-4 w-4" />
+                  <span className="sr-only">{t('api.keys.revoke')}</span>
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -125,11 +164,11 @@ export function PointApiCard({ pointId, status }: { pointId: string; status: Poi
       <Dialog open={!!newKey} onOpenChange={(open) => !open && setNewKey(null)}>
         <DialogContent className="border-slate-700 bg-slate-800 text-slate-100 sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{t('api.keys.newKeyTitle')}</DialogTitle>
+            <DialogTitle>{t(newKey?.mode === 'test' ? 'api.keys.newTestKeyTitle' : 'api.keys.newKeyTitle')}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-amber-300">{t('api.keys.newKeyWarning')}</p>
           <div className="flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-950 p-3">
-            <code className="flex-1 break-all font-mono text-sm text-emerald-300">{newKey}</code>
+            <code className="flex-1 break-all font-mono text-sm text-emerald-300">{newKey?.key}</code>
             <Button type="button" size="sm" variant="outline" onClick={copy} className="border-slate-600 text-slate-200 hover:bg-slate-700">
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               <span className="ml-1.5">{t('api.keys.copy')}</span>

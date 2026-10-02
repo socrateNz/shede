@@ -14,6 +14,27 @@ Authorization: Bearer shd_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 L'en-tête `X-Api-Key: shd_live_…` est aussi accepté.
 
+## Mode test (aucune écriture en base)
+
+Une **clé de test** (`shd_test_…`), générée au même endroit, permet de développer
+l'intégration sans toucher aux données du restaurant. Mêmes adresses, mêmes réponses :
+
+- rien n'est enregistré (ni commande, facture, stock, écriture comptable, ni quota) ;
+- `GET /point` et `GET /menu` renvoient les vraies données (`livemode: false` sur `/point`) ;
+- `POST /orders` applique les mêmes contrôles et calcule les mêmes montants, puis
+  renvoie une commande simulée (`livemode: false`) dont l'`id` commence par `test_`
+  et contient la commande, signée par le serveur (valable 7 jours) ;
+- `GET /orders/{id}` accepte uniquement ces ids (pas de recherche par `external_id`) ;
+  `GET /orders` renvoie une liste vide ;
+- statut automatique : 0–30 s `pending_acceptance`, 30–60 s `accepted`,
+  60–120 s `preparing`, puis `ready`. Un `external_id` terminé par `-reject` passe
+  à `rejected` au bout de 30 s ;
+- annulation et événements livreur : mêmes règles, résultat simulé non conservé ;
+- `POST /api/v1/sandbox/webhooks` `{ "type": "order.status_changed", "order_id": "test_…", "status": "ready" }`
+  envoie tout de suite un événement signé (`livemode: false`) à l'adresse de webhook du point,
+  sans rien enregistrer. Types : `order.status_changed`, `menu.updated`, `point.paused`,
+  `point.resumed`, `ping`.
+
 ## Format des réponses
 
 Succès :
