@@ -26,7 +26,7 @@ const modules: typeof fr = {
     LIVRAISON: 'Delivery zones, riders, delivery tracking',
     TABLES: 'Interactive floor plan and table management',
     HOTEL: 'Rooms, bookings, check-in and check-out',
-    STOCK: 'Stock movements, alert thresholds, recipes',
+    STOCK: 'Ingredients, recipes, stock counts, losses and food cost',
     PROMOTION: 'Promo codes, automatic discounts, special offers',
     RH: 'Staff management',
     CRM: 'Customer records, profiles, order history',

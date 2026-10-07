@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { deleteSupplierItem, saveSupplierItem, type CatalogItem, type CatalogOption, type PurchasingSupplier } from '@/app/actions/purchasing';
+import { addSupplierItems, deleteSupplierItem, saveSupplierItem, type CatalogItem, type CatalogOption, type PurchasingSupplier } from '@/app/actions/purchasing';
 import { useT } from '@/lib/i18n/client';
 
 const INPUT = 'border-slate-600 bg-slate-900/50 text-slate-50 placeholder:text-slate-500';
@@ -24,6 +24,12 @@ const SELECT = 'h-10 w-full rounded-md border border-slate-600 bg-slate-900/50 p
 
 type Form = { itemType: 'ingredient' | 'product'; itemId: string; reference: string; packLabel: string; packSize: string; unitPrice: string; isPreferred: boolean };
 const EMPTY: Form = { itemType: 'ingredient', itemId: '', reference: '', packLabel: '', packSize: '1', unitPrice: '', isPreferred: false };
+
+/** Ligne de l'ajout en lot. */
+type Row = Form & { key: string };
+const newRow = (itemType: Form['itemType'] = 'ingredient'): Row => ({ ...EMPTY, itemType, key: Math.random().toString(36).slice(2) });
+const ROW_INPUT = 'h-9 border-slate-600 bg-slate-900/50 text-sm text-slate-50 placeholder:text-slate-500';
+const ROW_SELECT = 'h-9 w-full rounded-md border border-slate-600 bg-slate-900/50 px-2 text-sm text-slate-50';
 
 /** Catalogue d'un fournisseur : articles, conditionnements et prix HT. */
 export function CatalogManager({
@@ -42,6 +48,7 @@ export function CatalogManager({
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState<CatalogItem | 'new' | null>(null);
   const [form, setForm] = useState<Form>(EMPTY);
+  const [rows, setRows] = useState<Row[]>([newRow()]);
 
   const unitShort = (unit: string | null) => (unit ? t(`ingredients.unitShort.${unit as 'kg' | 'l' | 'piece'}`) : t('purchasing.catalog.unitProduct'));
   const inCatalog = new Set(items.map((i) => `${i.item_type}:${i.item_id}`));
@@ -51,6 +58,7 @@ export function CatalogManager({
   const selectedUnit = options.find((o) => o.id === form.itemId)?.unit ?? null;
 
   function openEdit(item: CatalogItem | 'new') {
+    if (item === 'new') setRows([newRow(), newRow()]);
     setForm(
       item === 'new'
         ? EMPTY
@@ -86,6 +94,36 @@ export function CatalogManager({
         return;
       }
       toast.success(t('purchasing.catalog.saved'));
+      setEditing(null);
+      router.refresh();
+    });
+  }
+
+  const updateRow = (key: string, patch: Partial<Form>) => setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+  // Lignes retenues : un article choisi
+  const filledRows = rows.filter((r) => r.itemId);
+  const rowsReady = filledRows.length > 0 && filledRows.every((r) => r.packLabel.trim() && Number(r.packSize.replace(',', '.')) > 0 && r.unitPrice !== '');
+
+  function submitMany(e: React.FormEvent) {
+    e.preventDefault();
+    startTransition(async () => {
+      const result = await addSupplierItems(
+        supplier.id,
+        filledRows.map((r) => ({
+          itemType: r.itemType,
+          itemId: r.itemId,
+          reference: r.reference,
+          packLabel: r.packLabel,
+          packSize: Number(r.packSize.replace(',', '.')),
+          unitPrice: Number(r.unitPrice),
+          isPreferred: r.isPreferred,
+        }))
+      );
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(t('purchasing.catalog.savedMany', { count: result.data?.count ?? filledRows.length }));
       setEditing(null);
       router.refresh();
     });
@@ -208,71 +246,128 @@ export function CatalogManager({
       </div>
 
       <Dialog open={editing !== null} onOpenChange={(open) => !open && !pending && setEditing(null)}>
-        <DialogContent className="border-slate-700 bg-slate-800 text-slate-100 sm:max-w-md">
+        <DialogContent className={`max-h-[90vh] overflow-y-auto border-slate-700 bg-slate-800 text-slate-100 ${editing === 'new' ? 'sm:max-w-6xl' : 'sm:max-w-md'}`}>
           <DialogHeader>
             <DialogTitle>{editing === 'new' ? t('purchasing.catalog.addTitle') : t('purchasing.catalog.editTitle')}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={submit} className="space-y-4">
-            <div className="space-y-1.5">
-              <p className="text-sm text-slate-300">{t('purchasing.catalog.itemType')}</p>
-              <div className="grid grid-cols-2 gap-2">
-                {(['ingredient', 'product'] as const).map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    disabled={editing !== 'new'}
-                    onClick={() => setForm({ ...form, itemType: type, itemId: '' })}
-                    className={`rounded-lg border px-3 py-2 text-sm font-semibold disabled:opacity-60 ${form.itemType === type ? 'border-cyan-500 bg-cyan-500/15 text-cyan-200' : 'border-slate-600 text-slate-300'}`}
-                  >
-                    {type === 'ingredient' ? t('purchasing.catalog.ingredient') : t('purchasing.catalog.product')}
-                  </button>
-                ))}
+
+          {editing === 'new' ? (
+            <form onSubmit={submitMany} className="space-y-3">
+              <p className="text-xs text-slate-400">{t('purchasing.catalog.addHint')}</p>
+              {/* En-têtes (écran large) */}
+              <div className="hidden grid-cols-[130px_minmax(160px,1.6fr)_minmax(140px,1.3fr)_90px_120px_minmax(100px,1fr)_70px_36px] gap-2 px-1 text-xs text-slate-400 lg:grid">
+                <span>{t('purchasing.catalog.itemType')}</span>
+                <span>{t('purchasing.catalog.item')}</span>
+                <span>{t('purchasing.catalog.packLabel')}</span>
+                <span>{t('purchasing.catalog.packSize', { unit: '' }).replace(/\s*\(\)\s*$/, '')}</span>
+                <span>{t('purchasing.catalog.unitPrice')}</span>
+                <span>{t('purchasing.catalog.colReference')}</span>
+                <span>{t('purchasing.catalog.preferredBadge')}</span>
+                <span />
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor="ci-item" className="text-sm text-slate-300">{t('purchasing.catalog.item')}</label>
-              <select id="ci-item" value={form.itemId} onChange={(e) => setForm({ ...form, itemId: e.target.value })} disabled={editing !== 'new'} required className={SELECT}>
-                <option value="">{t('purchasing.catalog.selectItem')}</option>
-                {choices.map((o) => (
-                  <option key={o.id} value={o.id}>{o.name}{o.unit ? ` (${unitShort(o.unit)})` : ''}</option>
-                ))}
-              </select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label htmlFor="ci-pack" className="text-sm text-slate-300">{t('purchasing.catalog.packLabel')}</label>
-                <Input id="ci-pack" value={form.packLabel} onChange={(e) => setForm({ ...form, packLabel: e.target.value })} placeholder={t('purchasing.catalog.packLabelPlaceholder')} maxLength={60} required className={INPUT} />
-              </div>
-              <div className="space-y-1.5">
-                <label htmlFor="ci-size" className="text-sm text-slate-300">{t('purchasing.catalog.packSize', { unit: unitShort(selectedUnit) })}</label>
-                <Input id="ci-size" inputMode="decimal" value={form.packSize} onChange={(e) => setForm({ ...form, packSize: e.target.value })} required className={INPUT} />
-              </div>
-            </div>
-            <p className="-mt-2 text-xs text-slate-500">{t('purchasing.catalog.packSizeHint')}</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label htmlFor="ci-price" className="text-sm text-slate-300">{t('purchasing.catalog.unitPrice')}</label>
-                <Input id="ci-price" type="number" min="0" value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value })} required className={INPUT} />
-              </div>
-              <div className="space-y-1.5">
-                <label htmlFor="ci-ref" className="text-sm text-slate-300">{t('purchasing.catalog.reference')}</label>
-                <Input id="ci-ref" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} maxLength={60} className={INPUT} />
-              </div>
-            </div>
-            <label className="flex items-center gap-2 text-sm text-slate-300">
-              <input type="checkbox" checked={form.isPreferred} onChange={(e) => setForm({ ...form, isPreferred: e.target.checked })} className="h-4 w-4" />
-              {t('purchasing.catalog.preferred')}
-            </label>
-            <DialogFooter className="gap-2">
-              <Button type="button" variant="ghost" onClick={() => setEditing(null)} disabled={pending} className="text-slate-300 hover:bg-slate-700">
-                {t('purchasing.catalog.cancel')}
+              <ul className="space-y-2">
+                {rows.map((row) => {
+                  // Articles proposés : du bon type, ni déjà au catalogue, ni choisis sur une autre ligne
+                  const taken = new Set(rows.filter((r) => r.key !== row.key && r.itemId).map((r) => `${r.itemType}:${r.itemId}`));
+                  const choicesForRow = options.filter(
+                    (o) => o.item_type === row.itemType && !inCatalog.has(`${o.item_type}:${o.id}`) && !taken.has(`${o.item_type}:${o.id}`)
+                  );
+                  const unit = options.find((o) => o.id === row.itemId)?.unit ?? null;
+                  return (
+                    <li
+                      key={row.key}
+                      className="grid grid-cols-2 gap-2 rounded-lg border border-slate-700/60 bg-slate-900/30 p-2 lg:grid-cols-[130px_minmax(160px,1.6fr)_minmax(140px,1.3fr)_90px_120px_minmax(100px,1fr)_70px_36px] lg:items-center lg:border-0 lg:bg-transparent lg:p-0"
+                    >
+                      <select value={row.itemType} onChange={(e) => updateRow(row.key, { itemType: e.target.value as Form['itemType'], itemId: '' })} className={ROW_SELECT} aria-label={t('purchasing.catalog.itemType')}>
+                        <option value="ingredient">{t('purchasing.catalog.ingredient')}</option>
+                        <option value="product">{t('purchasing.catalog.product')}</option>
+                      </select>
+                      <select value={row.itemId} onChange={(e) => updateRow(row.key, { itemId: e.target.value })} className={ROW_SELECT} aria-label={t('purchasing.catalog.item')}>
+                        <option value="">{t('purchasing.catalog.selectItem')}</option>
+                        {choicesForRow.map((o) => (
+                          <option key={o.id} value={o.id}>{o.name}{o.unit ? ` (${unitShort(o.unit)})` : ''}</option>
+                        ))}
+                      </select>
+                      <Input value={row.packLabel} onChange={(e) => updateRow(row.key, { packLabel: e.target.value })} placeholder={t('purchasing.catalog.packLabelPlaceholder')} maxLength={60} className={`col-span-2 lg:col-span-1 ${ROW_INPUT}`} aria-label={t('purchasing.catalog.packLabel')} />
+                      <div className="flex items-center gap-1">
+                        <Input inputMode="decimal" value={row.packSize} onChange={(e) => updateRow(row.key, { packSize: e.target.value })} className={ROW_INPUT} aria-label={t('purchasing.catalog.packSize', { unit: unitShort(unit) })} />
+                        <span className="w-9 shrink-0 truncate text-[11px] text-slate-500">{unitShort(unit)}</span>
+                      </div>
+                      <Input type="number" min="0" value={row.unitPrice} onChange={(e) => updateRow(row.key, { unitPrice: e.target.value })} placeholder="0" className={ROW_INPUT} aria-label={t('purchasing.catalog.unitPrice')} />
+                      <Input value={row.reference} onChange={(e) => updateRow(row.key, { reference: e.target.value })} maxLength={60} className={ROW_INPUT} aria-label={t('purchasing.catalog.reference')} />
+                      <label className="flex items-center justify-center gap-1.5 text-xs text-slate-300 lg:justify-center" title={t('purchasing.catalog.preferred')}>
+                        <input type="checkbox" checked={row.isPreferred} onChange={(e) => updateRow(row.key, { isPreferred: e.target.checked })} className="h-4 w-4" />
+                        <span className="lg:hidden">{t('purchasing.catalog.preferredBadge')}</span>
+                      </label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setRows((prev) => (prev.length > 1 ? prev.filter((r) => r.key !== row.key) : [newRow()]))}
+                        className="h-9 w-9 justify-self-end p-0 text-red-400 hover:bg-red-500/10"
+                        aria-label={t('purchasing.catalog.removeLine')}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+              <Button type="button" variant="outline" size="sm" onClick={() => setRows((prev) => [...prev, newRow(prev[prev.length - 1]?.itemType)])} className="border-slate-600 text-slate-200 hover:bg-slate-700">
+                <Plus className="mr-1.5 h-4 w-4" /> {t('purchasing.catalog.addLine')}
               </Button>
-              <Button type="submit" disabled={pending || !form.itemId || !form.packLabel.trim()} className="bg-cyan-600 text-white hover:bg-cyan-700">
-                {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {t('purchasing.catalog.save')}
-              </Button>
-            </DialogFooter>
-          </form>
+              <DialogFooter className="gap-2">
+                <Button type="button" variant="ghost" onClick={() => setEditing(null)} disabled={pending} className="text-slate-300 hover:bg-slate-700">
+                  {t('purchasing.catalog.cancel')}
+                </Button>
+                <Button type="submit" disabled={pending || !rowsReady} className="bg-cyan-600 text-white hover:bg-cyan-700">
+                  {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {t('purchasing.catalog.saveMany', { count: filledRows.length })}
+                </Button>
+              </DialogFooter>
+            </form>
+          ) : (
+            <form onSubmit={submit} className="space-y-4">
+              <div className="space-y-1.5">
+                <p className="text-sm text-slate-300">{t('purchasing.catalog.item')}</p>
+                <p className="font-medium text-slate-100">{typeof editing === 'object' && editing ? editing.name : ''}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label htmlFor="ci-pack" className="text-sm text-slate-300">{t('purchasing.catalog.packLabel')}</label>
+                  <Input id="ci-pack" value={form.packLabel} onChange={(e) => setForm({ ...form, packLabel: e.target.value })} placeholder={t('purchasing.catalog.packLabelPlaceholder')} maxLength={60} required className={INPUT} />
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="ci-size" className="text-sm text-slate-300">{t('purchasing.catalog.packSize', { unit: unitShort(selectedUnit) })}</label>
+                  <Input id="ci-size" inputMode="decimal" value={form.packSize} onChange={(e) => setForm({ ...form, packSize: e.target.value })} required className={INPUT} />
+                </div>
+              </div>
+              <p className="-mt-2 text-xs text-slate-500">{t('purchasing.catalog.packSizeHint')}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label htmlFor="ci-price" className="text-sm text-slate-300">{t('purchasing.catalog.unitPrice')}</label>
+                  <Input id="ci-price" type="number" min="0" value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value })} required className={INPUT} />
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="ci-ref" className="text-sm text-slate-300">{t('purchasing.catalog.reference')}</label>
+                  <Input id="ci-ref" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} maxLength={60} className={INPUT} />
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-sm text-slate-300">
+                <input type="checkbox" checked={form.isPreferred} onChange={(e) => setForm({ ...form, isPreferred: e.target.checked })} className="h-4 w-4" />
+                {t('purchasing.catalog.preferred')}
+              </label>
+              <DialogFooter className="gap-2">
+                <Button type="button" variant="ghost" onClick={() => setEditing(null)} disabled={pending} className="text-slate-300 hover:bg-slate-700">
+                  {t('purchasing.catalog.cancel')}
+                </Button>
+                <Button type="submit" disabled={pending || !form.itemId || !form.packLabel.trim()} className="bg-cyan-600 text-white hover:bg-cyan-700">
+                  {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {t('purchasing.catalog.save')}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

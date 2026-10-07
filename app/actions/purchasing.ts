@@ -263,6 +263,73 @@ export async function saveSupplierItem(input: {
   return { success: true, error: '' };
 }
 
+/**
+ * Ajoute plusieurs articles au catalogue d'un fournisseur en une fois. Tout ou
+ * rien : une ligne invalide ou déjà au catalogue bloque l'enregistrement.
+ */
+export async function addSupplierItems(
+  supplierId: string,
+  items: {
+    itemType: 'ingredient' | 'product';
+    itemId: string;
+    reference?: string;
+    packLabel: string;
+    packSize: number;
+    unitPrice: number;
+    isPreferred?: boolean;
+  }[]
+): Promise<Result<{ count: number }>> {
+  const session = await requirePurchasing(MANAGE_ROLES);
+  if (!session) return { success: false, error: await te('errors.unauthorized') };
+  if (!items.length) return { success: false, error: await te('purchasing.errors.itemInvalid') };
+
+  const keys = items.map((i) => `${i.itemType}:${i.itemId}`);
+  if (new Set(keys).size !== keys.length) return { success: false, error: await te('purchasing.errors.itemRepeated') };
+  for (const i of items) {
+    const packSize = Number(i.packSize);
+    const price = Number(i.unitPrice);
+    if (!i.itemId || !String(i.packLabel ?? '').trim() || !Number.isFinite(packSize) || packSize <= 0 || !Number.isFinite(price) || price < 0) {
+      return { success: false, error: await te('purchasing.errors.itemInvalid') };
+    }
+  }
+
+  const admin = getAdminSupabase();
+  const ingredientIds = items.filter((i) => i.itemType === 'ingredient').map((i) => i.itemId);
+  const productIds = items.filter((i) => i.itemType === 'product').map((i) => i.itemId);
+  const [{ data: supplier }, { data: ingredients }, { data: products }] = await Promise.all([
+    admin.from('suppliers').select('id').eq('id', supplierId).eq('structure_id', session.structureId).maybeSingle(),
+    ingredientIds.length
+      ? admin.from('ingredients').select('id').eq('structure_id', session.structureId).in('id', ingredientIds)
+      : Promise.resolve({ data: [] as { id: string }[] }),
+    productIds.length
+      ? admin.from('products').select('id').eq('structure_id', session.structureId).in('id', productIds)
+      : Promise.resolve({ data: [] as { id: string }[] }),
+  ]);
+  if (!supplier || (ingredients || []).length !== ingredientIds.length || (products || []).length !== productIds.length) {
+    return { success: false, error: await te('purchasing.errors.itemInvalid') };
+  }
+
+  const now = new Date().toISOString();
+  const { error } = await admin.from('supplier_items').insert(
+    items.map((i) => ({
+      structure_id: session.structureId,
+      supplier_id: supplierId,
+      ingredient_id: i.itemType === 'ingredient' ? i.itemId : null,
+      product_id: i.itemType === 'product' ? i.itemId : null,
+      reference: i.reference?.trim().slice(0, 60) || null,
+      pack_label: String(i.packLabel).trim().slice(0, 60),
+      pack_size: Math.round(Number(i.packSize) * 1000) / 1000,
+      unit_price: Math.round(Number(i.unitPrice)),
+      is_preferred: Boolean(i.isPreferred),
+      is_active: true,
+      updated_at: now,
+    }))
+  );
+  if (error) return { success: false, error: await te(error.code === '23505' ? 'purchasing.errors.itemDuplicate' : 'errors.createFailed') };
+  revalidatePurchasing();
+  return { success: true, error: '', data: { count: items.length } };
+}
+
 export async function deleteSupplierItem(id: string): Promise<Result> {
   const session = await requirePurchasing(MANAGE_ROLES);
   if (!session) return { success: false, error: await te('errors.unauthorized') };

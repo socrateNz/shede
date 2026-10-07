@@ -23,10 +23,21 @@ import {
   Star,
   Heart,
   Store as StoreIcon,
+  ChefHat,
+  Carrot,
+  Truck,
+  BookOpenCheck,
+  Gauge,
+  Plug,
+  ShoppingBasket,
+  CookingPot,
+  ClipboardCheck,
+  Sparkles,
 } from 'lucide-react';
 import LogoCarousel from '@/app/components/LogoCarousel';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { getT } from '@/lib/i18n/server';
+import { MODULE_CATEGORIES, MODULE_OPTIONS, moduleCategoryLabel, moduleDescription, moduleLabel } from '@/lib/modules';
 
 export default async function HomePage() {
   const session = await getSession();
@@ -45,10 +56,10 @@ export default async function HomePage() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            <Link href="#product" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">{t('landing.nav.product')}</Link>
             <Link href="#features" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">{t('landing.nav.features')}</Link>
+            <Link href="#anticipate" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">{t('landing.nav.anticipate')}</Link>
+            <Link href="#modules" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">{t('landing.nav.modules')}</Link>
             <Link href="#solutions" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">{t('landing.nav.solutions')}</Link>
-            <Link href="#team" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">{t('landing.nav.team')}</Link>
             <Link href="#contact" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">{t('landing.nav.contact')}</Link>
           </div>
 
@@ -212,11 +223,17 @@ export default async function HomePage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               { icon: UtensilsCrossed, title: t('landing.features.posTitle'), desc: t('landing.features.posText'), color: "from-orange-500 to-orange-600" },
-              { icon: Bed, title: t('landing.features.pmsTitle'), desc: t('landing.features.pmsText'), color: "from-purple-500 to-purple-600" },
-              { icon: Package, title: t('landing.features.stockTitle'), desc: t('landing.features.stockText'), color: "from-emerald-500 to-emerald-600" },
+              { icon: ChefHat, title: t('landing.features.kitchenTitle'), desc: t('landing.features.kitchenText'), color: "from-amber-500 to-amber-600" },
               { icon: QrCode, title: t('landing.features.qrTitle'), desc: t('landing.features.qrText'), color: "from-blue-500 to-blue-600" },
-              { icon: TrendingUp, title: t('landing.features.analyticsTitle'), desc: t('landing.features.analyticsText'), color: "from-cyan-500 to-cyan-600" },
-              { icon: Shield, title: t('landing.features.securityTitle'), desc: t('landing.features.securityText'), color: "from-indigo-500 to-indigo-600" }
+              { icon: Bed, title: t('landing.features.pmsTitle'), desc: t('landing.features.pmsText'), color: "from-purple-500 to-purple-600" },
+              { icon: Carrot, title: t('landing.features.stockTitle'), desc: t('landing.features.stockText'), color: "from-emerald-500 to-emerald-600" },
+              { icon: Truck, title: t('landing.features.purchasingTitle'), desc: t('landing.features.purchasingText'), color: "from-cyan-500 to-cyan-600" },
+              { icon: TrendingUp, title: t('landing.features.forecastTitle'), desc: t('landing.features.forecastText'), color: "from-indigo-500 to-indigo-600" },
+              { icon: CookingPot, title: t('landing.features.productionTitle'), desc: t('landing.features.productionText'), color: "from-violet-500 to-violet-600" },
+              { icon: BookOpenCheck, title: t('landing.features.accountingTitle'), desc: t('landing.features.accountingText'), color: "from-lime-600 to-lime-700" },
+              { icon: Gauge, title: t('landing.features.multisiteTitle'), desc: t('landing.features.multisiteText'), color: "from-fuchsia-500 to-fuchsia-600" },
+              { icon: Plug, title: t('landing.features.apiTitle'), desc: t('landing.features.apiText'), color: "from-sky-500 to-sky-600" },
+              { icon: Shield, title: t('landing.features.securityTitle'), desc: t('landing.features.securityText'), color: "from-slate-600 to-slate-700" }
             ].map((feature, idx) => (
               <div key={idx} className="group bg-white rounded-2xl p-6 border border-slate-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                 <div className={`w-12 h-12 bg-gradient-to-r ${feature.color} rounded-xl flex items-center justify-center mb-4 shadow-md`}>
@@ -224,6 +241,76 @@ export default async function HomePage() {
                 </div>
                 <h3 className="font-bold text-slate-800 mb-2">{feature.title}</h3>
                 <p className="text-sm text-slate-600">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Section Anticiper : prévoir, commander, produire, contrôler */}
+      <div id="anticipate" className="py-24 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="text-center mb-16">
+            <span className="inline-flex items-center gap-2 rounded-full bg-indigo-500/15 px-4 py-1.5 text-sm font-semibold text-indigo-200 mb-6">
+              <Sparkles className="w-4 h-4" /> {t('landing.anticipate.badge')}
+            </span>
+            <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
+              {t('landing.anticipate.titleBefore')} <span className="text-indigo-300">{t('landing.anticipate.highlight')}</span>
+            </h2>
+            <p className="text-lg text-slate-300 max-w-3xl mx-auto">{t('landing.anticipate.text')}</p>
+          </div>
+
+          <ol className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {[
+              { icon: TrendingUp, title: t('landing.anticipate.step1Title'), desc: t('landing.anticipate.step1Text') },
+              { icon: ShoppingBasket, title: t('landing.anticipate.step2Title'), desc: t('landing.anticipate.step2Text') },
+              { icon: CookingPot, title: t('landing.anticipate.step3Title'), desc: t('landing.anticipate.step3Text') },
+              { icon: ClipboardCheck, title: t('landing.anticipate.step4Title'), desc: t('landing.anticipate.step4Text') },
+            ].map((step, idx) => (
+              <li key={idx} className="relative rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+                <span className="absolute -top-3 left-6 flex h-7 w-7 items-center justify-center rounded-full bg-indigo-500 text-sm font-bold text-white">{idx + 1}</span>
+                <step.icon className="w-8 h-8 text-indigo-300 mb-4 mt-2" />
+                <h3 className="text-xl font-bold text-white mb-2">{step.title}</h3>
+                <p className="text-sm text-slate-300 leading-relaxed">{step.desc}</p>
+              </li>
+            ))}
+          </ol>
+
+          <div className="mt-12 flex flex-col items-center gap-6 text-center">
+            <p className="flex items-center gap-2 text-slate-200">
+              <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" /> {t('landing.anticipate.proof')}
+            </p>
+            <Link
+              href="tel:+237656954474"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-indigo-500 hover:bg-indigo-400 text-white font-semibold rounded-xl transition-all hover:scale-105"
+            >
+              {t('landing.anticipate.cta')} <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Section Modules à la carte : générée depuis la liste des modules de la licence */}
+      <div id="modules" className="py-24 bg-white">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-4">
+              {t('landing.modulesSection.titleBefore')} <span className="text-purple-600">{t('landing.modulesSection.highlight')}</span>
+            </h2>
+            <p className="text-lg text-slate-500 max-w-2xl mx-auto">{t('landing.modulesSection.text')}</p>
+          </div>
+          <div className="grid gap-8 lg:grid-cols-3">
+            {MODULE_CATEGORIES.map((category) => (
+              <div key={category} className="rounded-3xl border border-slate-100 bg-slate-50/60 p-6">
+                <h3 className="mb-4 text-lg font-bold text-slate-900">{moduleCategoryLabel(t, category)}</h3>
+                <ul className="space-y-3">
+                  {MODULE_OPTIONS.filter((m) => m.category === category).map((m) => (
+                    <li key={m.value} className="rounded-xl bg-white p-3 shadow-sm">
+                      <p className="font-semibold text-slate-800">{moduleLabel(t, m.value)}</p>
+                      <p className="text-sm text-slate-500">{moduleDescription(t, m.value)}</p>
+                    </li>
+                  ))}
+                </ul>
               </div>
             ))}
           </div>
@@ -348,7 +435,7 @@ export default async function HomePage() {
       </div>
 
       {/* Footer modernisé */}
-      <footer className="bg-slate-900 py-12 border-t border-slate-800">
+      <footer id="contact" className="bg-slate-900 py-12 border-t border-slate-800">
         <div className="mx-auto max-w-7xl px-6">
           <div className="grid md:grid-cols-4 gap-8 mb-12">
             <div>

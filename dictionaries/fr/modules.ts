@@ -25,7 +25,7 @@ const modules = {
     LIVRAISON: 'Zones de livraison, livreurs, suivi des courses',
     TABLES: 'Plan de salle interactif et gestion des tables',
     HOTEL: 'Chambres, réservations, arrivées et départs',
-    STOCK: 'Mouvements de stock, seuils d’alerte, recettes',
+    STOCK: 'Ingrédients, fiches recettes, inventaires, pertes et coût matière',
     PROMOTION: 'Codes promo, remises automatiques, offres spéciales',
     RH: 'Gestion du personnel',
     CRM: 'Fichier clients, fiches, historique des commandes',
