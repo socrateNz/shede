@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { SessionPayload } from '@/lib/auth';
 import type { Structure } from '@/lib/supabase';
 import { Sidebar } from '@/components/sidebar';
@@ -20,10 +21,22 @@ export function MainShell({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { t } = useT();
   const setActiveStructure = useAppStore(state => state.setActiveStructure);
+  const router = useRouter();
 
+  // Une seule source pour les modules : ceux de la licence actuelle (session relue côté serveur).
   useEffect(() => {
-    setActiveStructure(structure);
-  }, [structure, setActiveStructure]);
+    setActiveStructure(structure ? { ...structure, modules: session.modules ?? structure.modules } : null);
+  }, [structure, session.modules, setActiveStructure]);
+
+  // Licence modifiée depuis la connexion : on réécrit le cookie pour que les
+  // accès (middleware) suivent sans reconnexion.
+  const stale = Boolean(session.staleModules);
+  useEffect(() => {
+    if (!stale) return;
+    fetch('/api/session/refresh', { method: 'POST' })
+      .then((res) => res.ok && router.refresh())
+      .catch(() => undefined);
+  }, [stale, router]);
 
   useEffect(() => {
     const onResize = () => {

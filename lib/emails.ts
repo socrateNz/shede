@@ -43,7 +43,12 @@ export async function getUserLocale(userId: string): Promise<Locale> {
   return isLocale(data?.locale) ? data.locale : DEFAULT_LOCALE;
 }
 
-/** Administrateurs actifs d'une organisation ; à défaut, les admins de ses points. */
+/**
+ * Destinataires des e-mails de licence (modification, modules, expiration) :
+ * les administrateurs actifs de l'organisation ; à défaut, l'adresse de
+ * contact de la fiche organisation. Jamais les administrateurs de point : la
+ * licence est l'affaire du titulaire, pas du personnel des points.
+ */
 export async function getOrganizationAdminRecipients(organizationId: string): Promise<Recipient[]> {
   const admin = getAdminSupabase();
   const { data: orgAdmins } = await admin
@@ -55,14 +60,9 @@ export async function getOrganizationAdminRecipients(organizationId: string): Pr
 
   if (orgAdmins?.length) return orgAdmins.map(toRecipient);
 
-  const { data: pointAdmins } = await admin
-    .from('users')
-    .select('*, structures!inner(organization_id)')
-    .eq('structures.organization_id', organizationId)
-    .eq('role', 'ADMIN')
-    .eq('is_active', true);
-
-  return (pointAdmins || []).map(toRecipient);
+  const { data: organization } = await admin.from('organizations').select('email').eq('id', organizationId).maybeSingle();
+  const email = String(organization?.email ?? '').trim();
+  return email ? [{ email, locale: DEFAULT_LOCALE }] : [];
 }
 
 export async function getPointAdminRecipients(pointId: string): Promise<Recipient[]> {

@@ -83,7 +83,7 @@ export interface Structure {
   updated_at: string;
 }
 
-import { UserRole } from './auth';
+import type { UserRole } from './auth';
 
 export interface User {
   id: string;

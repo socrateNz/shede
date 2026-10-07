@@ -1,6 +1,6 @@
 'use client';
 
-import { SessionPayload } from '@/lib/auth';
+import type { SessionPayload } from '@/lib/auth';
 import { Bell, Menu, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';

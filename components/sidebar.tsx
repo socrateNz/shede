@@ -1,6 +1,6 @@
 'use client';
 
-import { SessionPayload } from '@/lib/auth';
+import type { SessionPayload } from '@/lib/auth';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -39,7 +39,6 @@ import {
 import { ShiftStatusIndicator } from './shift-status-indicator';
 import { logout } from '@/app/actions/auth';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/lib/store';
 import { Structure } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
 import { getSidebarCounts } from '@/app/actions/sidebar';
@@ -74,7 +73,6 @@ interface SidebarProps {
 export function Sidebar({ session, structure, mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const { t } = useT();
-  const storeHasModule = useAppStore(state => state.hasModule);
   const [counts, setCounts] = useState({ orders: 0, stock: 0, bookings: 0, notifications: 0 });
 
   const role = session.role;
@@ -92,11 +90,9 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     return () => clearInterval(interval);
   }, [session.structureId]);
 
-  const hasModule = (moduleName: string) =>
-    Boolean(structure?.modules?.includes(moduleName)) ||
-    storeHasModule(moduleName) ||
-    // ORG_ADMIN : pas de point, modules de la licence de l'organisation
-    Boolean(session.modules?.includes(moduleName));
+  // Modules de la licence actuelle de l'organisation (relus côté serveur à
+  // chaque requête) : un élément n'apparaît que si son module est sous licence.
+  const hasModule = (moduleName: string) => Boolean(session.modules?.includes(moduleName));
   const canManageShift = ['CAISSE', 'RECEPTION', 'ADMIN', 'MANAGER'].includes(role);
 
   /**
@@ -147,6 +143,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       href: '/orders',
       icon: ShoppingCart,
       roles: ['ADMIN', 'CAISSE', 'SERVEUR'],
+      module: 'POS',
       badge: counts.orders,
       badgeColor: 'bg-red-500',
     },
@@ -164,9 +161,9 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     { group: 'production', name: t('nav.kitchen'), href: '/kitchen', icon: ChefHat, roles: ['ADMIN', 'MANAGER', 'CUISINIER'], module: 'CUISINE' },
     { group: 'production', name: t('nav.bar'), href: '/bar', icon: Beer, roles: ['ADMIN', 'MANAGER', 'BAR'], module: 'BAR' },
 
-    { group: 'catalog', name: t('nav.products'), href: '/products', icon: Package, roles: ['ADMIN'] },
-    { group: 'catalog', name: t('nav.categories'), href: '/categories', icon: Layers, roles: ['ADMIN'] },
-    { group: 'catalog', name: t('nav.accompaniments'), href: '/accompaniments', icon: Package, roles: ['ADMIN', 'MANAGER'] },
+    { group: 'catalog', name: t('nav.products'), href: '/products', icon: Package, roles: ['ADMIN'], module: 'POS' },
+    { group: 'catalog', name: t('nav.categories'), href: '/categories', icon: Layers, roles: ['ADMIN'], module: 'POS' },
+    { group: 'catalog', name: t('nav.accompaniments'), href: '/accompaniments', icon: Package, roles: ['ADMIN', 'MANAGER'], module: 'POS' },
 
     {
       group: 'stock',
@@ -211,7 +208,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     { group: 'management', name: t('nav.users'), href: '/users', icon: Users, roles: ['ADMIN'] },
 
     { group: 'management', name: t('nav.statistics'), href: '/statistics', icon: BarChart3, roles: ['ADMIN'] },
-    { group: 'management', name: t('nav.shifts'), href: '/shifts', icon: HistoryIcon, roles: ['ADMIN'] },
+    { group: 'management', name: t('nav.shifts'), href: '/shifts', icon: HistoryIcon, roles: ['ADMIN'], module: 'POS' },
 
     // Le manager ne fait que saisir les dépenses ; l'admin et le comptable ont tout le module.
     { group: 'accounting', name: t('nav.accounting'), href: '/accounting', icon: BookOpenCheck, roles: ['ADMIN', 'COMPTABLE'], module: 'COMPTABILITE' },

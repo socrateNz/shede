@@ -229,7 +229,8 @@ async function notifyOrganizationPoints(
       notifyStructureStaff({
         structureId: point.id,
         ...notification,
-        roles: ['ADMIN', 'MANAGER'],
+        // Les questions de licence regardent les administrateurs, pas le personnel.
+        roles: ['ADMIN'],
       })
     )
   );
@@ -344,6 +345,16 @@ export async function updateOrganizationLicense(
 
   try {
     const admin = getAdminSupabase();
+    const { data: previous } = await admin
+      .from('licenses')
+      .select('is_active, expires_at, max_points')
+      .eq('organization_id', organizationId)
+      .maybeSingle();
+    const sameDay = (a: string | null | undefined, b: string | null) => (a ? a.slice(0, 10) : null) === (b ? b.slice(0, 10) : null);
+    const statusChanged = !previous || previous.is_active !== isActive;
+    const licenseChanged =
+      statusChanged || !sameDay(previous?.expires_at, expiresAt) || Number(previous?.max_points) !== maxPoints;
+
     const { error } = await admin
       .from('licenses')
       .upsert(
@@ -372,27 +383,32 @@ export async function updateOrganizationLicense(
       if (quotaError) console.warn('[updateOrganizationLicense] quota API non enregistré :', quotaError.message);
     }
 
-    queueMail(async () => {
-      const [{ data: organization }, recipients] = await Promise.all([
-        getAdminSupabase().from('organizations').select('name').eq('id', organizationId).maybeSingle(),
-        getOrganizationAdminRecipients(organizationId),
-      ]);
-      return buildLicenseChangedMails({
-        recipients,
-        organizationName: organization?.name,
-        isActive,
-        expiresAt,
-        maxPoints,
+    // Rien n'a changé (ex. seul le quota API est modifié) : personne n'est prévenu.
+    if (licenseChanged) {
+      queueMail(async () => {
+        const [{ data: organization }, recipients] = await Promise.all([
+          getAdminSupabase().from('organizations').select('name').eq('id', organizationId).maybeSingle(),
+          getOrganizationAdminRecipients(organizationId),
+        ]);
+        return buildLicenseChangedMails({
+          recipients,
+          organizationName: organization?.name,
+          isActive,
+          expiresAt,
+          maxPoints,
+        });
       });
-    });
+    }
 
-    await notifyOrganizationPoints(organizationId, {
-      message: ({ t }) => ({
-        title: t('notify.licenseStatus.title'),
-        body: isActive ? t('notify.licenseStatus.activated') : t('notify.licenseStatus.suspended'),
-      }),
-      url: '/dashboard',
-    });
+    if (statusChanged) {
+      await notifyOrganizationPoints(organizationId, {
+        message: ({ t }) => ({
+          title: t('notify.licenseStatus.title'),
+          body: isActive ? t('notify.licenseStatus.activated') : t('notify.licenseStatus.suspended'),
+        }),
+        url: '/dashboard',
+      });
+    }
 
     revalidatePath('/structures');
     return { success: true, error: '' };
@@ -461,6 +477,7 @@ export async function updateOrganization(
 
     const added = modules.filter((m) => !previousModules.includes(m));
     const removed = previousModules.filter((m) => !modules.includes(m));
+    // Nom, e-mail ou ville modifiés seulement : personne n'est prévenu.
     if (added.length || removed.length) {
       queueMail(async () =>
         buildModulesChangedMails({
@@ -470,15 +487,15 @@ export async function updateOrganization(
           removed,
         })
       );
-    }
 
-    await notifyOrganizationPoints(organizationId, {
-      message: ({ t }) => ({
-        title: t('notify.licenseModules.title'),
-        body: t('notify.licenseModules.body', { name }),
-      }),
-      url: '/settings',
-    });
+      await notifyOrganizationPoints(organizationId, {
+        message: ({ t }) => ({
+          title: t('notify.licenseModules.title'),
+          body: t('notify.licenseModules.body', { name }),
+        }),
+        url: '/settings',
+      });
+    }
 
     revalidatePath('/structures');
     return { success: true, error: '' };

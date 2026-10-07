@@ -377,6 +377,14 @@ export async function setPointAdminActive(pointId: string, userId: string, isAct
   }
 
   const admin = getAdminSupabase();
+  const { data: before } = await admin
+    .from('users')
+    .select('is_active')
+    .eq('id', userId)
+    .eq('structure_id', pointId)
+    .eq('role', 'ADMIN')
+    .maybeSingle();
+
   const { data: user, error } = await admin
     .from('users')
     .update({ is_active: isActive })
@@ -388,7 +396,8 @@ export async function setPointAdminActive(pointId: string, userId: string, isAct
 
   if (error) return { success: false, error: t('org.errors.adminUpdateFailed') };
 
-  if (user) {
+  // E-mail seulement si le statut change réellement
+  if (user && before && before.is_active !== isActive) {
     queueMail(async () =>
       buildAccountStatusMail({
         email: user.email,

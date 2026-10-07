@@ -100,12 +100,12 @@ const ROUTE_RULES: RouteRule[] = [
   { prefix: '/users',    roles: ['ADMIN', 'SUPER_ADMIN', 'RH'] },
 
   // Produits & menu
-  { prefix: '/products',       roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'] },
-  { prefix: '/accompaniments', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'] },
-  { prefix: '/categories',     roles: ['ADMIN', 'SUPER_ADMIN'] },
+  { prefix: '/products',       roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'], modules: ['POS'] },
+  { prefix: '/accompaniments', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'], modules: ['POS'] },
+  { prefix: '/categories',     roles: ['ADMIN', 'SUPER_ADMIN'], modules: ['POS'] },
 
   // Commandes
-  { prefix: '/orders', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR'] },
+  { prefix: '/orders', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR'], modules: ['POS'] },
 
   // Cuisine & Bar
   { prefix: '/kitchen',  roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CUISINIER'], modules: ['CUISINE'] },
@@ -136,7 +136,7 @@ const ROUTE_RULES: RouteRule[] = [
 
   // Statistiques & Finances
   { prefix: '/statistics', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'COMPTABLE'] },
-  { prefix: '/shifts',     roles: ['ADMIN', 'SUPER_ADMIN', 'CAISSE', 'COMPTABLE'] },
+  { prefix: '/shifts',     roles: ['ADMIN', 'SUPER_ADMIN', 'CAISSE', 'COMPTABLE'], modules: ['POS'] },
 
   // Comptabilité (les pages restreignent ensuite par rôle : le manager ne voit que les dépenses)
   { prefix: '/accounting', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'COMPTABLE', 'ORG_ADMIN'], modules: ['COMPTABILITE'] },

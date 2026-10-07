@@ -1,6 +1,8 @@
 import { hash, compare } from 'bcryptjs';
 import { jwtVerify, SignJWT } from 'jose';
 import { cookies } from 'next/headers';
+import { cache } from 'react';
+import { getAdminSupabase } from '@/lib/supabase';
 
 const secretKey = new TextEncoder().encode(
   process.env.AUTH_SECRET || 'default-secret-change-in-production'
@@ -50,6 +52,12 @@ export interface SessionPayload {
   modules?: string[];
   /** Présent pour les comptes rattachés à une organisation (vérifié à la connexion). */
   licenseActive?: boolean;
+  /**
+   * Modules inscrits dans le cookie (figés à la connexion), quand ils diffèrent
+   * de la licence actuelle : le cookie doit être réécrit (voir /api/session/refresh).
+   * Jamais signé dans le jeton.
+   */
+  staleModules?: string[];
   iat: number;
   exp: number;
 }
@@ -91,7 +99,17 @@ export async function getSession(): Promise<SessionPayload | null> {
     }
 
     const verified = await jwtVerify(token, secretKey);
-    return verified.payload as unknown as SessionPayload;
+    const session = verified.payload as unknown as SessionPayload;
+
+    // Modules à jour : la licence peut avoir changé depuis la connexion.
+    if (session.role !== 'SUPER_ADMIN' && session.role !== 'CLIENT') {
+      const current = await loadCurrentModules(session.organizationId ?? null, session.structureId ?? null);
+      if (current) {
+        if (!sameModules(current, session.modules ?? [])) session.staleModules = session.modules ?? [];
+        session.modules = current;
+      }
+    }
+    return session;
   } catch (error) {
     return null;
   }
@@ -101,3 +119,32 @@ export async function deleteSession() {
   const cookieStore = await cookies();
   cookieStore.delete('session');
 }
+
+function sameModules(a: string[], b: string[]) {
+  return a.length === b.length && a.every((m) => b.includes(m));
+}
+
+/**
+ * Modules actuels de la licence de l'organisation (structures.modules en repli,
+ * comme à la connexion). Une seule lecture par requête ; null si la base ne
+ * répond pas (on garde alors ceux du cookie).
+ */
+const loadCurrentModules = cache(async (organizationId: string | null, structureId: string | null): Promise<string[] | null> => {
+  try {
+    const admin = getAdminSupabase();
+    let orgId = organizationId;
+    let pointModules: string[] | null = null;
+    if (structureId) {
+      const { data: point } = await admin.from('structures').select('organization_id, modules').eq('id', structureId).maybeSingle();
+      orgId = orgId ?? ((point?.organization_id as string | null) ?? null);
+      pointModules = (point?.modules as string[] | null) ?? null;
+    }
+    if (orgId) {
+      const { data: organization } = await admin.from('organizations').select('modules').eq('id', orgId).maybeSingle();
+      if (organization?.modules) return organization.modules as string[];
+    }
+    return pointModules;
+  } catch {
+    return null;
+  }
+});
