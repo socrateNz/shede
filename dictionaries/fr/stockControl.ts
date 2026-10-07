@@ -112,7 +112,7 @@ const stockControl = {
     colGap: 'Écart inventaire',
     colGapValue: 'Valeur de l’écart',
     empty: 'Aucun mouvement sur la période.',
-    valuedHint: 'Seuls les ingrédients ont un coût : les autres articles sont suivis en quantité.',
+    valuedHint: 'Valorisation : coût moyen des ingrédients, et coût d’achat des produits revendus (module Achats). Les autres articles sont suivis en quantité.',
   },
 };
 

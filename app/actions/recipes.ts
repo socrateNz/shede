@@ -155,7 +155,8 @@ export async function getFoodCostReport(): Promise<FoodCostRow[] | null> {
   const [{ data: lines, error }, { data: ingredients }, { data: products }, { data: accompaniments }, taxSettings] = await Promise.all([
     admin.from('recipe_items').select('product_id, accompaniment_id, ingredient_id, quantity, unit, waste_percent').eq('structure_id', session.structureId),
     admin.from('ingredients').select('id, unit, cost_per_unit').eq('structure_id', session.structureId),
-    admin.from('products').select('id, name, price').eq('structure_id', session.structureId).eq('is_deleted', false).order('name'),
+    // * : purchase_cost (coût d'achat des produits revendus) n'existe qu'après la migration phase 18
+    admin.from('products').select('*').eq('structure_id', session.structureId).eq('is_deleted', false).order('name'),
     admin.from('accompaniments').select('id, name, price').eq('structure_id', session.structureId).eq('is_deleted', false).order('name'),
     getStructureTaxSettings(session.structureId),
   ]);
@@ -173,9 +174,13 @@ export async function getFoodCostReport(): Promise<FoodCostRow[] | null> {
     ]);
   }
 
-  const row = (item: { id: string; name: string; price: number }, type: FoodCostRow['type']): FoodCostRow => {
+  const row = (item: { id: string; name: string; price: number; purchase_cost?: number | null }, type: FoodCostRow['type']): FoodCostRow => {
     const recipe = byOwner.get(item.id) ?? [];
     const price = Number(item.price) || 0;
+    // Produit revendu tel quel (boisson…) : son coût est le prix d'achat moyen
+    if (!recipe.length && item.purchase_cost !== null && item.purchase_cost !== undefined) {
+      return { id: item.id, type, name: item.name, price, ...foodCost(Math.round(Number(item.purchase_cost)), price, taxSettings), ingredientCount: 0 };
+    }
     if (!recipe.length) {
       const net = foodCost(0, price, taxSettings).priceExcludingTax;
       return { id: item.id, type, name: item.name, price, priceExcludingTax: net, cost: null, margin: null, percent: null, ingredientCount: 0 };

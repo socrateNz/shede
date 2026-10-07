@@ -14,6 +14,8 @@ import {
   ClipboardCheck,
   Trash,
   Scale,
+  ClipboardList,
+  PackageCheck,
   Settings,
   LogOut,
   Home,
@@ -50,6 +52,7 @@ const GROUP_STYLES = {
   production: 'text-orange-400',
   catalog: 'text-emerald-400',
   stock: 'text-teal-300',
+  purchasing: 'text-cyan-300',
   hotel: 'text-fuchsia-400',
   customers: 'text-rose-400',
   management: 'text-amber-400',
@@ -175,6 +178,10 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     { group: 'stock', name: t('nav.losses'), href: '/stock/losses', icon: Trash, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'STOCK' },
     { group: 'stock', name: t('nav.variances'), href: '/stock/variances', icon: Scale, roles: ['ADMIN', 'MANAGER'], module: 'STOCK' },
     { group: 'stock', name: t('nav.foodCost'), href: '/stock/food-cost', icon: PieChart, roles: ['ADMIN', 'MANAGER'], module: 'STOCK' },
+
+    { group: 'purchasing', name: t('nav.suppliers'), href: '/purchasing/suppliers', icon: Truck, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'ACHATS' },
+    { group: 'purchasing', name: t('nav.purchaseOrders'), href: '/purchasing/orders', icon: ClipboardList, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'ACHATS' },
+    { group: 'purchasing', name: t('nav.receipts'), href: '/purchasing/receipts', icon: PackageCheck, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'ACHATS' },
 
 
     { group: 'hotel', name: t('nav.rooms'), href: '/rooms', icon: Bed, roles: ['ADMIN', 'RECEPTION'], module: 'HOTEL' },

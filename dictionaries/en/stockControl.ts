@@ -114,7 +114,7 @@ const stockControl: typeof fr = {
     colGap: 'Count gap',
     colGapValue: 'Gap value',
     empty: 'No movement over the period.',
-    valuedHint: 'Only ingredients have a cost: other items are tracked in quantity.',
+    valuedHint: 'Valuation: average cost of ingredients, and purchase cost of resold products (Purchasing module). Other items are tracked in quantity.',
   },
 };
 

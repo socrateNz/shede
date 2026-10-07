@@ -59,6 +59,7 @@ const STAFF_PREFIXES = [
   '/promotions',
   '/accompaniments',
   '/categories',
+  '/purchasing',
   '/notifications',
   '/settings',
   '/statistics',
@@ -120,6 +121,9 @@ const ROUTE_RULES: RouteRule[] = [
   // Coût matière (prix de revient, marges) : pas pour le magasinier
   { prefix: '/stock/food-cost', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'], modules: ['STOCK'] },
   { prefix: '/stock/variances', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'], modules: ['STOCK'] },
+
+  // Achats
+  { prefix: '/purchasing', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'MAGASINIER'], modules: ['ACHATS'] },
 
   // Promotions
   { prefix: '/promotions', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'], modules: ['PROMOTION'] },

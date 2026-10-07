@@ -107,7 +107,7 @@ export async function deductOrderStock(orderId: string, userId?: string | null) 
     // Fiches recettes (ingrédients) des produits et accompagnements vendus
     const productIds = [...new Set((items || []).map((i) => i.product_id as string).filter(Boolean))];
     const accompanimentIds = [...new Set((accompChoices || []).map((a) => a.accompaniment_id as string).filter(Boolean))];
-    const recipes = await loadRecipeLines(productIds, accompanimentIds);
+    const [recipes, productCosts] = await Promise.all([loadRecipeLines(productIds, accompanimentIds), loadPurchaseCosts(productIds)]);
 
     const consumeRecipe = async (lines: RecipeRow[], soldQuantity: number) => {
       for (const line of lines) {
@@ -137,7 +137,13 @@ export async function deductOrderStock(orderId: string, userId?: string | null) 
           await recordStockMovement({ ...base, itemId: ing.ingredient_id, itemType: 'product', quantity: ing.quantity * item.quantity });
         }
       } else {
-        await recordStockMovement({ ...base, itemId: item.product_id, itemType: 'product', quantity: item.quantity });
+        await recordStockMovement({
+          ...base,
+          itemId: item.product_id,
+          itemType: 'product',
+          quantity: item.quantity,
+          unitCost: productCosts.get(item.product_id) ?? null,
+        });
       }
     }
 
@@ -238,8 +244,10 @@ export async function recordLoss(input: {
       }
       return Math.round(value);
     }
-    await recordStockMovement({ ...base, itemId: input.itemId, itemType: input.itemType, quantity: input.quantity });
-    return 0;
+    // Produit revendu tel quel : valorisé à son coût d'achat moyen (module ACHATS)
+    const unitCost = input.itemType === 'product' ? (await loadPurchaseCosts([input.itemId])).get(input.itemId) ?? null : null;
+    await recordStockMovement({ ...base, itemId: input.itemId, itemType: input.itemType, quantity: input.quantity, unitCost });
+    return unitCost === null ? 0 : Math.round(input.quantity * unitCost);
   }
 
   const { data: ingredient } = await getAdminSupabase()
@@ -251,4 +259,16 @@ export async function recordLoss(input: {
   const unitCost = Number(ingredient?.cost_per_unit) || 0;
   await recordStockMovement({ ...base, itemId: input.itemId, itemType: 'ingredient', quantity: input.quantity, unitCost });
   return Math.round(input.quantity * unitCost);
+}
+
+/** Coût d'achat moyen des produits revendus (products.purchase_cost, docs/phase18-purchasing.sql). */
+async function loadPurchaseCosts(productIds: string[]) {
+  const costs = new Map<string, number>();
+  if (!productIds.length) return costs;
+  // select('*') : tolère l'absence de la colonne avant la migration.
+  const { data } = await getAdminSupabase().from('products').select('*').in('id', productIds);
+  for (const p of data || []) {
+    if (p.purchase_cost !== null && p.purchase_cost !== undefined) costs.set(p.id as string, Number(p.purchase_cost));
+  }
+  return costs;
 }
