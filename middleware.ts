@@ -60,6 +60,7 @@ const STAFF_PREFIXES = [
   '/accompaniments',
   '/categories',
   '/purchasing',
+  '/forecasts',
   '/notifications',
   '/settings',
   '/statistics',
@@ -124,6 +125,9 @@ const ROUTE_RULES: RouteRule[] = [
 
   // Achats
   { prefix: '/purchasing', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'MAGASINIER'], modules: ['ACHATS'] },
+
+  // Prévisions
+  { prefix: '/forecasts', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'], modules: ['PREVISIONS'] },
 
   // Promotions
   { prefix: '/promotions', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'], modules: ['PROMOTION'] },

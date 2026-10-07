@@ -32,6 +32,7 @@ import recipes from './recipes';
 import foodCost from './foodCost';
 import stockControl from './stockControl';
 import purchasing from './purchasing';
+import forecasts from './forecasts';
 
 /** Dictionnaire français (langue de référence : l'anglais doit avoir les mêmes clés). */
 export const fr = {
@@ -69,4 +70,5 @@ export const fr = {
   foodCost,
   stockControl,
   purchasing,
+  forecasts,
 };

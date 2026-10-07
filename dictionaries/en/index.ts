@@ -33,6 +33,7 @@ import recipes from './recipes';
 import foodCost from './foodCost';
 import stockControl from './stockControl';
 import purchasing from './purchasing';
+import forecasts from './forecasts';
 
 export const en: Dictionary = {
   common,
@@ -69,4 +70,5 @@ export const en: Dictionary = {
   foodCost,
   stockControl,
   purchasing,
+  forecasts,
 };

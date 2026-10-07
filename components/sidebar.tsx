@@ -16,6 +16,7 @@ import {
   Scale,
   ClipboardList,
   PackageCheck,
+  TrendingUp,
   Settings,
   LogOut,
   Home,
@@ -53,6 +54,7 @@ const GROUP_STYLES = {
   catalog: 'text-emerald-400',
   stock: 'text-teal-300',
   purchasing: 'text-cyan-300',
+  planning: 'text-indigo-300',
   hotel: 'text-fuchsia-400',
   customers: 'text-rose-400',
   management: 'text-amber-400',
@@ -182,6 +184,8 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     { group: 'purchasing', name: t('nav.suppliers'), href: '/purchasing/suppliers', icon: Truck, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'ACHATS' },
     { group: 'purchasing', name: t('nav.purchaseOrders'), href: '/purchasing/orders', icon: ClipboardList, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'ACHATS' },
     { group: 'purchasing', name: t('nav.receipts'), href: '/purchasing/receipts', icon: PackageCheck, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'ACHATS' },
+
+    { group: 'planning', name: t('nav.forecasts'), href: '/forecasts', icon: TrendingUp, roles: ['ADMIN', 'MANAGER'], module: 'PREVISIONS' },
 
 
     { group: 'hotel', name: t('nav.rooms'), href: '/rooms', icon: Bed, roles: ['ADMIN', 'RECEPTION'], module: 'HOTEL' },
