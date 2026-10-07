@@ -11,6 +11,9 @@ import {
   Layers,
   Carrot,
   PieChart,
+  ClipboardCheck,
+  Trash,
+  Scale,
   Settings,
   LogOut,
   Home,
@@ -46,6 +49,7 @@ const GROUP_STYLES = {
   sales: 'text-sky-400',
   production: 'text-orange-400',
   catalog: 'text-emerald-400',
+  stock: 'text-teal-300',
   hotel: 'text-fuchsia-400',
   customers: 'text-rose-400',
   management: 'text-amber-400',
@@ -157,7 +161,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     { group: 'catalog', name: t('nav.accompaniments'), href: '/accompaniments', icon: Package, roles: ['ADMIN', 'MANAGER'] },
 
     {
-      group: 'catalog',
+      group: 'stock',
       name: t('nav.stock'),
       href: '/stock',
       icon: Boxes,
@@ -166,8 +170,11 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       badge: counts.stock,
       badgeColor: 'bg-orange-500',
     },
-    { group: 'catalog', name: t('nav.ingredients'), href: '/stock/ingredients', icon: Carrot, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'STOCK' },
-    { group: 'catalog', name: t('nav.foodCost'), href: '/stock/food-cost', icon: PieChart, roles: ['ADMIN', 'MANAGER'], module: 'STOCK' },
+    { group: 'stock', name: t('nav.ingredients'), href: '/stock/ingredients', icon: Carrot, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'STOCK' },
+    { group: 'stock', name: t('nav.inventories'), href: '/stock/inventories', icon: ClipboardCheck, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'STOCK' },
+    { group: 'stock', name: t('nav.losses'), href: '/stock/losses', icon: Trash, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'STOCK' },
+    { group: 'stock', name: t('nav.variances'), href: '/stock/variances', icon: Scale, roles: ['ADMIN', 'MANAGER'], module: 'STOCK' },
+    { group: 'stock', name: t('nav.foodCost'), href: '/stock/food-cost', icon: PieChart, roles: ['ADMIN', 'MANAGER'], module: 'STOCK' },
 
 
     { group: 'hotel', name: t('nav.rooms'), href: '/rooms', icon: Bed, roles: ['ADMIN', 'RECEPTION'], module: 'HOTEL' },

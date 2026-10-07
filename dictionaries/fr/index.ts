@@ -30,6 +30,7 @@ import categories from './categories';
 import ingredients from './ingredients';
 import recipes from './recipes';
 import foodCost from './foodCost';
+import stockControl from './stockControl';
 
 /** Dictionnaire français (langue de référence : l'anglais doit avoir les mêmes clés). */
 export const fr = {
@@ -65,4 +66,5 @@ export const fr = {
   ingredients,
   recipes,
   foodCost,
+  stockControl,
 };

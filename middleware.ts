@@ -119,6 +119,7 @@ const ROUTE_RULES: RouteRule[] = [
   { prefix: '/stock', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'MAGASINIER'], modules: ['STOCK'] },
   // Coût matière (prix de revient, marges) : pas pour le magasinier
   { prefix: '/stock/food-cost', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'], modules: ['STOCK'] },
+  { prefix: '/stock/variances', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'], modules: ['STOCK'] },
 
   // Promotions
   { prefix: '/promotions', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'], modules: ['PROMOTION'] },

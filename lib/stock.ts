@@ -6,6 +6,9 @@ import { grossQuantity, type RecipeUnit } from '@/lib/recipes';
 
 export type StockItemType = 'product' | 'accompaniment' | 'ingredient';
 
+import { LOSS_REASONS, type LossReason } from '@/lib/stock-constants';
+export { LOSS_REASONS, type LossReason };
+
 /** Colonne de stocks / stock_movements qui porte l'élément. */
 const ITEM_COLUMN: Record<StockItemType, 'product_id' | 'accompaniment_id' | 'ingredient_id'> = {
   product: 'product_id',
@@ -32,6 +35,9 @@ export async function recordStockMovement(input: {
   referenceId?: string | null;
   /** Coût unitaire au moment du mouvement (ingrédients). */
   unitCost?: number | null;
+  /** Perte déclarée : motif (docs/phase17-inventory.sql) et commentaire. */
+  lossReason?: LossReason | null;
+  note?: string | null;
 }) {
   const admin = getAdminSupabase();
   const column = ITEM_COLUMN[input.itemType];
@@ -40,6 +46,8 @@ export async function recordStockMovement(input: {
     structure_id: input.structureId,
     ...itemColumns(input.itemType, input.itemId),
     ...(input.unitCost != null ? { unit_cost: input.unitCost } : {}),
+    ...(input.lossReason ? { loss_reason: input.lossReason } : {}),
+    ...(input.note ? { note: input.note } : {}),
     type: input.type,
     quantity: input.quantity,
     reason: input.reason,
@@ -190,4 +198,57 @@ async function loadRecipeLines(productIds: string[], accompanimentIds: string[])
     map.set(key, [...(map.get(key) ?? []), line]);
   }
   return { byProduct, byAccompaniment };
+}
+
+/**
+ * Déclare une perte : un plat ou un accompagnement qui a une fiche recette sort
+ * ses ingrédients (ils ont été utilisés) ; sinon l'article lui-même sort du stock.
+ * Renvoie la valeur de la perte (XAF, ingrédients valorisés seulement).
+ */
+export async function recordLoss(input: {
+  structureId: string;
+  userId?: string | null;
+  itemId: string;
+  itemType: StockItemType;
+  quantity: number;
+  reason: LossReason;
+  note?: string | null;
+}) {
+  const base = {
+    structureId: input.structureId,
+    userId: input.userId,
+    type: 'OUT' as const,
+    reason: 'loss',
+    lossReason: input.reason,
+    note: input.note ?? null,
+  };
+
+  if (input.itemType !== 'ingredient') {
+    const recipes = await loadRecipeLines(
+      input.itemType === 'product' ? [input.itemId] : [],
+      input.itemType === 'accompaniment' ? [input.itemId] : []
+    );
+    const lines = (input.itemType === 'product' ? recipes.byProduct : recipes.byAccompaniment).get(input.itemId) ?? [];
+    if (lines.length) {
+      let value = 0;
+      for (const line of lines) {
+        const quantity = roundQuantity(grossQuantity(line) * input.quantity);
+        await recordStockMovement({ ...base, itemId: line.ingredient_id, itemType: 'ingredient', quantity, unitCost: line.cost_per_unit });
+        value += quantity * line.cost_per_unit;
+      }
+      return Math.round(value);
+    }
+    await recordStockMovement({ ...base, itemId: input.itemId, itemType: input.itemType, quantity: input.quantity });
+    return 0;
+  }
+
+  const { data: ingredient } = await getAdminSupabase()
+    .from('ingredients')
+    .select('cost_per_unit')
+    .eq('id', input.itemId)
+    .eq('structure_id', input.structureId)
+    .maybeSingle();
+  const unitCost = Number(ingredient?.cost_per_unit) || 0;
+  await recordStockMovement({ ...base, itemId: input.itemId, itemType: 'ingredient', quantity: input.quantity, unitCost });
+  return Math.round(input.quantity * unitCost);
 }
