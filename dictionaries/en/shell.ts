@@ -60,6 +60,8 @@ const shell: typeof fr = {
     purchaseOrders: 'Purchase orders',
     receipts: 'Goods receipts',
     forecasts: 'Forecasts',
+    suggestedOrders: 'Suggested orders',
+    production: 'Production plan',
     deliveries: 'Deliveries',
     rooms: 'Rooms',
     bookings: 'Bookings',

@@ -34,6 +34,7 @@ import foodCost from './foodCost';
 import stockControl from './stockControl';
 import purchasing from './purchasing';
 import forecasts from './forecasts';
+import planning from './planning';
 
 export const en: Dictionary = {
   common,
@@ -71,4 +72,5 @@ export const en: Dictionary = {
   stockControl,
   purchasing,
   forecasts,
+  planning,
 };

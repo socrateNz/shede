@@ -17,6 +17,7 @@ import {
   ClipboardList,
   PackageCheck,
   TrendingUp,
+  CookingPot,
   Settings,
   LogOut,
   Home,
@@ -186,6 +187,8 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     { group: 'purchasing', name: t('nav.receipts'), href: '/purchasing/receipts', icon: PackageCheck, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'ACHATS' },
 
     { group: 'planning', name: t('nav.forecasts'), href: '/forecasts', icon: TrendingUp, roles: ['ADMIN', 'MANAGER'], module: 'PREVISIONS' },
+    { group: 'planning', name: t('nav.suggestedOrders'), href: '/forecasts/orders', icon: ShoppingCart, roles: ['ADMIN', 'MANAGER'], module: 'PREVISIONS' },
+    { group: 'planning', name: t('nav.production'), href: '/production', icon: CookingPot, roles: ['ADMIN', 'MANAGER', 'CUISINIER', 'BAR'], module: 'PREVISIONS' },
 
 
     { group: 'hotel', name: t('nav.rooms'), href: '/rooms', icon: Bed, roles: ['ADMIN', 'RECEPTION'], module: 'HOTEL' },

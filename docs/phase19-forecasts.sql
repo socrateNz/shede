@@ -32,6 +32,29 @@ GRANT EXECUTE ON FUNCTION daily_product_sales(UUID, DATE, DATE) TO service_role;
 
 CREATE INDEX IF NOT EXISTS idx_orders_structure_created ON orders (structure_id, created_at);
 
+-- Profil horaire des ventes (quantités vendues par heure, heure du Cameroun) :
+-- sert à répartir le plan de production par tranche horaire.
+CREATE OR REPLACE FUNCTION hourly_sales_profile(p_structure_id UUID, p_from DATE, p_to DATE)
+RETURNS TABLE (hour INTEGER, quantity NUMERIC)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXTRACT(HOUR FROM (o.created_at AT TIME ZONE 'Africa/Douala'))::INTEGER AS hour,
+         SUM(oi.quantity)::NUMERIC AS quantity
+  FROM orders o
+  JOIN order_items oi ON oi.order_id = o.id
+  WHERE o.structure_id = p_structure_id
+    AND o.status <> 'CANCELLED'
+    AND oi.parent_order_item_id IS NULL
+    AND o.created_at >= (p_from::TIMESTAMP AT TIME ZONE 'Africa/Douala')
+    AND o.created_at < ((p_to + 1)::TIMESTAMP AT TIME ZONE 'Africa/Douala')
+  GROUP BY 1;
+$$;
+REVOKE ALL ON FUNCTION hourly_sales_profile(UUID, DATE, DATE) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION hourly_sales_profile(UUID, DATE, DATE) TO service_role;
+
 -- 2. Événements saisis par le restaurant : impact en % sur les ventes du jour
 --    (+40 : match, fête ; -100 : fermeture). Ils servent aussi à écarter ces jours
 --    de l'historique, pour ne pas fausser les moyennes.

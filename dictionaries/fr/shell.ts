@@ -59,6 +59,8 @@ const shell = {
     purchaseOrders: 'Bons de commande',
     receipts: 'Réceptions',
     forecasts: 'Prévisions',
+    suggestedOrders: 'Commandes suggérées',
+    production: 'Plan de production',
     deliveries: 'Livraisons',
     rooms: 'Chambres',
     bookings: 'Réservations',

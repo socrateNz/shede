@@ -1,0 +1,58 @@
+import type fr from '../fr/planning';
+
+/** Suggested orders and production plan (PREVISIONS module). */
+const planning: typeof fr = {
+  suggestions: {
+    badge: 'Forecasts',
+    title: 'Suggested orders',
+    subtitle: 'What to order to last until each supplier’s next-but-one delivery, based on forecast sales and your recipes.',
+    notInstalled: 'Run the docs/phase19-forecasts.sql migration (and docs/phase18-purchasing.sql for suppliers) to enable suggestions.',
+    empty: 'Nothing to order for now: stock covers forecast sales.',
+    noHistory: 'Not enough sales to forecast yet: suggestions rely on a few days of activity.',
+    noSupplier: 'No supplier',
+    noSupplierHint: 'Add these items to a supplier’s catalogue to be able to order them.',
+    needPurchasing: 'Enable the Purchasing module to turn these suggestions into purchase orders.',
+    nextDelivery: 'Possible delivery: {date}',
+    coverUntil: 'Covers until {date}',
+    colItem: 'Item',
+    colStock: 'Stock',
+    colIncoming: 'Already ordered',
+    colConsumption: 'Forecast usage',
+    colSafety: 'Safety',
+    colNeed: 'Need',
+    colPacks: 'To order',
+    colTotal: 'Total excl. VAT',
+    stockout: 'Stockout before delivery',
+    total: 'Total excl. VAT',
+    belowMinimum: 'Below the minimum order ({amount})',
+    createOrder: 'Create purchase order',
+    orderCreated: 'Purchase order created: check it before sending',
+    method:
+      'Need = forecast usage until the next-but-one delivery + alert threshold − stock − open orders, rounded up to the pack. Supplier: the preferred one, otherwise the cheapest.',
+  },
+  production: {
+    badge: 'Forecasts',
+    title: 'Production plan',
+    subtitle: 'Quantities to prepare, spread over your usual selling hours.',
+    notInstalled: 'Run the docs/phase19-forecasts.sql migration to enable the production plan.',
+    today: 'Today',
+    tomorrow: 'Tomorrow',
+    station: { CUISINE: 'Kitchen', BAR: 'Bar' },
+    all: 'All stations',
+    slots: { morning: 'Morning', lunch: 'Lunch', afternoon: 'Afternoon', evening: 'Evening' },
+    slotHours: '{from}:00 – {to}:00 · {share} % of sales',
+    colProduct: 'Product',
+    colForecast: 'Forecast',
+    colSold: 'Sold',
+    colRemaining: 'Left',
+    empty: 'No sales forecast for that day.',
+    ingredientsTitle: 'Mise en place',
+    ingredientsHint: 'Ingredients needed for the remaining production, preparation waste included.',
+    ingredientsEmpty: 'No dish with a recipe in the forecast production.',
+    event: 'Event: {label} ({impact} %)',
+    holiday: 'Public holiday',
+    print: 'Print',
+  },
+};
+
+export default planning;
