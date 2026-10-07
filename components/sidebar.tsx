@@ -17,6 +17,7 @@ import {
   ClipboardList,
   PackageCheck,
   TrendingUp,
+  Gauge,
   CookingPot,
   Settings,
   LogOut,
@@ -125,6 +126,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
   const orgAdminItems: NavItem[] = [
     { group: 'organization', name: t('nav.ownerView'), href: '/organization', icon: BarChart3, roles: ['ORG_ADMIN'], exact: true },
     { group: 'organization', name: t('nav.cashReports'), href: '/organization/cash', icon: HistoryIcon, roles: ['ORG_ADMIN'] },
+    { group: 'organization', name: t('nav.operations'), href: '/organization/operations', icon: Gauge, roles: ['ORG_ADMIN'], module: 'STOCK' },
     { group: 'organization', name: t('nav.pointsLicense'), href: '/organization/points', icon: Network, roles: ['ORG_ADMIN'] },
     { group: 'accounting', name: t('nav.accounting'), href: '/accounting', icon: BookOpenCheck, roles: ['ORG_ADMIN'], module: 'COMPTABILITE' },
   ];

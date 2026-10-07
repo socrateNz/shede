@@ -62,6 +62,7 @@ const shell: typeof fr = {
     forecasts: 'Forecasts',
     suggestedOrders: 'Suggested orders',
     production: 'Production plan',
+    operations: 'Performance',
     deliveries: 'Deliveries',
     rooms: 'Rooms',
     bookings: 'Bookings',

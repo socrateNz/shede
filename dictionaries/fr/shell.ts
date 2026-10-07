@@ -61,6 +61,7 @@ const shell = {
     forecasts: 'Prévisions',
     suggestedOrders: 'Commandes suggérées',
     production: 'Plan de production',
+    operations: 'Pilotage',
     deliveries: 'Livraisons',
     rooms: 'Chambres',
     bookings: 'Réservations',

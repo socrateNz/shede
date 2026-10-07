@@ -34,6 +34,7 @@ import stockControl from './stockControl';
 import purchasing from './purchasing';
 import forecasts from './forecasts';
 import planning from './planning';
+import operations from './operations';
 
 /** Dictionnaire français (langue de référence : l'anglais doit avoir les mêmes clés). */
 export const fr = {
@@ -73,4 +74,5 @@ export const fr = {
   purchasing,
   forecasts,
   planning,
+  operations,
 };

@@ -35,6 +35,7 @@ import stockControl from './stockControl';
 import purchasing from './purchasing';
 import forecasts from './forecasts';
 import planning from './planning';
+import operations from './operations';
 
 export const en: Dictionary = {
   common,
@@ -73,4 +74,5 @@ export const en: Dictionary = {
   purchasing,
   forecasts,
   planning,
+  operations,
 };
