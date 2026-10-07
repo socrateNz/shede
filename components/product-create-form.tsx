@@ -15,6 +15,7 @@ import { useT } from '@/lib/i18n/client';
 
 import { useAppStore } from '@/lib/store';
 import { ImageUpload } from '@/components/image-upload';
+import { DeliverableToggle, ProductCategoryPicker, type CategoryOption } from '@/components/product-category-picker';
 
 type ProductOption = {
   id: string;
@@ -45,14 +46,22 @@ type CreateProductParams = {
   name: string;
   description?: string;
   price: number;
-  category?: string;
+  categoryIds: string[];
   destination?: string;
+  image_url?: string;
   isAvailable: boolean;
+  isDeliverable: boolean;
   accompaniments: AccompanimentItem[];
   threshold?: number;
 };
 
-export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptions: ProductOption[] }) {
+export function ProductCreateForm({
+  accompanimentOptions,
+  categoryOptions,
+}: {
+  accompanimentOptions: ProductOption[];
+  categoryOptions: CategoryOption[];
+}) {
   const router = useRouter();
   const { t, format } = useT();
   const queryClient = useQueryClient();
@@ -64,6 +73,8 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
   const [newAccompPrice, setNewAccompPrice] = useState<number>(0);
   const [newAccompItems, setNewAccompItems] = useState<NewAccomp[]>([]);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [categoryIds, setCategoryIds] = useState<string[]>([]);
+  const [isDeliverable, setIsDeliverable] = useState(true);
 
   const createMutation = useMutation({
     mutationFn: async (params: CreateProductParams) => {
@@ -157,10 +168,11 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
       name: formData.get('name') as string,
       description: (formData.get('description') as string) || undefined,
       price: parseFloat(formData.get('price') as string),
-      category: (formData.get('category') as string) || undefined,
+      categoryIds,
       destination: (formData.get('destination') as string) || 'CUISINE',
       image_url: imageUrl || undefined,
       isAvailable: formData.get('isAvailable') === 'on',
+      isDeliverable,
       accompaniments: accompanimentsPayload,
       threshold: hasStockModule ? Number(formData.get('threshold')) : undefined,
     };
@@ -293,17 +305,8 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2 group">
-                    <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                      <Tag className="w-4 h-4 text-amber-400" />
-                      {t('products.form.category')}
-                    </label>
-                    <Input
-                      type="text"
-                      name="category"
-                      placeholder={t('products.form.categoryPlaceholder')}
-                      className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-amber-500 focus:ring-amber-500/20 transition-all duration-300 group-hover:border-slate-500"
-                    />
+                  <div className="md:col-span-2">
+                    <ProductCategoryPicker categories={categoryOptions} selected={categoryIds} onChange={setCategoryIds} disabled={isPending} />
                   </div>
 
                   <div className="space-y-2">
@@ -333,6 +336,8 @@ export function ProductCreateForm({ accompanimentOptions }: { accompanimentOptio
                       </label>
                     </div>
                   </div>
+
+                  <DeliverableToggle value={isDeliverable} onChange={setIsDeliverable} disabled={isPending} />
                 </div>
 
                 {/* Section Stock - Uniquement si module activé */}

@@ -7,6 +7,7 @@ import { validatePromoCode, recordPromoUsage } from './promotions';
 import { recomputeOrderTotal } from '@/lib/order-totals';
 import { resolveDelivery, type DeliveryRequest } from '@/lib/delivery';
 import { te } from '@/lib/i18n/server';
+import { undeliverableProducts } from '@/lib/categories';
 
 export async function createClientOrder(
   structureId: string, 
@@ -44,6 +45,9 @@ export async function createClientOrder(
       const delivery = await resolveDelivery(structureId, { ...options?.delivery, phone: options?.phone });
       if ('error' in delivery) return { success: false, error: delivery.error };
       deliveryFields = delivery.fields;
+
+      const blocked = await undeliverableProducts(structureId, items.map((i) => i.productId));
+      if (blocked.length) return { success: false, error: await te('errors.productsNotDeliverable', { names: blocked.join(', ') }) };
     }
 
     // Frais d'emballage : toujours le tarif du point, jamais la valeur envoyée par le navigateur.

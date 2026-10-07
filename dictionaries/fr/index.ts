@@ -26,6 +26,10 @@ import landing from './landing';
 import accounting from './accounting';
 import api from './api';
 import marketplace from './marketplace';
+import categories from './categories';
+import ingredients from './ingredients';
+import recipes from './recipes';
+import foodCost from './foodCost';
 
 /** Dictionnaire français (langue de référence : l'anglais doit avoir les mêmes clés). */
 export const fr = {
@@ -57,4 +61,8 @@ export const fr = {
   accounting,
   api,
   marketplace,
+  categories,
+  ingredients,
+  recipes,
+  foodCost,
 };

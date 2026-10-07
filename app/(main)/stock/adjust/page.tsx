@@ -5,7 +5,7 @@ import { useT } from '@/lib/i18n/client';
 import { getStockList, addStockMovement, getAvailableAccompanimentsForStock } from '@/app/actions/stock';
 import type { StockItemType } from '@/app/actions/stock';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Minus, Settings2, Package, Coffee, ArrowLeft, Loader2 } from 'lucide-react';
+import { Plus, Minus, Settings2, Package, Coffee, Carrot, ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ interface StockItem {
   quantity: number;
   threshold: number;
   type: StockItemType;
+  unit?: string;
 }
 
 export default function AdjustStockPage() {
@@ -26,6 +27,7 @@ export default function AdjustStockPage() {
   const { t } = useT();
   const [products, setProducts] = useState<StockItem[]>([]);
   const [accompaniments, setAccompaniments] = useState<StockItem[]>([]);
+  const [ingredients, setIngredients] = useState<StockItem[]>([]);
   const [loadingItems, setLoadingItems] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -40,6 +42,7 @@ export default function AdjustStockPage() {
       const all = await getStockList();
       setProducts(all.filter((s) => s.type === 'product'));
       setAccompaniments(all.filter((s) => s.type === 'accompaniment'));
+      setIngredients(all.filter((s) => s.type === 'ingredient'));
       setLoadingItems(false);
     };
     load();
@@ -50,7 +53,13 @@ export default function AdjustStockPage() {
     setSelectedItemId('');
   }, [itemType]);
 
-  const currentList = itemType === 'product' ? products : accompaniments;
+  const currentList = itemType === 'product' ? products : itemType === 'ingredient' ? ingredients : accompaniments;
+  const labels = {
+    product: { icon: Package, toUpdate: t('stock.adjust.productToUpdate'), none: t('stock.adjust.noProducts'), select: t('stock.adjust.selectProduct') },
+    accompaniment: { icon: Coffee, toUpdate: t('stock.adjust.accompanimentToUpdate'), none: t('stock.adjust.noAccompaniments'), select: t('stock.adjust.selectAccompaniment') },
+    ingredient: { icon: Carrot, toUpdate: t('stock.adjust.ingredientToUpdate'), none: t('stock.adjust.noIngredients'), select: t('stock.adjust.selectIngredient') },
+  }[itemType];
+  const ItemIcon = labels.icon;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +117,7 @@ export default function AdjustStockPage() {
               {/* Sélecteur de type : Produit ou Accompagnement */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-300">{t('stock.adjust.itemType')}</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <button
                     type="button"
                     onClick={() => setItemType('product')}
@@ -133,14 +142,26 @@ export default function AdjustStockPage() {
                     <Coffee className="w-4 h-4" />
                     <span className="text-sm font-semibold">{t('stock.itemType.accompaniment')}</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setItemType('ingredient')}
+                    className={`flex items-center gap-2 p-3 rounded-lg border transition-all duration-200 ${
+                      itemType === 'ingredient'
+                        ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-400'
+                        : 'border-slate-700 bg-slate-900/30 text-slate-400 hover:border-slate-600'
+                    }`}
+                  >
+                    <Carrot className="w-4 h-4" />
+                    <span className="text-sm font-semibold">{t('stock.itemType.ingredient')}</span>
+                  </button>
                 </div>
               </div>
 
               {/* Sélection de l'article */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                  {itemType === 'product' ? <Package className="w-4 h-4" /> : <Coffee className="w-4 h-4" />}
-                  {itemType === 'product' ? t('stock.adjust.productToUpdate') : t('stock.adjust.accompanimentToUpdate')}
+                  <ItemIcon className="w-4 h-4" />
+                  {labels.toUpdate}
                 </label>
                 {loadingItems ? (
                   <div className="flex items-center gap-2 text-slate-400 py-2">
@@ -149,7 +170,7 @@ export default function AdjustStockPage() {
                   </div>
                 ) : currentList.length === 0 ? (
                   <div className="text-sm text-slate-500 italic py-2">
-                    {itemType === 'product' ? t('stock.adjust.noProducts') : t('stock.adjust.noAccompaniments')}
+                    {labels.none}
                   </div>
                 ) : (
                   <select
@@ -159,11 +180,14 @@ export default function AdjustStockPage() {
                     required
                   >
                     <option value="">
-                      {itemType === 'product' ? t('stock.adjust.selectProduct') : t('stock.adjust.selectAccompaniment')}
+                      {labels.select}
                     </option>
                     {currentList.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {t('stock.adjust.stockOption', { name: s.name, quantity: s.quantity })}
+                        {t('stock.adjust.stockOption', {
+                          name: s.name,
+                          quantity: s.unit ? `${s.quantity} ${t(`ingredients.unitShort.${s.unit as 'kg' | 'l' | 'piece'}`)}` : s.quantity,
+                        })}
                       </option>
                     ))}
                   </select>

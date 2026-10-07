@@ -6,6 +6,7 @@ import { NewOrderForm } from '@/components/new-order-form';
 import { getPromotions } from '@/app/actions/promotions';
 import { getStructureActiveShift } from '@/app/actions/shifts';
 import { getActiveDeliveryZones } from '@/lib/delivery';
+import { categoriesForProducts } from '@/lib/categories';
 import { getT } from '@/lib/i18n/server';
 import { AlertTriangle } from 'lucide-react';
 
@@ -17,18 +18,25 @@ export default async function NewOrderPage() {
 
   const { data: productsData } = await admin
     .from('products')
-    .select('id, name, price, image_url, category')
+    // * : tolère l'absence de is_deliverable avant docs/phase15-categories.sql
+    .select('*')
     .eq('structure_id', session.structureId)
     .eq('is_available', true)
     .eq('is_deleted', false)
     .order('name', { ascending: true });
 
+  const { categories, byProduct } = await categoriesForProducts(
+    session.structureId!,
+    (productsData || []).map((p) => p.id as string)
+  );
   const products = (productsData || []).map((item) => ({
     id: item.id,
     name: item.name,
     price: Number(item.price),
     image_url: item.image_url as string | null,
-    category: item.category as string | null,
+    category: (byProduct.get(item.id)?.[0]?.name ?? item.category) as string | null,
+    categoryIds: (byProduct.get(item.id) ?? []).map((c) => c.id),
+    isDeliverable: item.is_deliverable !== false,
   }));
 
   // Charge pour chaque produit ses accompagnements configurés.
@@ -135,6 +143,7 @@ export default async function NewOrderPage() {
       ) : (
         <NewOrderForm
           products={products}
+          categories={categories.map((c) => ({ id: c.id, name: c.name, parent_id: c.parent_id }))}
           accompanimentsByProductId={accompanimentsByProductId}
           rooms={rooms || []}
           promotions={activePromotions}

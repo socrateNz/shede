@@ -2,7 +2,7 @@
 
 import { Product } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Edit2, Trash2, MoreVertical, CheckCircle, XCircle, Package, Tag, ImageIcon } from 'lucide-react';
+import { Edit2, Trash2, MoreVertical, CheckCircle, XCircle, Package, Tag, ImageIcon, TruckIcon } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -24,23 +24,34 @@ import { deleteProduct } from '@/app/actions/products';
 import { useState, useMemo } from 'react';
 import { TablePagination } from './table-pagination';
 import { useT } from '@/lib/i18n/client';
+import { categoryLabel, productInCategory, sortCategoryTree, type CategoryNode } from '@/lib/category-tree';
 
 interface ProductsListProps {
   products: Product[];
+  /** Toutes les catégories du point (pour le filtre et les libellés « Catégorie › Sous-catégorie »). */
+  categories?: CategoryNode[];
   onProductDeleted?: () => void;
 }
 
-export function ProductsList({ products, onProductDeleted }: ProductsListProps) {
+export function ProductsList({ products, categories = [], onProductDeleted }: ProductsListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { t, format } = useT();
   const [currentPage, setCurrentPage] = useState(1);
   const [destinationFilter, setDestinationFilter] = useState<string>('ALL');
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const itemsPerPage = 10;
 
+  // Filtre : catégories dans l'ordre du point, sous-catégories en retrait
+  const categoryOptions = useMemo(() => sortCategoryTree(categories), [categories]);
+
   const filteredProducts = useMemo(() => {
-    if (destinationFilter === 'ALL') return products;
-    return products.filter((p) => (p.destination || 'CUISINE') === destinationFilter);
-  }, [products, destinationFilter]);
+    return products.filter((p) => {
+      if (destinationFilter !== 'ALL' && (p.destination || 'CUISINE') !== destinationFilter) return false;
+      if (categoryFilter === 'NONE') return !p.categories?.length;
+      if (categoryFilter !== 'ALL') return productInCategory(p.categories?.map((c) => c.id), categoryFilter, categories);
+      return true;
+    });
+  }, [products, destinationFilter, categoryFilter, categories]);
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const paginatedProducts = filteredProducts.slice(
@@ -80,7 +91,23 @@ export function ProductsList({ products, onProductDeleted }: ProductsListProps) 
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        {categoryOptions.length > 0 && (
+          <select
+            value={categoryFilter}
+            onChange={(e) => {
+              setCategoryFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="bg-slate-900/50 border border-slate-600 text-slate-50 rounded-lg py-2 px-3 text-sm focus:border-blue-500 focus:ring-blue-500/20"
+          >
+            <option value="ALL">{t('products.list.allCategories')}</option>
+            {categoryOptions.map((c) => (
+              <option key={c.id} value={c.id}>{c.parent_id ? `  › ${c.name}` : c.name}</option>
+            ))}
+            <option value="NONE">{t('products.list.noCategory')}</option>
+          </select>
+        )}
         <select
           value={destinationFilter}
           onChange={(e) => {
@@ -125,14 +152,38 @@ export function ProductsList({ products, onProductDeleted }: ProductsListProps) 
                     </div>
                   ) : (
                     <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center text-lg border border-slate-700/50">
-                      {getCategoryIcon(product.category || '')}
+                      {getCategoryIcon(product.categories?.[0]?.name || product.category || '')}
                     </div>
                   )}
-                  <span>{product.name}</span>
+                  <div>
+                    <span>{product.name}</span>
+                    {product.is_deliverable === false && (
+                      <span className="mt-0.5 flex items-center gap-1 text-[11px] font-normal text-amber-400">
+                        <TruckIcon className="h-3 w-3" />
+                        {t('products.list.notDeliverable')}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </TableCell>
               <TableCell className="text-slate-400">
-                {product.category ? (
+                {product.categories?.length ? (
+                  <div className="flex flex-wrap gap-1">
+                    {product.categories.map((c) => (
+                      <span
+                        key={c.id}
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium border ${
+                          c.is_active === false
+                            ? 'bg-slate-700/30 text-slate-500 border-slate-600 line-through'
+                            : 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                        }`}
+                      >
+                        <Tag className="w-3 h-3" />
+                        {categoryLabel({ ...c, parent_id: categories.find((x) => x.id === c.id)?.parent_id ?? null }, categories)}
+                      </span>
+                    ))}
+                  </div>
+                ) : product.category ? (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">
                     <Tag className="w-3 h-3" />
                     {product.category}

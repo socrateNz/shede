@@ -4,10 +4,20 @@ import { serializeOrder, zodDetails } from '@/lib/api/orders';
 import { loadSandboxOrder } from '@/lib/api/sandbox';
 import { sendUnrecordedWebhook } from '@/lib/api/webhooks';
 
-const STATUSES = ['pending_acceptance', 'accepted', 'preparing', 'ready', 'picked_up', 'delivered', 'rejected', 'cancelled'] as const;
+const STATUSES = [
+  'pending_acceptance',
+  'accepted',
+  'preparing',
+  'ready',
+  'picked_up',
+  'delivered',
+  'delivery_failed',
+  'rejected',
+  'cancelled',
+] as const;
 
 const schema = z.object({
-  type: z.enum(['order.status_changed', 'menu.updated', 'point.paused', 'point.resumed', 'ping']),
+  type: z.enum(['order.status_changed', 'menu.updated', 'delivery_zones.updated', 'point.paused', 'point.resumed', 'ping']),
   /** Commande de test (id renvoyé par POST /orders avec une clé de test), pour order.status_changed. */
   order_id: z.string().max(8000).optional(),
   /** Statut à annoncer ; par défaut le statut actuel de la commande de test. */
@@ -37,7 +47,7 @@ export const POST = withApi(async (ctx, request) => {
     data = { previous_status: null, order: status ? { ...order, status } : order };
   } else if (type === 'point.paused' || type === 'point.resumed') {
     data = { paused: type === 'point.paused' };
-  } else if (type === 'menu.updated') {
+  } else if (type === 'menu.updated' || type === 'delivery_zones.updated') {
     data = { test: true };
   } else {
     data = { message: 'Shede webhook test' };

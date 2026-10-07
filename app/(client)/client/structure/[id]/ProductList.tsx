@@ -8,20 +8,30 @@ import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useT } from '@/lib/i18n/client';
+import { CategoryFilterBar } from '@/components/category-filter-bar';
+import { productInCategory } from '@/lib/category-tree';
 
 export default function ProductList({
   products,
   structureId,
-  promotions = []
+  promotions = [],
+  categories = []
 }: {
   products: any[],
   structureId: string,
-  promotions?: any[]
+  promotions?: any[],
+  /** Catégories actives du point, dans l'ordre du menu. */
+  categories?: { id: string; name: string; parent_id: string | null }[]
 }) {
   const addItem = useCartStore((state) => state.addItem);
   const { t, format } = useT();
 
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  // Filtre : une catégorie inclut les produits de ses sous-catégories.
+  const visibleProducts = categoryFilter
+    ? products.filter((p) => productInCategory(p.categoryIds, categoryFilter, categories))
+    : products;
   const [accompanimentSelections, setAccompanimentSelections] = useState<Record<string, number>>({});
   const searchParams = useSearchParams();
 
@@ -72,7 +82,8 @@ export default function ProductList({
         price: finalPrice,
         quantity: 1,
         image_url: product.image_url,
-        selectedAccompaniments: []
+        selectedAccompaniments: [],
+        isDeliverable: product.is_deliverable !== false
       }, structureId);
       toast.success(t('client.products.added', { name: product.name }));
     }
@@ -119,7 +130,8 @@ export default function ProductList({
       price: basePrice,
       quantity: 1,
       image_url: selectedProduct.image_url,
-      selectedAccompaniments: selectedAccs
+      selectedAccompaniments: selectedAccs,
+      isDeliverable: selectedProduct.is_deliverable !== false
     }, structureId);
 
     toast.success(t('client.products.added', { name: selectedProduct.name }));
@@ -128,8 +140,18 @@ export default function ProductList({
 
   return (
     <>
+      <div className="mb-6">
+        <CategoryFilterBar
+          categories={categories}
+          productCategoryIds={products.map((p) => p.categoryIds)}
+          value={categoryFilter}
+          onChange={setCategoryFilter}
+          allLabel={t('client.products.allCategories')}
+          tone="light"
+        />
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {products.map((product, idx) => {
+        {visibleProducts.map((product, idx) => {
           const promo = getProductPromotion(product.id);
           const discountedPrice = promo
             ? (promo.type === 'PERCENTAGE' ? product.price * (1 - promo.value / 100) : Math.max(0, product.price - promo.value))
@@ -189,6 +211,9 @@ export default function ProductList({
                   <p className="text-sm text-slate-500 mt-2 line-clamp-2 leading-relaxed font-medium">
                     {product.description}
                   </p>
+                )}
+                {product.is_deliverable === false && (
+                  <p className="mt-2 text-xs font-semibold text-amber-600">{t('client.products.notDeliverable')}</p>
                 )}
 
                 <div className="mt-auto pt-5 flex items-end justify-between">

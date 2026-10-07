@@ -35,14 +35,39 @@ const examples = (api: string) => ({
       id: '3f9d78e3-…', livemode: true, name: 'Restaurant Le Wouri', type: 'RESTAURANT', phone: '+237671234567',
       address: 'Rue Joss', city: 'Douala', country: 'Cameroun', currency: 'XAF',
       tax: { rate: 19.25, prices_include_tax: true }, takeaway_fee: 200, logo_url: null,
+      paused: false, accepting_orders: true, restaurant_delivery: true,
     },
   }),
   menu: `curl ${api}/menu \\\n  -H "Authorization: Bearer $SHEDE_KEY"`,
+  deliveryZones: `curl ${api}/delivery-zones \\\n  -H "Authorization: Bearer $SHEDE_KEY"`,
+  deliveryZonesResponse: json({
+    data: [
+      { id: '5b20…', name: 'Bonamoussadi', fee: 1000, fee_with_tax: 1000 },
+      { id: '8e41…', name: 'Akwa', fee: 1500, fee_with_tax: 1500 },
+    ],
+  }),
+  createOrderRestaurant: json({
+    external_id: 'GLV-48214',
+    customer: { name: 'Aïcha N.', phone: '699123456' },
+    items: [{ product_id: '9b1e…', quantity: 1 }],
+    delivery_by: 'restaurant',
+    delivery: { zone_id: '5b20…', landmark: 'Face pharmacie du Rond-point', district: 'Bonamoussadi', lat: 4.0912, lng: 9.7405 },
+  }),
+  categories: `curl ${api}/categories \\\n  -H "Authorization: Bearer $SHEDE_KEY"`,
+  categoriesResponse: json({
+    data: [
+      { id: '1c7d…', name: 'Plats', parent_id: null, position: 1 },
+      { id: '4fa2…', name: 'Poulet', parent_id: '1c7d…', position: 1 },
+      { id: '7b51…', name: 'Poisson', parent_id: '1c7d…', position: 2 },
+      { id: '9e03…', name: 'Boissons', parent_id: null, position: 2 },
+    ],
+  }),
   menuResponse: json({
     data: [
       {
-        id: '9b1e…', name: 'Poulet DG', description: '…', category: 'Plats', image_url: 'https://…',
-        price: 4500, price_with_tax: 4500, is_available: true,
+        id: '9b1e…', name: 'Poulet DG', description: '…', category: 'Plats',
+        categories: [{ id: '1c7d…', name: 'Plats', parent_id: null }, { id: '4fa2…', name: 'Poulet', parent_id: '1c7d…' }], image_url: 'https://…',
+        price: 4500, price_with_tax: 4500, is_available: true, is_deliverable: true,
         accompaniments: [{ id: 'a71c…', name: 'Plantains mûrs', price: 0, price_with_tax: 0, max_quantity: 1, is_available: true }],
       },
     ],
@@ -75,6 +100,8 @@ const examples = (api: string) => ({
   }),
   getOrder: `curl ${api}/orders/GLV-48213 \\\n  -H "Authorization: Bearer $SHEDE_KEY"`,
   listOrders: `curl "${api}/orders?updated_since=2026-10-01T12:00:00Z&limit=50" \\\n  -H "Authorization: Bearer $SHEDE_KEY"`,
+  listOrdersReconcile: `curl "${api}/orders?created_from=2026-09-01&created_to=2026-09-30&status=picked_up,delivered&limit=100" \\\n  -H "Authorization: Bearer $SHEDE_KEY"`,
+  listOrdersResponse: json({ data: [{ id: 'c42f…', status: 'delivered', '…': '…' }], has_more: false }),
   cancel: `curl -X POST ${api}/orders/GLV-48213/cancel \\
   -H "Authorization: Bearer $SHEDE_KEY" -H "Content-Type: application/json" \\
   -d '{ "reason": "Client injoignable" }'`,
@@ -115,9 +142,12 @@ function verifyShedeSignature(secret, header, rawBody) {
 const VALIDATION_CODES = [
   'product_not_found',
   'product_unavailable',
+  'product_not_deliverable',
   'accompaniment_not_offered',
   'accompaniment_unavailable',
   'accompaniment_quantity_exceeded',
+  'restaurant_delivery_not_offered',
+  'delivery_zone_unavailable',
 ];
 
 // ── Mise en page ─────────────────────────────────────────
@@ -190,7 +220,7 @@ export default async function ApiDocsPage() {
 
   const nav: { group: string; items: [string, string][] }[] = [
     { group: c.groups.start, items: [['intro', c.nav.intro], ['auth', c.nav.auth], ['responses', c.nav.responses], ['limits', c.nav.limits], ['test', c.nav.test]] },
-    { group: c.groups.resources, items: [['point', c.nav.point], ['menu', c.nav.menu]] },
+    { group: c.groups.resources, items: [['point', c.nav.point], ['menu', c.nav.menu], ['categories', c.nav.categories], ['delivery-zones', c.nav.deliveryZones]] },
     {
       group: c.groups.orders,
       items: [
@@ -320,6 +350,23 @@ export default async function ApiDocsPage() {
               <Code code={ex.menuResponse} language="JSON" c={c} />
             </Section>
 
+            <Section id="categories" title={c.categories.title}>
+              <Endpoint method="GET" path="/categories" tryId="categories" c={c} />
+              <p className="text-slate-600">{c.categories.text}</p>
+              <Code code={ex.categories} language="bash" c={c} />
+              <Code code={ex.categoriesResponse} language="JSON" c={c} />
+            </Section>
+
+            <Section id="delivery-zones" title={c.deliveryZones.title}>
+              <Endpoint method="GET" path="/delivery-zones" tryId="delivery-zones" c={c} />
+              <p className="text-slate-600">{c.deliveryZones.text}</p>
+              <Code code={ex.deliveryZones} language="bash" c={c} />
+              <Code code={ex.deliveryZonesResponse} language="JSON" c={c} />
+              <p className="text-slate-600">{c.deliveryZones.modes}</p>
+              <Table head={['delivery_by', '']} rows={c.deliveryZones.modeList} />
+              <Code code={ex.createOrderRestaurant} language="JSON — POST /orders" c={c} />
+            </Section>
+
             <Section id="lifecycle" title={c.lifecycle.title}>
               <ul className="mb-4 list-disc space-y-2 pl-5 text-slate-600">
                 {c.lifecycle.rules.map((rule) => <li key={rule}>{rule}</li>)}
@@ -359,9 +406,13 @@ export default async function ApiDocsPage() {
             </Section>
 
             <Section id="list-orders" title={c.listOrders.title}>
-              <Endpoint method="GET" path="/orders?updated_since=…&limit=50" tryId="list-orders" c={c} />
+              <Endpoint method="GET" path="/orders" tryId="list-orders" c={c} />
               <p className="text-slate-600">{c.listOrders.text}</p>
+              <Table head={[c.listOrders.colParam, c.listOrders.colDescription]} rows={c.listOrders.params} />
+              <p className="text-slate-600">{c.listOrders.paging}</p>
               <Code code={ex.listOrders} language="bash" c={c} />
+              <Code code={ex.listOrdersReconcile} language="bash" c={c} />
+              <Code code={ex.listOrdersResponse} language="JSON" c={c} />
             </Section>
 
             <Section id="cancel" title={c.cancel.title}>

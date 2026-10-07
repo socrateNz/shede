@@ -58,6 +58,7 @@ const STAFF_PREFIXES = [
   '/bookings',
   '/promotions',
   '/accompaniments',
+  '/categories',
   '/notifications',
   '/settings',
   '/statistics',
@@ -98,6 +99,7 @@ const ROUTE_RULES: RouteRule[] = [
   // Produits & menu
   { prefix: '/products',       roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'] },
   { prefix: '/accompaniments', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'] },
+  { prefix: '/categories',     roles: ['ADMIN', 'SUPER_ADMIN'] },
 
   // Commandes
   { prefix: '/orders', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR'] },
@@ -115,6 +117,8 @@ const ROUTE_RULES: RouteRule[] = [
 
   // Stock
   { prefix: '/stock', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'MAGASINIER'], modules: ['STOCK'] },
+  // Coût matière (prix de revient, marges) : pas pour le magasinier
+  { prefix: '/stock/food-cost', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'], modules: ['STOCK'] },
 
   // Promotions
   { prefix: '/promotions', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER'], modules: ['PROMOTION'] },

@@ -3,6 +3,9 @@ import { getT } from '@/lib/i18n/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import type { Product } from '@/lib/supabase';
 import { ProductEditForm } from '@/components/product-edit-form';
+import { categoryIdsByProduct, loadCategories } from '@/lib/categories';
+import { getStructureTaxSettings } from '@/lib/fiscal';
+import { RecipeEditor } from '@/components/recipe-editor';
 import { ArrowLeft, Package,  } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -59,6 +62,13 @@ export default async function EditProductPage({
     .select('threshold')
     .eq('product_id', productId)
     .single();
+
+  const hasStock = session.role === 'SUPER_ADMIN' || Boolean(session.modules?.includes('STOCK'));
+  const [categoryOptions, productCategories, taxSettings] = await Promise.all([
+    loadCategories(session.structureId!),
+    categoryIdsByProduct([productId]),
+    hasStock ? getStructureTaxSettings(session.structureId!) : null,
+  ]);
 
   const initialAccompaniments: Record<string, { quantity: number; priceIncluded?: boolean }> = {};
   (mappings || []).forEach((m: any) => {
@@ -133,7 +143,16 @@ export default async function EditProductPage({
           }))}
           initialAccompaniments={initialAccompaniments}
           initialThreshold={stockData?.threshold ?? 5}
+          categoryOptions={categoryOptions}
+          initialCategoryIds={productCategories.get(productId) ?? []}
         />
+
+        {/* Fiche recette (module Stock) : ingrédients consommés et coût matière */}
+        {taxSettings && (
+          <div className="mt-6">
+            <RecipeEditor owner={{ productId }} price={Number(product.price)} taxSettings={taxSettings} />
+          </div>
+        )}
       </div>
     </div>
   );

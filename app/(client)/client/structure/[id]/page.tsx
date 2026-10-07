@@ -6,6 +6,7 @@ import { getActivePromotionsForClient } from '@/app/actions/promotions';
 import { PromoBanner } from '@/components/promo-banner';
 import { Building2, MapPin, Phone, Bed, UtensilsCrossed, ArrowRight, ArrowLeft } from 'lucide-react';
 import { getT } from '@/lib/i18n/server';
+import { categoriesForProducts } from '@/lib/categories';
 
 export default async function StructurePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -31,6 +32,8 @@ export default async function StructurePage({ params }: { params: Promise<{ id: 
     .eq('is_deleted', false);
 
   const promotions = await getActivePromotionsForClient(id);
+  const { categories, byProduct } = await categoriesForProducts(id, (products || []).map((p) => p.id as string));
+  const menu = (products || []).map((p) => ({ ...p, categoryIds: (byProduct.get(p.id) ?? []).map((c) => c.id) }));
 
   const isHotel = structure.modules?.includes('HOTEL') || structure.type === 'HOTEL' || structure.type === 'MIXTE';
   const isRestaurant = structure.modules?.includes('RESTAURANT') || structure.type === 'RESTAURANT' || structure.type === 'MIXTE';
@@ -126,7 +129,12 @@ export default async function StructurePage({ params }: { params: Promise<{ id: 
             </div>
           </div>
           <div className="p-6 md:p-8 bg-slate-50/50">
-            <ProductList products={products || []} structureId={id} promotions={promotions} />
+            <ProductList
+              products={menu}
+              structureId={id}
+              promotions={promotions}
+              categories={categories.map((c) => ({ id: c.id, name: c.name, parent_id: c.parent_id }))}
+            />
           </div>
         </div>
       </div>

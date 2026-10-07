@@ -1,7 +1,7 @@
 import { requireModule } from '@/app/actions/auth';
 import { getStockList } from '@/app/actions/stock';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Boxes, AlertTriangle, ArrowUpRight, History, Plus, Package, Coffee } from 'lucide-react';
+import { Boxes, AlertTriangle, ArrowUpRight, History, Plus, Package, Coffee, Carrot, PieChart } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { StockList } from '@/components/stock-list';
@@ -14,10 +14,13 @@ export default async function StockPage() {
 
   const productCount = stocks.filter(s => s.type === 'product').length;
   const accompCount = stocks.filter(s => s.type === 'accompaniment').length;
+  const ingredientCount = stocks.filter(s => s.type === 'ingredient').length;
 
   const productsLow = stocks.filter(s => s.type === 'product' && s.quantity <= s.threshold).length;
   const accompLow = stocks.filter(s => s.type === 'accompaniment' && s.quantity <= s.threshold).length;
-  const lowStockCount = productsLow + accompLow;
+  // Ingrédients : seulement ceux qui ont un seuil d'alerte
+  const ingredientsLow = stocks.filter(s => s.type === 'ingredient' && s.threshold > 0 && s.quantity <= s.threshold).length;
+  const lowStockCount = productsLow + accompLow + ingredientsLow;
 
   return (
     <div className="p-6 space-y-6">
@@ -26,7 +29,19 @@ export default async function StockPage() {
           <h1 className="text-3xl font-bold text-slate-50">{t('stock.page.title')}</h1>
           <p className="text-slate-400">{t('stock.page.subtitle')}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href="/stock/ingredients">
+            <Button variant="outline">
+              <Carrot className="w-4 h-4 mr-2" />
+              {t('stock.page.manageIngredients')}
+            </Button>
+          </Link>
+          <Link href="/stock/food-cost">
+            <Button variant="outline">
+              <PieChart className="w-4 h-4 mr-2" />
+              {t('stock.page.foodCost')}
+            </Button>
+          </Link>
           <Link href="/stock/movements">
             <Button variant="outline">
               <History className="w-4 h-4 mr-2" />
@@ -61,6 +76,10 @@ export default async function StockPage() {
                 <Coffee className="w-3 h-3" />
                 <span>{accompCount}</span>
               </div>
+              <div className="flex items-center gap-1 text-emerald-400" title={t('stock.page.ingredients')}>
+                <Carrot className="w-3 h-3" />
+                <span>{ingredientCount}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -82,6 +101,10 @@ export default async function StockPage() {
               <div className="flex items-center gap-1 text-amber-500/80" title={t('stock.page.accompanimentsBelow')}>
                 <Coffee className="w-3 h-3" />
                 <span>{accompLow}</span>
+              </div>
+              <div className="flex items-center gap-1 text-amber-500/80" title={t('stock.page.ingredientsBelow')}>
+                <Carrot className="w-3 h-3" />
+                <span>{ingredientsLow}</span>
               </div>
             </div>
           </CardContent>

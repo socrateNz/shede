@@ -72,7 +72,7 @@ export async function getMarketplaceInbox() {
 async function loadPendingOrder(structureId: string, orderId: string) {
   const { data } = await getAdminSupabase()
     .from('orders')
-    .select('id, acceptance, status')
+    .select('id, acceptance, status, consumption_type')
     .eq('id', orderId)
     .eq('structure_id', structureId)
     .eq('source', 'API')
@@ -88,7 +88,8 @@ export async function acceptMarketplaceOrder(orderId: string, prepMinutes: numbe
   if (!Number.isFinite(minutes) || minutes < 1 || minutes > 240) {
     return { success: false, error: await te('marketplace.errors.invalidPrepTime') };
   }
-  if (!(await loadPendingOrder(session.structureId, orderId))) {
+  const pending = await loadPendingOrder(session.structureId, orderId);
+  if (!pending) {
     return { success: false, error: await te('marketplace.errors.notPending') };
   }
   const { error } = await getAdminSupabase()
@@ -100,6 +101,8 @@ export async function acceptMarketplaceOrder(orderId: string, prepMinutes: numbe
       kitchen_status: 'PENDING',
       bar_status: 'PENDING',
       user_id: session.userId,
+      // Livraison par le restaurant : la course est maintenant à attribuer.
+      ...(pending.consumption_type === 'DELIVERY' ? { delivery_status: 'TO_ASSIGN' } : {}),
     })
     .eq('id', orderId)
     .eq('acceptance', 'PENDING');

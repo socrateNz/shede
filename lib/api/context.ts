@@ -92,8 +92,8 @@ export function apiError(
   );
 }
 
-export function apiOk(ctx: ApiContext, data: unknown, status = 200) {
-  return NextResponse.json({ data }, { status, headers: { 'Cache-Control': 'no-store', ...rateHeaders(ctx.rate) } });
+export function apiOk(ctx: ApiContext, data: unknown, status = 200, extra: Record<string, unknown> = {}) {
+  return NextResponse.json({ data, ...extra }, { status, headers: { 'Cache-Control': 'no-store', ...rateHeaders(ctx.rate) } });
 }
 
 function readKey(request: Request) {

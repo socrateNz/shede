@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useT } from '@/lib/i18n/client';
 import { TablePagination } from './table-pagination';
-import { Package, Coffee } from 'lucide-react';
+import { Package, Coffee, Carrot } from 'lucide-react';
 
 interface StockItem {
   id: string;
@@ -11,7 +11,9 @@ interface StockItem {
   category: string | null;
   quantity: number;
   threshold: number;
-  type: 'product' | 'accompaniment';
+  type: 'product' | 'accompaniment' | 'ingredient';
+  /** Ingrédients : kg, l ou piece. */
+  unit?: string;
 }
 
 interface StockListProps {
@@ -24,8 +26,8 @@ function cn(...classes: any[]) {
 
 export function StockList({ stocks }: StockListProps) {
   const [currentPage, setCurrentPage] = useState(1);
-  const { t } = useT();
-  const [filter, setFilter] = useState<'all' | 'product' | 'accompaniment'>('all');
+  const { t, format } = useT();
+  const [filter, setFilter] = useState<'all' | 'product' | 'accompaniment' | 'ingredient'>('all');
   const itemsPerPage = 10;
 
   const filtered = filter === 'all' ? stocks : stocks.filter((s) => s.type === filter);
@@ -47,6 +49,7 @@ export function StockList({ stocks }: StockListProps) {
           { key: 'all', label: t('stock.list.filterAll'), icon: undefined },
           { key: 'product', label: t('stock.list.filterProducts'), icon: Package },
           { key: 'accompaniment', label: t('stock.list.filterAccompaniments'), icon: Coffee },
+          { key: 'ingredient', label: t('stock.list.filterIngredients'), icon: Carrot },
         ] as const).map(({ key, label, icon: Icon }) => (
           <button
             key={key}
@@ -59,7 +62,9 @@ export function StockList({ stocks }: StockListProps) {
                   ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                   : key === 'accompaniment'
                     ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                    : 'bg-slate-600 text-slate-200 border border-slate-500'
+                    : key === 'ingredient'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-slate-600 text-slate-200 border border-slate-500'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 border border-transparent'
             )}
           >
@@ -96,6 +101,11 @@ export function StockList({ stocks }: StockListProps) {
                       <Package className="w-3 h-3" />
                       {t('stock.itemType.product')}
                     </span>
+                  ) : item.type === 'ingredient' ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <Carrot className="w-3 h-3" />
+                      {t('stock.itemType.ingredient')}
+                    </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">
                       <Coffee className="w-3 h-3" />
@@ -105,7 +115,7 @@ export function StockList({ stocks }: StockListProps) {
                 </td>
                 <td className="p-4">
                   <span className="text-sm text-slate-400">
-                    {item.type === 'accompaniment' ? '—' : (item.category || t('stock.list.notApplicable'))}
+                    {item.type === 'product' ? (item.category || t('stock.list.notApplicable')) : '—'}
                   </span>
                 </td>
                 <td className="p-4 text-center">
@@ -113,8 +123,9 @@ export function StockList({ stocks }: StockListProps) {
                     "font-bold text-lg",
                     item.quantity <= item.threshold ? "text-amber-500" : "text-slate-50"
                   )}>
-                    {item.quantity}
+                    {format.number(item.quantity, { maximumFractionDigits: 3 })}
                   </span>
+                  {item.unit && <span className="ml-1 text-xs text-slate-500">{t(`ingredients.unitShort.${item.unit as 'kg' | 'l' | 'piece'}`)}</span>}
                 </td>
                 <td className="p-4 text-center text-slate-400 text-sm">
                   {item.threshold}

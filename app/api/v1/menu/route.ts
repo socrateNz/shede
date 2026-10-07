@@ -1,6 +1,7 @@
 import { getAdminSupabase } from '@/lib/supabase';
 import { apiOk, withApi } from '@/lib/api/context';
 import { serializeMenu } from '@/lib/api/serializers';
+import { categoriesForProducts } from '@/lib/categories';
 
 /**
  * GET /api/v1/menu — produits du point avec leurs accompagnements.
@@ -16,5 +17,6 @@ export const GET = withApi(async (ctx) => {
     .order('category')
     .order('name');
   if (error) throw error;
-  return apiOk(ctx, serializeMenu(ctx.structure, products || []));
+  const { byProduct } = await categoriesForProducts(ctx.structureId, (products || []).map((p) => p.id as string));
+  return apiOk(ctx, serializeMenu(ctx.structure, products || [], byProduct));
 });

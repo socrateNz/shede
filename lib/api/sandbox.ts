@@ -5,6 +5,7 @@ import { computeOrderAmounts, loadActivePromotions } from '@/lib/order-totals';
 import { normalizeCameroonPhone } from '@/lib/phone';
 import {
   apiOrderStatus,
+  resolveApiDelivery,
   serializeOrder,
   validateOrderItems,
   type ApiOrderStatus,
@@ -23,6 +24,8 @@ import type { z } from 'zod';
 // Son statut avance tout seul avec le temps, pour tester le suivi :
 //   0–30 s pending_acceptance → 30–60 s accepted → 60–120 s preparing → ready
 // Un `external_id` terminé par `-reject` simule un refus du restaurant à 30 s.
+// Livraison par le restaurant (delivery_by: restaurant) : course attribuée à 2 min,
+// en route à 3 min (picked_up), livrée à 5 min (delivered).
 // Annulation et événements du livreur renvoient le résultat simulé sans le conserver.
 
 export const SANDBOX_ID_PREFIX = 'test_';
@@ -31,6 +34,9 @@ const ACCEPT_AFTER_S = 30;
 const PREPARING_AFTER_S = 60;
 const READY_AFTER_S = 120;
 const SANDBOX_PREP_MINUTES = 15;
+const ASSIGNED_AFTER_S = 120;
+const IN_TRANSIT_AFTER_S = 180;
+const DELIVERED_AFTER_S = 300;
 
 type SandboxItem = [productId: string, name: string, quantity: number, unitPrice: number, notes: string | null, acc: [string, string, number, number][]];
 type SandboxPayload = {
@@ -43,6 +49,7 @@ type SandboxPayload = {
   t: number; // création (ms)
   i: SandboxItem[];
   a: [subtotal: number, discount: number, tax: number, total: number];
+  d?: Record<string, unknown> | null; // livraison par le restaurant (colonnes delivery_*)
 };
 
 function signingKey() {
@@ -90,10 +97,12 @@ function toOrderRow(id: string, payload: SandboxPayload, overrides: Record<strin
   const rejects = payload.e.endsWith('-reject');
 
   let columns: Record<string, unknown>;
+  const milestones = [0];
   if (elapsed < ACCEPT_AFTER_S) {
     columns = { acceptance: 'PENDING', status: 'PENDING' };
   } else if (rejects) {
     columns = { acceptance: 'REJECTED', status: 'CANCELLED', rejection_reason: 'Test : commande refusée par le restaurant' };
+    milestones.push(ACCEPT_AFTER_S);
   } else {
     columns = {
       acceptance: 'ACCEPTED',
@@ -101,13 +110,19 @@ function toOrderRow(id: string, payload: SandboxPayload, overrides: Record<strin
       prep_minutes: SANDBOX_PREP_MINUTES,
       status: elapsed < PREPARING_AFTER_S ? 'PENDING' : elapsed < READY_AFTER_S ? 'IN_PROGRESS' : 'READY',
     };
+    milestones.push(...[ACCEPT_AFTER_S, PREPARING_AFTER_S, READY_AFTER_S].filter((m) => elapsed >= m));
+    if (payload.d) {
+      // Course du livreur du restaurant
+      columns.delivery_status =
+        elapsed < ASSIGNED_AFTER_S ? 'TO_ASSIGN' : elapsed < IN_TRANSIT_AFTER_S ? 'ASSIGNED' : elapsed < DELIVERED_AFTER_S ? 'IN_TRANSIT' : 'DELIVERED';
+      if (elapsed >= DELIVERED_AFTER_S) {
+        columns.status = 'COMPLETED';
+        columns.invoice_number = 'TEST-0000';
+      }
+      milestones.push(...[IN_TRANSIT_AFTER_S, DELIVERED_AFTER_S].filter((m) => elapsed >= m));
+    }
   }
-
-  const changedAt =
-    elapsed >= READY_AFTER_S && !rejects ? READY_AFTER_S
-      : elapsed >= PREPARING_AFTER_S && !rejects ? PREPARING_AFTER_S
-        : elapsed >= ACCEPT_AFTER_S ? ACCEPT_AFTER_S
-          : 0;
+  const changedAt = Math.max(...milestones);
 
   return {
     id,
@@ -121,6 +136,8 @@ function toOrderRow(id: string, payload: SandboxPayload, overrides: Record<strin
     created_at: createdAt.toISOString(),
     updated_at: new Date(payload.t + changedAt * 1000).toISOString(),
     invoice_number: null,
+    consumption_type: payload.d ? 'DELIVERY' : 'TAKEAWAY',
+    ...(payload.d ?? {}),
     subtotal: payload.a[0],
     discount_amount: payload.a[1],
     tax: payload.a[2],
@@ -161,6 +178,8 @@ export async function createSandboxOrder(structure: Record<string, any>, input: 
   if (structure.api_paused) return { kind: 'paused' };
 
   const { details, productById } = await validateOrderItems(structureId, input);
+  const delivery = await resolveApiDelivery(structure, input);
+  details.push(...delivery.details);
   if (details.length) return { kind: 'invalid', details };
 
   const items: SandboxItem[] = input.items.map((item) => {
@@ -185,6 +204,7 @@ export async function createSandboxOrder(structure: Record<string, any>, input: 
     promotions: await loadActivePromotions(structureId),
     taxSettings: await getStructureTaxSettings(structureId),
     takeawayFee: 0,
+    deliveryFee: delivery.fields?.delivery_fee ?? 0,
   });
 
   const payload: SandboxPayload = {
@@ -197,6 +217,7 @@ export async function createSandboxOrder(structure: Record<string, any>, input: 
     t: Date.now(),
     i: items,
     a: [amounts.subtotal, amounts.discount, amounts.tax, amounts.total],
+    d: delivery.fields,
   };
   const id = encode(payload);
   return { kind: 'created', order: serializeOrder(toOrderRow(id, payload)) };
@@ -228,6 +249,7 @@ export function cancelSandboxOrder(order: SandboxOrder, reason?: string) {
 
 /** Événement livreur simulé : mêmes règles qu'en production, résultat non conservé. */
 export function sandboxCourierEvent(order: SandboxOrder, event: z.infer<typeof courierEventSchema>) {
+  if (order.payload.d) return { ok: false as const, reason: 'restaurant_delivery' };
   if (order.row.acceptance !== 'ACCEPTED' || order.row.status === 'CANCELLED') {
     return { ok: false as const, reason: 'not_accepted' };
   }

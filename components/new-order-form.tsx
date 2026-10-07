@@ -9,6 +9,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useActionState, useEffect, useMemo, useState } from 'react';
 import { useT } from '@/lib/i18n/client';
+import { CategoryFilterBar } from '@/components/category-filter-bar';
+import { productInCategory } from '@/lib/category-tree';
 
 interface OrderProduct {
   id: string;
@@ -16,6 +18,8 @@ interface OrderProduct {
   price: number;
   image_url: string | null;
   category: string | null;
+  categoryIds?: string[];
+  isDeliverable?: boolean;
 }
 
 type AccompanimentOption = {
@@ -44,8 +48,11 @@ export function NewOrderForm({
   clients = [],
   tables = [],
   deliveryZones = [],
+  categories = [],
 }: {
   products: OrderProduct[];
+  /** Catégories actives du point, dans l'ordre du menu. */
+  categories?: { id: string; name: string; parent_id: string | null }[];
   accompanimentsByProductId: Record<string, AccompanimentOption[]>;
   rooms: { id: string; number: string }[];
   promotions?: any[];
@@ -55,6 +62,7 @@ export function NewOrderForm({
   deliveryZones?: { id: string; name: string; fee: number }[];
 }) {
   const [isDelivery, setIsDelivery] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const { t, format } = useT();
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(createOrderWithItems, {
@@ -116,6 +124,16 @@ export function NewOrderForm({
   }, [selectedPromotionId, promoCode, subtotal, items, promotions, productsById]);
 
   const total = Math.max(0, subtotal - discount);
+
+  // Filtre : une catégorie inclut les produits de ses sous-catégories.
+  const visibleProducts = useMemo(
+    () => (categoryFilter ? products.filter((p) => productInCategory(p.categoryIds, categoryFilter, categories)) : products),
+    [products, categoryFilter, categories]
+  );
+  // Commande à livrer : les produits non livrables bloquent l'envoi (vérifié aussi côté serveur).
+  const undeliverableNames = isDelivery
+    ? items.map((item) => productsById.get(item.productId)).filter((p) => p && p.isDeliverable === false).map((p) => p!.name)
+    : [];
 
   const addItem = () => {
     if (!selectedProduct || quantity < 1) return;
@@ -396,9 +414,16 @@ export function NewOrderForm({
 
           <div className="rounded-lg border border-slate-700 p-4 space-y-4 bg-slate-800/50">
             <p className="text-slate-100 font-medium">{t('orders.create.catalogue')}</p>
-            
+            <CategoryFilterBar
+              categories={categories}
+              productCategoryIds={products.map((p) => p.categoryIds)}
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+              allLabel={t('orders.create.allCategories')}
+            />
+
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-slate-600">
-              {products.map((product) => (
+              {visibleProducts.map((product) => (
                 <div 
                   key={product.id}
                   onClick={() => addItemDirect(product.id)}
@@ -425,6 +450,11 @@ export function NewOrderForm({
                     <p className="text-xs text-blue-400 font-medium mt-1">
                       {format.money(product.price)}
                     </p>
+                    {product.isDeliverable === false && (
+                      <p className={`mt-1 text-[10px] ${isDelivery ? 'text-red-400' : 'text-amber-400'}`}>
+                        {t('orders.create.notDeliverable')}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -517,6 +547,12 @@ export function NewOrderForm({
 
           <input type="hidden" name="items" value={JSON.stringify(items)} />
 
+          {undeliverableNames.length > 0 && (
+            <p className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
+              {t('orders.create.undeliverableInCart', { names: undeliverableNames.join(', ') })}
+            </p>
+          )}
+
           {state.error && (
             <div className="rounded-md bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
               {state.error}
@@ -526,7 +562,7 @@ export function NewOrderForm({
           <div className="flex gap-4 pt-2">
             <Button
               type="submit"
-              disabled={isPending || items.length === 0}
+              disabled={isPending || items.length === 0 || undeliverableNames.length > 0}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isPending ? t('orders.create.submitting') : t('orders.create.submit')}

@@ -21,6 +21,8 @@ type EndpointDef = {
 export const TRY_ENDPOINTS: EndpointDef[] = [
   { id: 'point', method: 'GET', path: '/point' },
   { id: 'menu', method: 'GET', path: '/menu' },
+  { id: 'categories', method: 'GET', path: '/categories' },
+  { id: 'delivery-zones', method: 'GET', path: '/delivery-zones' },
   {
     id: 'create-order',
     method: 'POST',
@@ -39,7 +41,11 @@ export const TRY_ENDPOINTS: EndpointDef[] = [
     path: '/orders',
     query: [
       { key: 'updated_since', value: new Date(Date.now() - 86_400_000).toISOString().slice(0, 10) + 'T00:00:00Z', enabled: false },
+      { key: 'created_from', value: new Date().toISOString().slice(0, 8) + '01', enabled: false },
+      { key: 'created_to', value: new Date().toISOString().slice(0, 10), enabled: false },
+      { key: 'status', value: 'picked_up,delivered', enabled: false },
       { key: 'limit', value: '50', enabled: true },
+      { key: 'offset', value: '0', enabled: false },
     ],
   },
   { id: 'cancel', method: 'POST', path: '/orders/{id}/cancel', body: () => ({ reason: 'Client injoignable' }) },

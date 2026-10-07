@@ -211,10 +211,15 @@ export interface Product {
   name: string;
   description?: string;
   price: number;
+  /** Ancien champ texte : noms des catégories, recopiés (voir product_category_links). */
   category?: string;
+  /** Catégories du produit, quand l'écran les charge (plusieurs possibles). */
+  categories?: { id: string; name: string; is_active?: boolean }[];
   destination?: string;
   image_url?: string | null;
   is_available: boolean;
+  /** false : ne peut pas être commandé en livraison (docs/phase15-categories.sql). */
+  is_deliverable?: boolean;
   is_deleted: boolean;
   created_at: string;
   updated_at: string;

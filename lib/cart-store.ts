@@ -16,6 +16,8 @@ export interface CartItem {
   quantity: number;
   image_url?: string;
   selectedAccompaniments?: SelectedAccompaniment[];
+  /** false : le produit ne peut pas être livré (vérifié aussi par le serveur). */
+  isDeliverable?: boolean;
 }
 
 interface CartStore {

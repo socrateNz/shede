@@ -83,10 +83,39 @@ curl https://<domaine>/api/v1/point -H "Authorization: Bearer $SHEDE_KEY"
     "id": "…", "name": "Restaurant Le Wouri", "type": "RESTAURANT",
     "phone": "+237 6 71 23 45 67", "address": "Rue Joss", "city": "Douala", "country": "Cameroun",
     "currency": "XAF", "tax": { "rate": 19.25, "prices_include_tax": true },
-    "takeaway_fee": 200, "logo_url": null
+    "takeaway_fee": 200, "logo_url": null,
+    "paused": false, "accepting_orders": true
   }
 }
 ```
+
+### `GET /api/v1/categories`
+
+Catégories et sous-catégories dans l'ordre du restaurant :
+`[{ "id", "name", "parent_id", "position" }]` — chaque catégorie principale
+(`parent_id: null`) suivie de ses sous-catégories (un seul niveau). Catégories
+masquées exclues, ainsi que les sous-catégories d'une catégorie masquée. Dans
+`GET /menu`, chaque produit porte `categories: [{ "id", "name", "parent_id" }]`
+(plusieurs possibles) et `is_deliverable` ; une catégorie principale affiche
+aussi les produits de ses sous-catégories.
+Un produit `is_deliverable: false` est refusé par `POST /orders`
+(422, code `product_not_deliverable`).
+
+### `GET /api/v1/delivery-zones`
+
+Zones où le restaurant livre lui-même (si `GET /point` renvoie `restaurant_delivery: true`),
+avec leurs frais : `[{ "id", "name", "fee", "fee_with_tax" }]`. Liste vide sinon.
+Webhook `delivery_zones.updated` quand une zone change.
+
+**Qui livre ?** Champ `delivery_by` de `POST /orders` :
+
+- `marketplace` (défaut) : votre livreur récupère la commande ; suivi par `delivery-events`.
+- `restaurant` : un livreur du restaurant livre dans la zone `delivery.zone_id`
+  (repère `delivery.landmark` obligatoire, `district`, `city`, `lat`, `lng` facultatifs).
+  Les frais de la zone s'ajoutent au total (`amounts.delivery_fee`). La course apparaît
+  dans l'écran Livraison à l'acceptation ; `delivery.status` : `to_assign` → `assigned`
+  → `in_transit` (statut `picked_up`) → `delivered` (vente clôturée), ou `failed`
+  (statut `delivery_failed`). `delivery-events` répond alors 409 `restaurant_delivery`.
 
 ### `GET /api/v1/menu`
 
@@ -184,11 +213,24 @@ Erreurs de validation (`422`) — `details[].code` :
 }
 ```
 
-### `GET /api/v1/orders?updated_since=2026-10-01T12:00:00Z&limit=50`
+### `GET /api/v1/orders`
 
-Commandes modifiées depuis une date, de la plus ancienne à la plus récente
-(`limit` ≤ 100). Pour suivre les changements, rappelez avec le `updated_at` de la
-dernière commande reçue.
+Resynchronisation et rapprochement des reversements ; les filtres se combinent.
+
+| Paramètre | Description |
+|---|---|
+| `updated_since` | Modifiées après cette date-heure ISO, tri par date de modification |
+| `created_from` | Créées à partir de `YYYY-MM-DD` (journée à Douala, UTC+1) ou d'une date-heure ISO |
+| `created_to` | Créées jusqu'à `YYYY-MM-DD` inclus, ou avant une date-heure ISO |
+| `status` | Statuts séparés par des virgules (`picked_up,delivered`) |
+| `limit` / `offset` | 1–100 (50 par défaut) / pagination |
+
+Sans `updated_since`, tri par date de création. Réponse : `{ "data": [...], "has_more": false }` ;
+si `has_more` vaut `true`, rappelez avec `offset` augmenté de `limit`.
+
+```bash
+curl "https://…/api/v1/orders?created_from=2026-09-01&created_to=2026-09-30&status=picked_up,delivered&limit=100"
+```
 
 ### `POST /api/v1/orders/{id}/cancel`
 

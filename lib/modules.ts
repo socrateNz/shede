@@ -18,6 +18,8 @@ export const MODULE_OPTIONS = [
   // ── Gestion ──
   { value: 'HOTEL', icon: '🏨', category: 'Gestion' },
   { value: 'STOCK', icon: '📦', category: 'Gestion' },
+  { value: 'ACHATS', icon: '🧾', category: 'Gestion' },
+  { value: 'PREVISIONS', icon: '📈', category: 'Gestion' },
   { value: 'PROMOTION', icon: '🏷️', category: 'Gestion' },
   { value: 'RH', icon: '👥', category: 'Gestion' },
   { value: 'CRM', icon: '🤝', category: 'Gestion' },
@@ -29,6 +31,15 @@ export type ModuleCode = (typeof MODULE_OPTIONS)[number]['value'];
 export type ModuleCategory = (typeof MODULE_OPTIONS)[number]['category'];
 
 export const KNOWN_MODULES: string[] = MODULE_OPTIONS.map((m) => m.value);
+
+/**
+ * Modules requis par un autre : activés automatiquement avec lui.
+ * ACHATS et PREVISIONS reposent sur le stock (ingrédients, recettes).
+ */
+export const MODULE_DEPENDENCIES: Partial<Record<ModuleCode, ModuleCode[]>> = {
+  ACHATS: ['STOCK'],
+  PREVISIONS: ['STOCK'],
+};
 
 export const MODULE_CATEGORIES: ModuleCategory[] = ['Core', 'Restauration', 'Gestion'];
 
@@ -51,9 +62,11 @@ export function moduleCategoryLabel(t: Translator, category: ModuleCategory): st
   return t(`modules.categories.${category}`);
 }
 
-/** Filtre sur les modules connus et dédoublonne ; POS par défaut. */
+/** Filtre sur les modules connus, ajoute leurs dépendances et dédoublonne ; POS par défaut. */
 export function sanitizeModules(modules: unknown): string[] {
   const raw = Array.isArray(modules) ? modules.map(String) : [];
-  const clean = [...new Set(raw.filter((m) => KNOWN_MODULES.includes(m)))];
+  const known = raw.filter((m): m is ModuleCode => isModuleCode(m));
+  const withDependencies = known.flatMap((m) => [m, ...(MODULE_DEPENDENCIES[m] ?? [])]);
+  const clean = [...new Set(withDependencies)];
   return clean.length > 0 ? clean : ['POS'];
 }

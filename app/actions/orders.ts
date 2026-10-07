@@ -9,6 +9,7 @@ import { postSaleSafely } from '@/lib/accounting/posting';
 import { recomputeOrderTotal } from '@/lib/order-totals';
 import { syncOrderWebhook } from '@/lib/api/webhooks';
 import { resolveDelivery } from '@/lib/delivery';
+import { undeliverableProducts } from '@/lib/categories';
 
 type ProductAccompanimentMapping = {
   product_id: string;
@@ -234,6 +235,9 @@ export async function createOrderWithItems(
       });
       if ('error' in delivery) return { success: false, error: delivery.error };
       deliveryFields = delivery.fields;
+
+      const blocked = await undeliverableProducts(session.structureId as string, uniqueProductIds);
+      if (blocked.length) return { success: false, error: await te('errors.productsNotDeliverable', { names: blocked.join(', ') }) };
     }
 
     const { data: order, error: orderError } = await admin
@@ -492,6 +496,25 @@ export async function addOrderItem(
 
   try {
     const admin = getAdminSupabase();
+
+    // Commande et produit du point connecté ; le prix vient du catalogue, pas du navigateur.
+    const [{ data: order }, { data: product }] = await Promise.all([
+      admin.from('orders').select('id, consumption_type').eq('id', orderId).eq('structure_id', session.structureId).maybeSingle(),
+      admin
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .eq('structure_id', session.structureId)
+        .eq('is_deleted', false)
+        .maybeSingle(),
+    ]);
+    if (!order || !product || !product.is_available) {
+      return { success: false, error: await te('errors.productsUnavailable') };
+    }
+    if (order.consumption_type === 'DELIVERY' && product.is_deliverable === false) {
+      return { success: false, error: await te('errors.productsNotDeliverable', { names: product.name }) };
+    }
+    unitPrice = Number(product.price) || 0;
 
     const totalPrice = quantity * unitPrice;
 

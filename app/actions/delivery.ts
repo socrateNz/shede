@@ -5,6 +5,7 @@ import { getSession, type SessionPayload } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { getActiveDeliveryZones, type DeliveryStatus } from '@/lib/delivery';
 import { te } from '@/lib/i18n/server';
+import { emitWebhook, syncOrderWebhook } from '@/lib/api/webhooks';
 
 // ─────────────────────────────────────────────────────────
 // Livraison : zones (ADMIN / MANAGER) et suivi des courses
@@ -77,6 +78,7 @@ export async function createDeliveryZone(_prev: ActionState, formData: FormData)
   }
 
   revalidatePath('/delivery', 'layout');
+  void emitWebhook(session.structureId, 'delivery_zones.updated', {});
   return { success: true, error: '' };
 }
 
@@ -101,6 +103,7 @@ export async function updateDeliveryZone(zoneId: string, _prev: ActionState, for
   }
 
   revalidatePath('/delivery', 'layout');
+  void emitWebhook(session.structureId, 'delivery_zones.updated', {});
   return { success: true, error: '' };
 }
 
@@ -116,6 +119,7 @@ export async function setDeliveryZoneActive(zoneId: string, isActive: boolean) {
     .eq('structure_id', session.structureId);
 
   revalidatePath('/delivery', 'layout');
+  void emitWebhook(session.structureId, 'delivery_zones.updated', {});
   return { success: true, error: '' };
 }
 
@@ -221,7 +225,7 @@ export async function updateDeliveryStatus(orderId: string, status: DeliveryStat
   const admin = getAdminSupabase();
   const { data: order } = await admin
     .from('orders')
-    .select('id, delivery_status, courier_id')
+    .select('id, delivery_status, courier_id, source, status, external_id, partner')
     .eq('id', orderId)
     .eq('structure_id', session.structureId)
     .eq('consumption_type', 'DELIVERY')
@@ -249,6 +253,16 @@ export async function updateDeliveryStatus(orderId: string, status: DeliveryStat
     .eq('id', orderId)
     .eq('delivery_status', order.delivery_status);
   if (error) return { success: false, error: await te('errors.deliveryUpdateFailed') };
+
+  if (order.source === 'API') {
+    // Commande marketplace livrée par le restaurant : la marketplace a encaissé
+    // le client, la vente est clôturée à la livraison (paiement, facture, stock).
+    if (status === 'DELIVERED' && order.status !== 'COMPLETED') {
+      const { completeMarketplaceSale } = await import('@/lib/api/orders');
+      await completeMarketplaceSale(order);
+    }
+    await syncOrderWebhook(orderId);
+  }
 
   revalidatePath('/delivery');
   return { success: true, error: '' };

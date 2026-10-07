@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useT } from '@/lib/i18n/client';
 import { TablePagination } from './table-pagination';
-import { ArrowUpRight, ArrowDownLeft, Settings2, ShoppingCart, User, Package, Coffee } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Settings2, ShoppingCart, User, Package, Coffee, Carrot } from 'lucide-react';
 
 interface Movement {
   id: string;
   created_at: string;
   item_name: string;
-  item_type: 'product' | 'accompaniment';
+  item_type: 'product' | 'accompaniment' | 'ingredient';
+  item_unit?: string | null;
   type: string;
   reason: string;
   quantity: number;
@@ -24,7 +25,7 @@ function cn(...classes: any[]) {
   return classes.filter(Boolean).join(' ');
 }
 
-const REASON_KEYS = { manual_adjustment: 1, purchase: 1, loss: 1, return: 1, inventory: 1, sale: 1 } as const;
+const REASON_KEYS = { manual_adjustment: 1, purchase: 1, loss: 1, return: 1, inventory: 1, sale: 1, initial_stock: 1 } as const;
 
 export function StockMovementsList({ movements }: StockMovementsListProps) {
   const [currentPage, setCurrentPage] = useState(1);
@@ -91,7 +92,12 @@ export function StockMovementsList({ movements }: StockMovementsListProps) {
                   <div className="font-medium text-slate-200">{m.item_name}</div>
                 </td>
                 <td className="p-4">
-                  {m.item_type === 'accompaniment' ? (
+                  {m.item_type === 'ingredient' ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <Carrot className="w-3 h-3" />
+                      {t('stock.itemType.ingredient')}
+                    </span>
+                  ) : m.item_type === 'accompaniment' ? (
                     <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">
                       <Coffee className="w-3 h-3" />
                       {t('stock.itemType.accompaniment')}
@@ -118,6 +124,7 @@ export function StockMovementsList({ movements }: StockMovementsListProps) {
                   )}>
                     {m.type === 'OUT' ? '-' : m.type === 'IN' ? '+' : ''}{m.quantity}
                   </span>
+                  {m.item_unit && <span className="ml-1 text-xs text-slate-500">{t(`ingredients.unitShort.${m.item_unit as 'kg' | 'l' | 'piece'}`)}</span>}
                 </td>
                 <td className="p-4">
                   <span className="text-sm text-slate-400 italic">

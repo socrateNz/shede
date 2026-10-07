@@ -37,6 +37,19 @@ export const createOrderSchema = z.object({
     .max(50),
   notes: z.string().trim().max(500).optional(),
   delivery_address: z.string().trim().max(300).optional(),
+  /** Qui livre : le livreur de la marketplace (par défaut) ou un livreur du restaurant. */
+  delivery_by: z.enum(['marketplace', 'restaurant']).default('marketplace'),
+  /** Obligatoire si delivery_by = restaurant : zone de GET /delivery-zones et point de repère. */
+  delivery: z
+    .object({
+      zone_id: z.string().uuid(),
+      landmark: z.string().trim().min(3).max(500),
+      district: z.string().trim().max(120).optional(),
+      city: z.string().trim().max(100).optional(),
+      lat: z.number().min(-90).max(90).optional(),
+      lng: z.number().min(-180).max(180).optional(),
+    })
+    .optional(),
 });
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 
@@ -68,6 +81,7 @@ export type ApiOrderStatus =
   | 'ready'
   | 'picked_up'
   | 'delivered'
+  | 'delivery_failed'
   | 'rejected'
   | 'cancelled';
 
@@ -76,8 +90,12 @@ export function apiOrderStatus(order: Record<string, any>): ApiOrderStatus {
   if (order.acceptance === 'REJECTED') return 'rejected';
   if (order.status === 'CANCELLED') return 'cancelled';
   if (order.acceptance === 'PENDING') return 'pending_acceptance';
-  if (order.courier_status === 'DELIVERED') return 'delivered';
-  if (order.courier_status === 'PICKED_UP' || order.status === 'COMPLETED') return 'picked_up';
+  // Livreur de la marketplace (courier_status) ou du restaurant (delivery_status)
+  if (order.courier_status === 'DELIVERED' || order.delivery_status === 'DELIVERED') return 'delivered';
+  if (order.delivery_status === 'FAILED') return 'delivery_failed';
+  if (order.courier_status === 'PICKED_UP' || order.delivery_status === 'IN_TRANSIT' || order.status === 'COMPLETED') {
+    return 'picked_up';
+  }
   if (order.status === 'READY' || order.status === 'SERVED') return 'ready';
   if (order.status === 'IN_PROGRESS') return 'preparing';
   return 'accepted';
@@ -131,9 +149,29 @@ export function serializeOrder(order: Record<string, any>) {
       subtotal: Number(order.subtotal) || 0,
       discount: Number(order.discount_amount) || 0,
       tax: Number(order.tax) || 0,
+      delivery_fee: Number(order.delivery_fee) || 0,
       total: Number(order.total) || 0,
     },
+    delivery: serializeDelivery(order),
     courier: { status: order.courier_status ?? null, name: order.courier_name ?? null, phone: order.courier_phone ?? null },
+  };
+}
+
+/** Livraison : par la marketplace, ou par un livreur du restaurant (zone, repère, suivi). */
+function serializeDelivery(order: Record<string, any>) {
+  if (order.consumption_type !== 'DELIVERY') return { by: 'marketplace' as const };
+  return {
+    by: 'restaurant' as const,
+    zone: order.delivery_zone_id ? { id: order.delivery_zone_id as string, name: order.delivery_zone_name ?? null } : null,
+    fee: Number(order.delivery_fee) || 0,
+    city: order.delivery_city ?? null,
+    district: order.delivery_district ?? null,
+    landmark: order.delivery_landmark ?? null,
+    lat: order.delivery_lat ?? null,
+    lng: order.delivery_lng ?? null,
+    // to_assign, assigned, in_transit, delivered, failed — null avant l'acceptation
+    status: order.delivery_status ? String(order.delivery_status).toLowerCase() : null,
+    note: order.delivery_note ?? null,
   };
 }
 
@@ -146,18 +184,69 @@ export async function loadApiOrder(structureId: string, id: string) {
   return data as Record<string, any> | null;
 }
 
-export async function listApiOrders(structureId: string, options: { updatedSince?: string; limit: number }) {
+export const API_ORDER_STATUSES: ApiOrderStatus[] = [
+  'pending_acceptance',
+  'accepted',
+  'preparing',
+  'ready',
+  'picked_up',
+  'delivered',
+  'delivery_failed',
+  'rejected',
+  'cancelled',
+];
+
+// Traduction de chaque statut API en filtre PostgREST : même logique que apiOrderStatus().
+const LIVE = 'acceptance.eq.ACCEPTED,status.neq.CANCELLED';
+const NOT_DONE =
+  'or(courier_status.is.null,courier_status.neq.DELIVERED),or(delivery_status.is.null,delivery_status.not.in.(DELIVERED,FAILED))';
+const NOT_PICKED =
+  'or(courier_status.is.null,courier_status.not.in.(PICKED_UP,DELIVERED)),' +
+  'or(delivery_status.is.null,delivery_status.not.in.(IN_TRANSIT,DELIVERED,FAILED))';
+export const STATUS_FILTERS: Record<ApiOrderStatus, string> = {
+  pending_acceptance: 'and(acceptance.eq.PENDING,status.neq.CANCELLED)',
+  rejected: 'acceptance.eq.REJECTED',
+  cancelled: 'and(status.eq.CANCELLED,acceptance.neq.REJECTED)',
+  delivered: `and(${LIVE},or(courier_status.eq.DELIVERED,delivery_status.eq.DELIVERED))`,
+  delivery_failed: `and(${LIVE},delivery_status.eq.FAILED,or(courier_status.is.null,courier_status.neq.DELIVERED))`,
+  picked_up: `and(${LIVE},${NOT_DONE},or(courier_status.eq.PICKED_UP,delivery_status.eq.IN_TRANSIT,status.eq.COMPLETED))`,
+  ready: `and(${LIVE},status.in.(READY,SERVED),${NOT_PICKED})`,
+  preparing: `and(${LIVE},status.eq.IN_PROGRESS,${NOT_PICKED})`,
+  accepted: `and(${LIVE},status.not.in.(COMPLETED,READY,SERVED,IN_PROGRESS),${NOT_PICKED})`,
+};
+
+export type ListOrdersOptions = {
+  updatedSince?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  statuses?: ApiOrderStatus[];
+  limit: number;
+  offset?: number;
+};
+
+/**
+ * Commandes marketplace du point. Avec updated_since : triées par date de
+ * modification (resynchronisation) ; sinon par date de création (rapprochement).
+ * Renvoie une ligne de plus que `limit` pour savoir s'il reste des résultats.
+ */
+export async function listApiOrders(structureId: string, options: ListOrdersOptions) {
+  const offset = options.offset ?? 0;
   let query = getAdminSupabase()
     .from('orders')
     .select(ORDER_SELECT)
     .eq('structure_id', structureId)
     .eq('source', 'API')
-    .order('updated_at', { ascending: true })
-    .limit(options.limit);
+    .order(options.updatedSince ? 'updated_at' : 'created_at', { ascending: true })
+    .order('id', { ascending: true })
+    .range(offset, offset + options.limit);
   if (options.updatedSince) query = query.gt('updated_at', options.updatedSince);
+  if (options.createdFrom) query = query.gte('created_at', options.createdFrom);
+  if (options.createdTo) query = query.lt('created_at', options.createdTo);
+  if (options.statuses?.length) query = query.or(options.statuses.map((s) => STATUS_FILTERS[s]).join(','));
   const { data, error } = await query;
   if (error) throw error;
-  return (data || []) as Record<string, any>[];
+  const rows = (data || []) as Record<string, any>[];
+  return { orders: rows.slice(0, options.limit), hasMore: rows.length > options.limit };
 }
 
 // ── Création ─────────────────────────────────────────────
@@ -175,7 +264,8 @@ export async function validateOrderItems(structureId: string, input: CreateOrder
   const productIds = [...new Set(input.items.map((i) => i.product_id))];
   const { data: products, error } = await getAdminSupabase()
     .from('products')
-    .select('id, name, price, is_available, is_deleted, product_accompaniments(accompaniment_id, quantity, accompaniments(id, name, price, is_available, is_deleted))')
+    // * : tolère l'absence de is_deliverable avant docs/phase15-categories.sql
+    .select('*, product_accompaniments(accompaniment_id, quantity, accompaniments(id, name, price, is_available, is_deleted))')
     .eq('structure_id', structureId)
     .in('id', productIds);
   if (error) throw error;
@@ -186,6 +276,8 @@ export async function validateOrderItems(structureId: string, input: CreateOrder
     const product = productById.get(item.product_id);
     if (!product || product.is_deleted) return details.push({ field: `items.${i}.product_id`, code: 'product_not_found' });
     if (!product.is_available) details.push({ field: `items.${i}.product_id`, code: 'product_unavailable' });
+    // Toute commande marketplace est livrée (par la marketplace ou le restaurant).
+    else if (product.is_deliverable === false) details.push({ field: `items.${i}.product_id`, code: 'product_not_deliverable' });
     (item.accompaniments || []).forEach((acc, j) => {
       const mapping = (product.product_accompaniments || []).find((m: any) => m.accompaniment_id === acc.id);
       const field = `items.${i}.accompaniments.${j}`;
@@ -201,6 +293,42 @@ export async function validateOrderItems(structureId: string, input: CreateOrder
   return { details, productById };
 }
 
+/**
+ * Livraison par un livreur du restaurant : le point doit proposer la livraison
+ * (module LIVRAISON) et la zone doit être active. Les frais viennent de la zone.
+ */
+export async function resolveApiDelivery(structure: Record<string, any>, input: CreateOrderInput) {
+  const none = { details: [] as { field: string; code: string }[], fields: null };
+  if (input.delivery_by !== 'restaurant') return none;
+  if (!(structure.modules as string[] | null)?.includes('LIVRAISON')) {
+    return { ...none, details: [{ field: 'delivery_by', code: 'restaurant_delivery_not_offered' }] };
+  }
+  if (!input.delivery) return { ...none, details: [{ field: 'delivery', code: 'required' }] };
+
+  const { data: zone } = await getAdminSupabase()
+    .from('delivery_zones')
+    .select('id, name, fee, is_active')
+    .eq('id', input.delivery.zone_id)
+    .eq('structure_id', structure.id)
+    .maybeSingle();
+  if (!zone || !zone.is_active) return { ...none, details: [{ field: 'delivery.zone_id', code: 'delivery_zone_unavailable' }] };
+
+  return {
+    details: [],
+    fields: {
+      consumption_type: 'DELIVERY' as const,
+      delivery_zone_id: zone.id as string,
+      delivery_zone_name: zone.name as string,
+      delivery_fee: Math.max(0, Math.round(Number(zone.fee) || 0)),
+      delivery_city: input.delivery.city || structure.city || null,
+      delivery_district: input.delivery.district || (zone.name as string),
+      delivery_landmark: input.delivery.landmark,
+      delivery_lat: input.delivery.lat ?? null,
+      delivery_lng: input.delivery.lng ?? null,
+    },
+  };
+}
+
 export async function createApiOrder(structure: Record<string, any>, input: CreateOrderInput): Promise<CreateOrderResult> {
   const admin = getAdminSupabase();
   const structureId = structure.id as string;
@@ -212,6 +340,8 @@ export async function createApiOrder(structure: Record<string, any>, input: Crea
 
   // 1. Produits et accompagnements du point, relus en base
   const { details, productById } = await validateOrderItems(structureId, input);
+  const delivery = await resolveApiDelivery(structure, input);
+  details.push(...delivery.details);
   if (details.length) return { kind: 'invalid', details };
 
   // 2. Quota mensuel de l'organisation
@@ -241,6 +371,9 @@ export async function createApiOrder(structure: Record<string, any>, input: Crea
       takeaway_fee: 0,
       subtotal: 0,
       total: 0,
+      // Livraison par le restaurant : zone et frais ; la course apparaît dans
+      // l'écran Livraison à l'acceptation (delivery_status renseigné à ce moment).
+      ...(delivery.fields ?? {}),
     })
     .select('id')
     .single();
@@ -354,6 +487,7 @@ const COURIER_ORDER: Record<string, number> = { ASSIGNED: 1, PICKED_UP: 2, DELIV
  * livraison clôt la vente : paiement « marketplace », facture, stock, écriture.
  */
 export async function recordCourierEvent(order: Record<string, any>, event: z.infer<typeof courierEventSchema>) {
+  if (order.consumption_type === 'DELIVERY') return { ok: false as const, reason: 'restaurant_delivery' };
   if (order.acceptance !== 'ACCEPTED' || order.status === 'CANCELLED') return { ok: false as const, reason: 'not_accepted' };
   const current = order.courier_status as string | null;
   if (current === 'DELIVERED' || current === 'FAILED') return { ok: false as const, reason: 'finished' };
@@ -380,7 +514,7 @@ export async function recordCourierEvent(order: Record<string, any>, event: z.in
 }
 
 /** Clôture la vente : la marketplace a encaissé le client et reversera le montant. */
-async function completeMarketplaceSale(order: Record<string, any>) {
+export async function completeMarketplaceSale(order: Record<string, any>) {
   const admin = getAdminSupabase();
   const { data: fresh } = await admin.from('orders').select('id, total, status').eq('id', order.id).single();
   if (!fresh || fresh.status === 'COMPLETED') return;

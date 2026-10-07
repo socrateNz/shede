@@ -27,6 +27,10 @@ import landing from './landing';
 import accounting from './accounting';
 import api from './api';
 import marketplace from './marketplace';
+import categories from './categories';
+import ingredients from './ingredients';
+import recipes from './recipes';
+import foodCost from './foodCost';
 
 export const en: Dictionary = {
   common,
@@ -57,4 +61,8 @@ export const en: Dictionary = {
   accounting,
   api,
   marketplace,
+  categories,
+  ingredients,
+  recipes,
+  foodCost,
 };

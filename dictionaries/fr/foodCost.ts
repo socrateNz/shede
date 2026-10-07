@@ -1,0 +1,30 @@
+/** Rapport de coût matière. */
+const foodCost = {
+  badge: 'Stock',
+  title: 'Coût matière',
+  subtitle: 'Coût des ingrédients de chaque plat, marge brute et part du prix de vente HT.',
+  notInstalled: 'Exécutez la migration docs/phase16-ingredients.sql pour activer le coût matière.',
+  statCoverage: 'Articles avec fiche recette',
+  statAverage: 'Coût matière moyen',
+  statAbove: 'Au-dessus de l’objectif ({percent} %)',
+  coverage: '{count} / {total}',
+  filterAll: 'Tous',
+  filterMissing: 'Sans fiche recette',
+  filterAbove: 'Au-dessus de l’objectif',
+  colItem: 'Article',
+  colType: 'Type',
+  colPrice: 'Prix TTC',
+  colPriceHT: 'Prix HT',
+  colCost: 'Coût matière',
+  colMargin: 'Marge brute',
+  colPercent: 'Coût / prix HT',
+  colActions: 'Fiche recette',
+  product: 'Produit',
+  accompaniment: 'Accompagnement',
+  noRecipe: 'Pas de fiche',
+  editRecipe: 'Modifier',
+  createRecipe: 'Créer',
+  empty: 'Aucun article ne correspond.',
+};
+
+export default foodCost;

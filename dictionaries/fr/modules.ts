@@ -14,6 +14,8 @@ const modules = {
     CRM: 'CRM clients',
     COMPTABILITE: 'Comptabilité (SYSCOHADA)',
     API: 'API (marketplaces)',
+    ACHATS: 'Achats (fournisseurs)',
+    PREVISIONS: 'Prévisions & production',
   },
   descriptions: {
     POS: 'Point de vente, commandes, paiements',
@@ -29,6 +31,8 @@ const modules = {
     CRM: 'Fichier clients, fiches, historique des commandes',
     COMPTABILITE: 'Écritures automatiques, dépenses, grand livre, balance, bilan, TVA',
     API: 'Clé d’API par point pour connecter une marketplace de livraison',
+    ACHATS: 'Catalogue fournisseurs, bons de commande et réceptions (active aussi le Stock)',
+    PREVISIONS: 'Prévisions de ventes, commandes suggérées et plan de production (active aussi le Stock)',
   },
   categories: {
     Core: '⚡ Essentiels',

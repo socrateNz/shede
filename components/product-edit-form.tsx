@@ -16,6 +16,7 @@ import { useT } from '@/lib/i18n/client';
 
 import { useAppStore } from '@/lib/store';
 import { ImageUpload } from '@/components/image-upload';
+import { DeliverableToggle, ProductCategoryPicker, type CategoryOption } from '@/components/product-category-picker';
 
 type ProductOption = {
   id: string;
@@ -34,9 +35,13 @@ export function ProductEditForm({
   accompanimentOptions,
   initialAccompaniments,
   initialThreshold,
+  categoryOptions,
+  initialCategoryIds,
 }: {
   product: Product;
   accompanimentOptions: ProductOption[];
+  categoryOptions: CategoryOption[];
+  initialCategoryIds: string[];
   initialAccompaniments: Record<string, { quantity: number; priceIncluded?: boolean }>;
   initialThreshold?: number;
 }) {
@@ -59,6 +64,8 @@ export function ProductEditForm({
   const [newAccompPrice, setNewAccompPrice] = useState<number>(0);
   const [newAccompItems, setNewAccompItems] = useState<NewAccomp[]>([]);
   const [imageUrl, setImageUrl] = useState<string | null>(product.image_url || null);
+  const [categoryIds, setCategoryIds] = useState<string[]>(initialCategoryIds);
+  const [isDeliverable, setIsDeliverable] = useState(product.is_deliverable !== false);
 
   const updateMutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -67,10 +74,11 @@ export function ProductEditForm({
         name: formData.get('name') as string,
         description: (formData.get('description') as string) || undefined,
         price: parseFloat(formData.get('price') as string),
-        category: (formData.get('category') as string) || undefined,
+        categoryIds,
         destination: (formData.get('destination') as string) || 'CUISINE',
         image_url: imageUrl || undefined,
         isAvailable: formData.get('isAvailable') === 'on',
+        isDeliverable,
         accompaniments: selectedAccompaniments,
         threshold: hasStockModule ? Number(formData.get('threshold')) : undefined,
       };
@@ -327,19 +335,8 @@ export function ProductEditForm({
                   </div>
 
 
-                  <div className="space-y-2 group">
-                    <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                      <Tag className="w-4 h-4 text-amber-400" />
-                      {t('products.form.category')}
-                    </label>
-                    <Input
-                      type="text"
-                      name="category"
-                      defaultValue={product.category || ''}
-                      placeholder={t('products.form.categoryPlaceholder')}
-                      className="bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-amber-500 focus:ring-amber-500/20 transition-all duration-300 group-hover:border-slate-500"
-                      disabled={isPending}
-                    />
+                  <div className="md:col-span-2">
+                    <ProductCategoryPicker categories={categoryOptions} selected={categoryIds} onChange={setCategoryIds} disabled={isPending} />
                   </div>
 
                   <div className="space-y-2">
@@ -372,6 +369,8 @@ export function ProductEditForm({
                       </label>
                     </div>
                   </div>
+
+                  <DeliverableToggle value={isDeliverable} onChange={setIsDeliverable} disabled={isPending} />
                 </div>
 
                 {/* Section Stock - Uniquement si module activé */}

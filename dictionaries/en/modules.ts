@@ -15,6 +15,8 @@ const modules: typeof fr = {
     CRM: 'Customer CRM',
     COMPTABILITE: 'Accounting (SYSCOHADA)',
     API: 'API (marketplaces)',
+    ACHATS: 'Purchasing (suppliers)',
+    PREVISIONS: 'Forecasting & production',
   },
   descriptions: {
     POS: 'Point of sale, orders, payments',
@@ -30,6 +32,8 @@ const modules: typeof fr = {
     CRM: 'Customer records, profiles, order history',
     COMPTABILITE: 'Automatic entries, expenses, ledger, trial balance, balance sheet, VAT',
     API: 'One API key per outlet to connect a delivery marketplace',
+    ACHATS: 'Supplier catalogue, purchase orders and receiving (also enables Stock)',
+    PREVISIONS: 'Sales forecasts, suggested orders and production plan (also enables Stock)',
   },
   categories: {
     Core: '⚡ Essentials',

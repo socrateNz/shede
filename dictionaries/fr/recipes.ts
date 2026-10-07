@@ -1,0 +1,37 @@
+/** Fiches recettes et coût matière d'un plat. */
+const recipes = {
+  title: 'Fiche recette',
+  subtitle: 'Ingrédients consommés pour une portion. Chaque vente les sort du stock.',
+  notInstalled: 'Exécutez la migration docs/phase16-ingredients.sql pour activer les fiches recettes.',
+  noIngredients: 'Aucun ingrédient : créez-en d’abord.',
+  manageIngredients: 'Gérer les ingrédients',
+  empty: 'Aucun ingrédient dans cette recette. Sans recette, la vente sort le produit lui-même du stock.',
+  addLine: 'Ajouter un ingrédient',
+  ingredient: 'Ingrédient',
+  selectIngredient: 'Choisir…',
+  quantity: 'Quantité',
+  unit: 'Unité',
+  waste: 'Perte %',
+  wasteHint: 'Perte à la préparation (épluchage, parage, cuisson) : la quantité sortie du stock est majorée d’autant.',
+  lineCost: 'Coût',
+  remove: 'Retirer',
+  units: { kg: 'kg', g: 'g', l: 'l', ml: 'ml', piece: 'pièce' },
+  inactiveIngredient: '(inactif)',
+  cost: 'Coût matière',
+  priceExcludingTax: 'Prix de vente HT',
+  margin: 'Marge brute',
+  percent: 'Coût matière / prix HT',
+  target: 'Objectif : {percent} % maximum',
+  save: 'Enregistrer la recette',
+  saved: 'Fiche recette enregistrée',
+  saveProductFirst: 'Enregistrez d’abord le produit pour ajouter sa fiche recette.',
+  errors: {
+    notFound: 'Produit introuvable.',
+    duplicate: 'Un ingrédient apparaît deux fois dans la recette.',
+    quantityInvalid: 'Chaque ligne doit avoir une quantité positive et une perte inférieure à 90 %.',
+    ingredientInvalid: 'Un ingrédient de la recette n’existe plus.',
+    unitMismatch: 'Unité incompatible avec l’ingrédient (kg ↔ g, l ↔ ml, pièce).',
+  },
+};
+
+export default recipes;

@@ -17,12 +17,13 @@ import {
 import Link from 'next/link';
 import { ProductsList } from '@/components/products-list';
 import { redirect } from 'next/navigation';
+import { loadCategories } from '@/lib/categories';
 
 async function getProductsStats(products: any[]) {
   const total = products.length;
   const available = products.filter(p => p.is_available).length;
   const unavailable = products.filter(p => !p.is_available).length;
-  const categories = new Set(products.map(p => p.category).filter(Boolean)).size;
+  const categories = new Set(products.flatMap((p: any) => (p.categories || []).map((c: any) => c.id))).size;
 
   return { total, available, unavailable, categories };
 }
@@ -32,6 +33,7 @@ export default async function ProductsPage() {
   const { t, format } = await getT();
   const products = await getProducts();
   const stats = await getProductsStats(products);
+  const categories = await loadCategories(session.structureId!);
 
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -153,7 +155,7 @@ export default async function ProductsPage() {
                 </Link>
               </div>
             ) : (
-              <ProductsList products={products} />
+              <ProductsList products={products} categories={categories} />
             )}
           </CardContent>
         </Card>

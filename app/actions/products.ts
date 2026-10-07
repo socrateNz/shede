@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { te } from '@/lib/i18n/server';
 import { emitMenuUpdated } from '@/lib/api/webhooks';
+import { categoryIdsByProduct, loadCategories, setProductCategories } from '@/lib/categories';
 
 export async function getProducts() {
   const session = await getSession();
@@ -22,7 +23,16 @@ export async function getProducts() {
       .eq('is_deleted', false)
       .order('name', { ascending: true });
 
-    return data || [];
+    // Catégories de chaque produit (plusieurs possibles), dans l'ordre du point.
+    const products = data || [];
+    const [categories, links] = await Promise.all([
+      loadCategories(session.structureId),
+      categoryIdsByProduct(products.map((p) => p.id as string)),
+    ]);
+    return products.map((p) => {
+      const ids = new Set(links.get(p.id) ?? []);
+      return { ...p, categories: categories.filter((c) => ids.has(c.id)) };
+    });
   } catch (error) {
     console.error('getProducts error:', error);
     return [];
@@ -177,7 +187,7 @@ export async function createProductWithFormData(
 ) {
   const name = String(formData.get('name') || '').trim();
   const description = String(formData.get('description') || '').trim() || undefined;
-  const category = String(formData.get('category') || '').trim() || undefined;
+  const categoryIds = formData.getAll('categoryIds').map(String).filter(Boolean);
   const priceValue = Number(formData.get('price') || 0);
   const accompanimentsRaw = formData.get('accompaniments');
 
@@ -200,8 +210,8 @@ export async function createProductWithFormData(
         name,
         description: description || null,
         price: priceValue,
-        category: category || null,
         is_available: true,
+        is_deliverable: formData.get('isDeliverable') !== 'off',
       })
       .select()
       .single();
@@ -212,6 +222,8 @@ export async function createProductWithFormData(
     if (!product) {
       return { success: false, error: await te('errors.productCreateFailed') };
     }
+
+    await setProductCategories(admin, session.structureId as string, product.id, categoryIds);
 
     const accompaniments = parseAccompaniments(accompanimentsRaw);
     await syncProductAccompaniments({
@@ -240,10 +252,13 @@ export async function createProduct(params: {
   name: string;
   description?: string;
   price: number;
-  category?: string;
+  /** Catégories choisies (créées à part dans /categories). */
+  categoryIds?: string[];
   destination?: string;
   image_url?: string;
   isAvailable: boolean;
+  /** false : le produit ne peut pas être commandé en livraison. */
+  isDeliverable?: boolean;
   accompaniments: ProductAccompanimentFormItem[];
   threshold?: number;
 }) {
@@ -266,10 +281,10 @@ export async function createProduct(params: {
         name: params.name,
         description: params.description || null,
         price: params.price,
-        category: params.category || null,
         destination: params.destination || 'CUISINE',
         image_url: params.image_url !== undefined ? params.image_url : null,
         is_available: params.isAvailable,
+        is_deliverable: params.isDeliverable !== false,
       })
       .select()
       .single();
@@ -279,6 +294,10 @@ export async function createProduct(params: {
     }
     if (!product) {
       return { success: false, error: await te('errors.productCreateFailed') };
+    }
+
+    if (params.categoryIds) {
+      await setProductCategories(admin, session.structureId as string, product.id, params.categoryIds);
     }
 
     await syncProductAccompaniments({
@@ -313,10 +332,13 @@ export async function updateProduct(params: {
   name: string;
   description?: string;
   price: number;
-  category?: string;
+  /** Catégories choisies (créées à part dans /categories). */
+  categoryIds?: string[];
   destination?: string;
   image_url?: string;
   isAvailable: boolean;
+  /** false : le produit ne peut pas être commandé en livraison. */
+  isDeliverable?: boolean;
   accompaniments: ProductAccompanimentFormItem[];
   threshold?: number;
 }) {
@@ -334,16 +356,20 @@ export async function updateProduct(params: {
         name: params.name,
         description: params.description || null,
         price: params.price,
-        category: params.category || null,
         destination: params.destination || 'CUISINE',
         image_url: params.image_url !== undefined ? params.image_url : null,
         is_available: params.isAvailable,
+        ...(params.isDeliverable !== undefined ? { is_deliverable: params.isDeliverable } : {}),
       })
       .eq('id', params.productId)
       .eq('structure_id', session.structureId);
 
     if (error) {
       return { success: false, error: await te('errors.productUpdateFailed') };
+    }
+
+    if (params.categoryIds) {
+      await setProductCategories(admin, session.structureId as string, params.productId, params.categoryIds);
     }
 
     await syncProductAccompaniments({
@@ -368,6 +394,7 @@ export async function updateProduct(params: {
       product_id: params.productId,
       change: 'updated',
       is_available: params.isAvailable,
+      is_deliverable: params.isDeliverable !== false,
     });
 
     return { success: true };

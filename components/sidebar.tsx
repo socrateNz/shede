@@ -8,6 +8,9 @@ import {
   ShoppingCart,
   Users,
   Package,
+  Layers,
+  Carrot,
+  PieChart,
   Settings,
   LogOut,
   Home,
@@ -150,6 +153,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     { group: 'production', name: t('nav.bar'), href: '/bar', icon: Beer, roles: ['ADMIN', 'MANAGER', 'BAR'], module: 'BAR' },
 
     { group: 'catalog', name: t('nav.products'), href: '/products', icon: Package, roles: ['ADMIN'] },
+    { group: 'catalog', name: t('nav.categories'), href: '/categories', icon: Layers, roles: ['ADMIN'] },
     { group: 'catalog', name: t('nav.accompaniments'), href: '/accompaniments', icon: Package, roles: ['ADMIN', 'MANAGER'] },
 
     {
@@ -162,6 +166,8 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       badge: counts.stock,
       badgeColor: 'bg-orange-500',
     },
+    { group: 'catalog', name: t('nav.ingredients'), href: '/stock/ingredients', icon: Carrot, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'STOCK' },
+    { group: 'catalog', name: t('nav.foodCost'), href: '/stock/food-cost', icon: PieChart, roles: ['ADMIN', 'MANAGER'], module: 'STOCK' },
 
 
     { group: 'hotel', name: t('nav.rooms'), href: '/rooms', icon: Bed, roles: ['ADMIN', 'RECEPTION'], module: 'HOTEL' },
@@ -210,6 +216,11 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     role === 'SUPER_ADMIN' ? superAdminItems : isOrgAdmin ? orgAdminItems : pointItems
   ).filter((item) => item.roles.includes(role) && (!item.module || hasModule(item.module)));
   const homeHref = isOrgAdmin ? '/organization' : '/dashboard';
+  // Entrée active : celle dont l'adresse correspond le plus précisément (Stock ≠ Stock › Ingrédients).
+  const matches = (href: string, exact?: boolean) => pathname === href || (!exact && pathname.startsWith(href + '/'));
+  const activeHref = navigationItems
+    .filter((item) => matches(item.href, item.exact))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
   const groups = (Object.keys(GROUP_STYLES) as NavGroup[])
     .map((group) => ({ group, items: navigationItems.filter((item) => item.group === group) }))
     .filter(({ items }) => items.length > 0);
@@ -241,7 +252,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
             <div className="space-y-0.5">
               {items.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href || (!item.exact && pathname.startsWith(item.href + '/'));
+                const isActive = item.href === activeHref;
 
                 return (
                   <Link

@@ -219,6 +219,9 @@ export default function CartPage() {
   };
 
   const selectedZone = deliveryZones.find((z) => z.id === zoneId);
+  // Livraison : produits du panier qui ne peuvent pas être livrés (le serveur vérifie aussi).
+  const undeliverableNames =
+    deliveryMode === 'DELIVERY' ? [...new Set(items.filter((i) => i.isDeliverable === false).map((i) => i.name))] : [];
   const deliveryFee = deliveryMode === 'DELIVERY' ? selectedZone?.fee ?? 0 : 0;
   // Estimation : le montant définitif est recalculé par le serveur.
   const taxedTotal = computeTax(
@@ -454,6 +457,12 @@ export default function CartPage() {
                 </div>
               )}
 
+              {undeliverableNames.length > 0 && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+                  {t('client.cart.undeliverable', { names: undeliverableNames.join(', ') })}
+                </div>
+              )}
+
               {/* Frais de livraison */}
               {deliveryMode === 'DELIVERY' && selectedZone && (
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center justify-between">
@@ -614,7 +623,7 @@ export default function CartPage() {
               {/* Bouton de validation */}
               <button
                 onClick={handleCheckout}
-                disabled={loading}
+                disabled={loading || undeliverableNames.length > 0}
                 className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-xl py-4 font-bold text-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 {loading ? (

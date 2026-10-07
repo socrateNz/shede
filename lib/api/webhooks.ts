@@ -12,7 +12,13 @@ import { getAdminSupabase } from '@/lib/supabase';
 // En-têtes : Shede-Event, Shede-Delivery (= id), Shede-Signature: t=<unix>,v1=<hex>
 // avec v1 = HMAC-SHA256(secret, `${t}.${corps}`).
 
-export type WebhookEventType = 'order.status_changed' | 'menu.updated' | 'point.paused' | 'point.resumed' | 'ping';
+export type WebhookEventType =
+  | 'order.status_changed'
+  | 'menu.updated'
+  | 'delivery_zones.updated'
+  | 'point.paused'
+  | 'point.resumed'
+  | 'ping';
 
 /** Délais avant chaque nouvelle tentative (après la 1re, la 2e…). */
 const RETRY_DELAYS_MS = [60_000, 5 * 60_000, 30 * 60_000, 2 * 3600_000, 12 * 3600_000, 24 * 3600_000];
