@@ -38,6 +38,14 @@ export function MainShell({
       .catch(() => undefined);
   }, [stale, router]);
 
+  // Menus, dialogues et listes déroulantes s'affichent hors de ce conteneur
+  // (portails) : on active aussi le thème sombre sur la page, le temps du back-office.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add('dark');
+    return () => root.classList.remove('dark');
+  }, []);
+
   useEffect(() => {
     const onResize = () => {
       if (window.matchMedia('(min-width: 1024px)').matches) {
@@ -60,7 +68,8 @@ export function MainShell({
   }, [mobileNavOpen]);
 
   return (
-    <div className="flex h-screen bg-slate-950 min-h-0 print:bg-white print:h-auto print:overflow-visible">
+    // dark : thème sombre des composants shadcn pour tout le back-office (voir globals.css)
+    <div className="dark flex h-screen bg-slate-950 text-foreground min-h-0 print:bg-white print:text-black print:h-auto print:overflow-visible">
       <Sidebar
         session={session}
         structure={structure}
