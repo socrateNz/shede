@@ -202,10 +202,6 @@ export function ProductCreateForm({
 
         {/* Header */}
         <div className="mb-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
-            <Package className="w-4 h-4 text-blue-400" />
-            <span className="text-sm text-blue-400 font-medium">{t('products.form.createBadge')}</span>
-          </div>
           <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
             {t('products.form.createTitle')}
           </h1>

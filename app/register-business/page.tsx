@@ -70,10 +70,6 @@ export default function RegisterBusinessPage() {
         </Link>
 
         <div className="mb-8 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-gradient-to-r from-blue-500/10 to-purple-500/10 px-4 py-2 backdrop-blur-sm">
-            <span className="text-sm font-medium text-blue-400">{t('business.register.badge')}</span>
-            <LanguageSwitcher className="ml-2" />
-          </div>
           <h1 className="mb-2 bg-gradient-to-r from-white to-slate-400 bg-clip-text text-4xl font-bold text-transparent md:text-5xl">
             {t('business.register.title')}
           </h1>

@@ -8,7 +8,6 @@ import { moduleLabel } from '@/lib/modules';
 import { getT } from '@/lib/i18n/server';
 import type { TranslationKey } from '@/lib/i18n/translate';
 import {
-  Network,
   Plus,
   Building2,
   MapPin,
@@ -38,10 +37,6 @@ export default async function OrganizationPointsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 mb-4">
-              <Network className="w-4 h-4 text-blue-400" />
-              <span className="text-sm text-blue-400 font-medium">{t('org.points.badge')}</span>
-            </div>
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">{organization.name}</h1>
             <p className="text-slate-400">
               {t('org.points.subtitle')}

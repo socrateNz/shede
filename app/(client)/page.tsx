@@ -40,9 +40,6 @@ export default async function ClientHomePage() {
         <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
 
         <div className="relative max-w-4xl mx-auto px-4 py-12 md:py-20 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
-            <span className="text-sm font-medium">{t('client.home.welcome')}</span>
-          </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
             {t('client.home.heroLine1')}
             <br />

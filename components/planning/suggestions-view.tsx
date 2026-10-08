@@ -51,10 +51,6 @@ export function SuggestionsView({ groups, canOrder, openDays }: { groups: Suppli
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="mb-6">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-4 py-2">
-          <ShoppingCart className="h-4 w-4 text-indigo-300" />
-          <span className="text-sm font-medium text-indigo-300">{t('planning.suggestions.badge')}</span>
-        </div>
         <h1 className="mb-2 bg-gradient-to-r from-white to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">{t('planning.suggestions.title')}</h1>
         <p className="max-w-3xl text-slate-400">{t('planning.suggestions.subtitle')}</p>
       </div>

@@ -36,10 +36,6 @@ export default async function ClientsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-pink-500/10 to-rose-500/10 border border-pink-500/20 mb-4 backdrop-blur-sm">
-              <Users className="w-4 h-4 text-pink-400" />
-              <span className="text-sm text-pink-400 font-medium">{t('crm.list.badge')}</span>
-            </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
               {t('crm.list.title')}
             </h1>

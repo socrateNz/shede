@@ -1,4 +1,4 @@
-import { AlertTriangle, Gauge, Info } from 'lucide-react';
+import { AlertTriangle, Info } from 'lucide-react';
 import { requireRole } from '@/app/actions/auth';
 import { getOperationsReport, type PointOperations } from '@/app/actions/operations';
 import { PeriodTabs } from '@/components/period-tabs';
@@ -89,10 +89,6 @@ export default async function OperationsPage({ searchParams }: { searchParams: P
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="mb-6">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-4 py-2">
-          <Gauge className="h-4 w-4 text-violet-300" />
-          <span className="text-sm font-medium text-violet-300">{t('operations.badge')}</span>
-        </div>
         <h1 className="mb-2 bg-gradient-to-r from-white to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">{t('operations.title')}</h1>
         <p className="max-w-3xl text-slate-400">
           {report.organizationName} · {t('operations.subtitle')}

@@ -4,7 +4,7 @@ import { getFloors } from '@/app/actions/floors';
 import { getAdminSupabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, LayoutDashboard, QrCode } from 'lucide-react';
+import { QrCode } from 'lucide-react';
 import Link from 'next/link';
 import { FloorManagerClient } from '@/components/floor-manager-client';
 import { AddTableDialog } from '@/components/add-table-dialog';
@@ -45,10 +45,6 @@ export default async function FloorManagerPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-indigo-500/10 to-blue-500/10 border border-indigo-500/20 mb-4 backdrop-blur-sm">
-              <LayoutDashboard className="w-4 h-4 text-indigo-400" />
-              <span className="text-sm text-indigo-400 font-medium">{t('floor.page.badge')}</span>
-            </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
               {t('floor.page.title')}
             </h1>

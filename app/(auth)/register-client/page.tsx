@@ -115,9 +115,6 @@ export default function RegisterClientPage() {
           </Link>
 
           <div className="mb-8 lg:mb-10">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-3 py-1.5 text-sm font-medium text-purple-700">
-              {t('auth.registerClient.badge')}
-            </div>
             <LanguageSwitcher tone="light" className="ml-2 align-middle" />
             <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
               {t('auth.registerClient.title')}

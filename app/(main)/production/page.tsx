@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CookingPot, PartyPopper } from 'lucide-react';
+import { PartyPopper } from 'lucide-react';
 import { requireModule } from '@/app/actions/auth';
 import { getProductionPlan } from '@/app/actions/planning';
 import { PrintButton } from '@/components/planning/print-button';
@@ -37,10 +37,6 @@ export default async function ProductionPage({ searchParams }: { searchParams: P
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8 print:bg-white print:p-0 print:text-black">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-4 py-2 print:hidden">
-            <CookingPot className="h-4 w-4 text-indigo-300" />
-            <span className="text-sm font-medium text-indigo-300">{t('planning.production.badge')}</span>
-          </div>
           <h1 className="text-3xl font-bold text-white print:text-black">
             {t('planning.production.title')} — <span className="capitalize">{format.date(`${plan.date}T12:00:00Z`, { weekday: 'long', day: 'numeric', month: 'long' })}</span>
           </h1>

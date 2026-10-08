@@ -4,7 +4,7 @@ import { getStructureActiveShift } from '@/app/actions/shifts';
 import { getT } from '@/lib/i18n/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, ShoppingCart, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Plus, ShoppingCart, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { OrdersLiveList } from '@/components/orders-live-list';
 import { getMarketplaceInbox } from '@/app/actions/marketplace-orders';
@@ -53,10 +53,6 @@ export default async function OrdersPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
-              <ShoppingCart className="w-4 h-4 text-blue-400" />
-              <span className="text-sm text-blue-400 font-medium">{t('orders.list.badge')}</span>
-            </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
               {t('orders.list.title')}
             </h1>

@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import {
-  BookOpen,
   Zap,
   UtensilsCrossed,
   Bed,
@@ -11,7 +10,6 @@ import {
   BarChart3,
   Shield,
   Users,
-  Settings,
   Package,
   ChevronRight,
   ChevronDown,
@@ -27,7 +25,6 @@ import {
   Tag,
   CalendarCheck,
   Star,
-  Terminal,
   FileText,
   HelpCircle,
   Menu,
@@ -258,9 +255,6 @@ export default function DocsPage() {
 
           {/* ── INTRODUCTION ── */}
           <section id="introduction" className="mb-20 scroll-mt-24">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-              <BookOpen className="w-3.5 h-3.5" /> {c.intro.badge}
-            </div>
             <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight mb-4">
               {c.intro.titleBefore} <span className="text-purple-600">Shede</span>
             </h1>
@@ -332,9 +326,6 @@ export default function DocsPage() {
 
           {/* ── CLIENT ACCOUNT ── */}
           <section id="client-account" className="mb-20 scroll-mt-24">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-              <Users className="w-3.5 h-3.5" /> {c.clientAccount.badge}
-            </div>
             <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.clientAccount.title}</h2>
             <p className="text-slate-500 mb-6">{c.clientAccount.text}</p>
             <ul className="space-y-2 mb-6">
@@ -415,9 +406,6 @@ export default function DocsPage() {
 
           {/* ── PRO DASHBOARD ── */}
           <section id="pro-dashboard" className="mb-20 scroll-mt-24">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-800 text-slate-200 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-              <LayoutDashboard className="w-3.5 h-3.5" /> {c.dashboard.badge}
-            </div>
             <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.dashboard.title}</h2>
             <p className="text-slate-500 mb-6">{c.dashboard.text}</p>
             <div className="grid sm:grid-cols-2 gap-4 mb-6">
@@ -511,9 +499,6 @@ export default function DocsPage() {
 
           {/* ── ROLES OVERVIEW ── */}
           <section id="roles-overview" className="mb-20 scroll-mt-24">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-              <Shield className="w-3.5 h-3.5" /> {c.roles.badge}
-            </div>
             <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.roles.title}</h2>
             <p className="text-slate-500 mb-6">{c.roles.text}</p>
             <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm">
@@ -558,9 +543,6 @@ export default function DocsPage() {
 
           {/* ── INTEGRATIONS QR ── */}
           <section id="integrations-qr" className="mb-20 scroll-mt-24">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-cyan-100 text-cyan-700 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-              <Globe className="w-3.5 h-3.5" /> {c.qr.badge}
-            </div>
             <h2 className="text-3xl font-bold text-slate-900 mb-2">{c.qr.title}</h2>
             <p className="text-slate-500 mb-6">{c.qr.text}</p>
             <CodeBlock language={c.qr.codeLabel} code={c.qr.code} />

@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   ArrowDownRight,
   ArrowUpRight,
-  BarChart3,
   Boxes,
   Clock,
   Coins,
@@ -222,10 +221,6 @@ export default async function OwnerViewPage({
         {/* En-tête */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-1.5">
-              <BarChart3 className="h-4 w-4 text-blue-400" />
-              <span className="text-sm font-medium text-blue-400">{t('org.owner.badge')}</span>
-            </div>
             <h1 className="text-3xl font-bold text-white md:text-4xl">{data.organization.name}</h1>
             <p className="mt-1 text-slate-400">
               {t('org.owner.periodLine', {

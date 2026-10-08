@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, DollarSign, ShoppingCart, Users, BarChart3, PieChart, Calendar, Hotel, UtensilsCrossed, Loader2, Download } from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingCart, Users, Calendar, Hotel, UtensilsCrossed, Loader2, Download } from 'lucide-react';
 import { AnalyticsCharts } from '@/components/analytics-charts';
 import { fetchClientAnalyticsData } from '@/app/actions/analytics';
 import { exportToExcel, exportToCSV } from '@/lib/export';
@@ -170,12 +170,6 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-8">
           <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
-              <BarChart3 className="w-4 h-4 text-blue-400" />
-              <span className="text-sm text-blue-400 font-medium">
-                {data.type === 'SUPER_ADMIN' ? t('analytics.stats.globalBadge') : t('analytics.stats.badge')}
-              </span>
-            </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
               {t('analytics.stats.title')}
             </h1>

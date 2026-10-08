@@ -3,7 +3,7 @@ import { requireAuth } from '@/app/actions/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { BedDouble, Plus, Hotel, Home, CheckCircle, XCircle } from 'lucide-react';
+import { BedDouble, Plus, Hotel, CheckCircle, XCircle } from 'lucide-react';
 import RoomsList from '@/components/rooms-list';
 import { requireRole } from '@/app/actions/auth';
 import { getT } from '@/lib/i18n/server';
@@ -35,10 +35,6 @@ export default async function RoomsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
-              <Hotel className="w-4 h-4 text-blue-400" />
-              <span className="text-sm text-blue-400 font-medium">{t('hotel.rooms.badge')}</span>
-            </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
               {t('hotel.rooms.title')}
             </h1>

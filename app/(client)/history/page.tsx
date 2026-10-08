@@ -2,7 +2,7 @@ import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { redirect } from 'next/navigation';
 import { ClientHistoryList } from '@/components/client-history-list';
-import { CalendarDays, Clock, History } from 'lucide-react';
+import { CalendarDays, Clock } from 'lucide-react';
 import { getT } from '@/lib/i18n/server';
 
 export default async function HistoryPage() {
@@ -40,10 +40,6 @@ export default async function HistoryPage() {
 
           <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 mb-3">
-                <History className="w-4 h-4" />
-                <span className="text-sm font-medium">{t('client.history.badge')}</span>
-              </div>
               <h1 className="text-2xl md:text-3xl font-bold mb-2">
                 {t('client.history.title')}
               </h1>

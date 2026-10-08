@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChefHat, PieChart } from 'lucide-react';
+import { ChefHat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -51,10 +51,6 @@ export function FoodCostReport({ rows, taxSettings }: { rows: FoodCostRow[] | nu
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="mb-8">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-4 py-2">
-          <PieChart className="h-4 w-4 text-orange-400" />
-          <span className="text-sm font-medium text-orange-400">{t('foodCost.badge')}</span>
-        </div>
         <h1 className="mb-2 bg-gradient-to-r from-white to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">{t('foodCost.title')}</h1>
         <p className="max-w-2xl text-slate-400">{t('foodCost.subtitle')}</p>
       </div>

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
-import { ArrowLeft, ChevronRight, KeyRound, Plug, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ChevronRight, KeyRound, ShieldCheck } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { getLocale } from '@/lib/i18n/server';
 import { API_DOCS_CONTENT, type ApiDocsContent } from './content';
@@ -279,9 +279,6 @@ export default async function ApiDocsPage() {
         <main className="min-w-0 flex-1 px-4 py-12 sm:px-10">
           <div className="mx-auto max-w-3xl">
             <Section id="intro" title={c.intro.title}>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-purple-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-purple-700">
-                <Plug className="h-3.5 w-3.5" /> {c.intro.badge}
-              </div>
               <p className="mb-6 text-lg leading-relaxed text-slate-500">{c.intro.text}</p>
               <p className="text-sm font-semibold text-slate-700">{c.intro.baseUrl}</p>
               <Code code={api} language="URL" c={c} />

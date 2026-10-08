@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { AlertTriangle, CheckCircle, History, Receipt, Wallet } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Receipt, Wallet } from 'lucide-react';
 import { requireRole } from '@/app/actions/auth';
 import { getOwnerShifts } from '@/app/actions/owner';
 import { ShiftsHistoryTable } from '@/components/shifts-history-table';
@@ -76,10 +76,6 @@ export default async function OwnerCashPage({
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="w-full space-y-6">
         <div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-1.5">
-            <History className="h-4 w-4 text-blue-400" />
-            <span className="text-sm font-medium text-blue-400">{t('org.cash.badge')}</span>
-          </div>
           <h1 className="text-3xl font-bold text-white md:text-4xl">{t('org.cash.title')}</h1>
           <p className="mt-1 text-slate-400">
             {t('org.cash.subtitle')}
