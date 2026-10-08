@@ -12,6 +12,7 @@ import { AddFloorDialog } from '@/components/add-floor-dialog';
 import { EditTableDialog } from '@/components/edit-table-dialog';
 import type { Floor } from '@/lib/supabase';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 
 interface Table {
   id: string;
@@ -37,6 +38,7 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
   const [renameValue, setRenameValue] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const { t } = useT();
+  const dialogs = useDialogs();
 
   useEffect(() => {
     setTables(initialTables);
@@ -92,7 +94,7 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm(t('floor.manager.confirmDeleteTable'))) {
+    if (await dialogs.confirm({ description: t('floor.manager.confirmDeleteTable'), destructive: true })) {
       const result = await deleteTable(id);
       if (result.success) {
         setTables(prev => prev.filter(tb => tb.id !== id));
@@ -139,7 +141,7 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
   };
 
   const handleDeleteFloor = async (floor: Floor) => {
-    if (!confirm(t('floor.manager.confirmDeleteFloor', { name: floor.name }))) return;
+    if (!(await dialogs.confirm({ description: t('floor.manager.confirmDeleteFloor', { name: floor.name }), destructive: true }))) return;
     const result = await deleteFloor(floor.id);
     if (result.success) {
       setFloors(prev => prev.filter(f => f.id !== floor.id));

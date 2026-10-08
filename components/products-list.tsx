@@ -24,6 +24,7 @@ import { deleteProduct } from '@/app/actions/products';
 import { useState, useMemo } from 'react';
 import { TablePagination } from './table-pagination';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 import { categoryLabel, productInCategory, sortCategoryTree, type CategoryNode } from '@/lib/category-tree';
 
 interface ProductsListProps {
@@ -36,6 +37,7 @@ interface ProductsListProps {
 export function ProductsList({ products, categories = [], onProductDeleted }: ProductsListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { t, format } = useT();
+  const dialogs = useDialogs();
   const [currentPage, setCurrentPage] = useState(1);
   const [destinationFilter, setDestinationFilter] = useState<string>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
@@ -64,13 +66,13 @@ export function ProductsList({ products, categories = [], onProductDeleted }: Pr
   }
 
   const handleDelete = async (productId: string) => {
-    if (!confirm(t('products.list.confirmDelete'))) return;
+    if (!(await dialogs.confirm({ description: t('products.list.confirmDelete'), destructive: true }))) return;
 
     setDeletingId(productId);
     const res = await deleteProduct(productId);
     setDeletingId(null);
     if (!res.success) {
-      alert(res.error);
+      await dialogs.alert({ description: res.error ?? '', variant: 'error' });
     } else {
       onProductDeleted?.();
     }

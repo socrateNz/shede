@@ -18,6 +18,7 @@ import {
 import { createIngredient, deleteIngredient, setIngredientActive, updateIngredient, type IngredientRow } from '@/app/actions/ingredients';
 import { INGREDIENT_UNITS, type IngredientUnit } from '@/lib/recipes';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 
 const SELECT_CLASS = 'h-10 w-full rounded-md border border-slate-600 bg-slate-900/50 px-3 text-sm text-slate-50 disabled:opacity-60';
 const INPUT_CLASS = 'border-slate-600 bg-slate-900/50 text-slate-50 placeholder:text-slate-500';
@@ -28,6 +29,7 @@ const EMPTY_FORM: Form = { name: '', unit: 'kg', cost: '', threshold: '0', initi
 /** Ingrédients du point : liste, création et modification dans un dialogue. */
 export function IngredientsManager({ initialIngredients }: { initialIngredients: IngredientRow[] | null }) {
   const { t, format } = useT();
+  const dialogs = useDialogs();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [search, setSearch] = useState('');
@@ -86,8 +88,8 @@ export function IngredientsManager({ initialIngredients }: { initialIngredients:
     }
   }
 
-  function remove(ingredient: IngredientRow) {
-    if (!confirm(t('ingredients.confirmDelete', { name: ingredient.name }))) return;
+  async function remove(ingredient: IngredientRow) {
+    if (!(await dialogs.confirm({ description: t('ingredients.confirmDelete', { name: ingredient.name }), destructive: true }))) return;
     run(() => deleteIngredient(ingredient.id), t('ingredients.deleted'));
   }
 

@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 
 import { useAppStore } from '@/lib/store';
 import { ImageUpload } from '@/components/image-upload';
@@ -47,6 +48,7 @@ export function ProductEditForm({
 }) {
   const router = useRouter();
   const { t, format } = useT();
+  const dialogs = useDialogs();
   const queryClient = useQueryClient();
   const productId = product.id;
   const hasModule = useAppStore(state => state.hasModule);
@@ -195,8 +197,8 @@ export function ProductEditForm({
     updateMutation.mutate(formData);
   };
 
-  const handleDelete = () => {
-    if (confirm(t('products.form.confirmDelete'))) {
+  const handleDelete = async () => {
+    if (await dialogs.confirm({ description: t('products.form.confirmDelete'), destructive: true })) {
       deleteMutation.mutate(productId);
     }
   };

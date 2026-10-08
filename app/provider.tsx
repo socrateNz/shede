@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
+import { DialogProvider } from '@/components/dialog-provider';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -36,7 +37,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
+      <DialogProvider>{children}</DialogProvider>
       <Toaster position="top-right" richColors />
     </QueryClientProvider>
   );

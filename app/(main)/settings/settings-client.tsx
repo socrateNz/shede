@@ -2,11 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { toast } from 'sonner';
-import {
-  Building2, Mail, Phone, MapPin, Globe, DollarSign,
-  Clock, Bell, LogOut, Save, Shield, Users, Loader2,
-  ChevronRight, Settings, Receipt,
-} from 'lucide-react';
+import { Building2, Mail, Phone, MapPin, Globe, DollarSign, Clock, Bell, LogOut, Save, Shield, Users, Loader2, ChevronRight, Settings, Receipt, CheckCircle2, Lock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +16,7 @@ import type { SessionPayload } from '@/lib/auth';
 import type { Structure } from '@/lib/supabase';
 import { useT } from '@/lib/i18n/client';
 import type { TranslationKey } from '@/lib/i18n/translate';
-import { moduleLabel } from '@/lib/modules';
+import { MODULE_CATEGORIES, MODULE_OPTIONS, moduleCategoryLabel, moduleDescription, moduleLabel } from '@/lib/modules';
 
 interface SettingsPageClientProps {
   session: SessionPayload;
@@ -372,30 +368,52 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
             </form>
           )}
 
-          {/* ── Modules actifs ── */}
-          {structure?.modules && structure.modules.length > 0 && (
+          {/* ── Modules de la licence : tous, actifs en vert, inactifs en gris ── */}
+          {(session.structureId || session.organizationId) && (
             <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-xl">
               <CardHeader className="border-b border-slate-700/50">
-                <CardTitle className="text-slate-50 flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-purple-400" />
-                  {t('settings.page.modules')}
+                <CardTitle className="text-slate-50 flex flex-wrap items-center justify-between gap-2">
+                  <span className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-purple-400" />
+                    {t('settings.page.modules')}
+                  </span>
+                  <span className="text-xs font-normal text-slate-400">
+                    {t('settings.page.modulesCount', { active: MODULE_OPTIONS.filter((m) => session.modules?.includes(m.value)).length, total: MODULE_OPTIONS.length })}
+                  </span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-5">
-                <div className="flex flex-wrap gap-2">
-                  {structure.modules.map((mod) => (
-                    <Badge
-                      key={mod}
-                      variant="outline"
-                      className="border-purple-500/30 text-purple-300 bg-purple-500/10 px-3 py-1"
-                    >
-                      {moduleLabel(t, mod)}
-                    </Badge>
-                  ))}
+              <CardContent className="pt-5 space-y-5">
+                {MODULE_CATEGORIES.map((category) => (
+                  <div key={category}>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">{moduleCategoryLabel(t, category)}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {MODULE_OPTIONS.filter((m) => m.category === category).map((m) => {
+                        const active = Boolean(session.modules?.includes(m.value));
+                        return (
+                          <Badge
+                            key={m.value}
+                            variant="outline"
+                            title={`${moduleDescription(t, m.value)} — ${active ? t('settings.page.moduleActive') : t('settings.page.moduleInactive')}`}
+                            className={
+                              active
+                                ? 'gap-1.5 border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-emerald-300'
+                                : 'gap-1.5 border-slate-600 bg-slate-800/60 px-3 py-1 text-slate-500'
+                            }
+                          >
+                            {active ? <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> : <Lock className="h-3.5 w-3.5" aria-hidden />}
+                            {moduleLabel(t, m.value)}
+                            <span className="sr-only">({active ? t('settings.page.moduleActive') : t('settings.page.moduleInactive')})</span>
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+                <div className="flex flex-wrap items-center gap-4 border-t border-slate-700/50 pt-4 text-xs text-slate-400">
+                  <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> {t('settings.page.moduleActive')}</span>
+                  <span className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5 text-slate-500" /> {t('settings.page.moduleInactive')}</span>
+                  <span className="text-slate-500">{t('settings.page.modulesHint')}</span>
                 </div>
-                <p className="text-xs text-slate-500 mt-3">
-                  {t('settings.page.modulesHint')}
-                </p>
               </CardContent>
             </Card>
           )}

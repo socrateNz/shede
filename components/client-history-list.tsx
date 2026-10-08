@@ -10,11 +10,13 @@ import { updateClientBooking, cancelClientOrder } from '@/app/actions/client-his
 import { toast } from 'sonner';
 import { TablePagination } from './table-pagination';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 import type { TranslationKey } from '@/lib/i18n/translate';
 
 export function ClientHistoryList({ bookings, orders }: { bookings: any[], orders: any[] }) {
   const [activeTab, setActiveTab] = useState<'BOOKINGS' | 'ORDERS'>('BOOKINGS');
   const { t, format } = useT();
+  const dialogs = useDialogs();
   const [editingBooking, setEditingBooking] = useState<any>(null);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
@@ -49,7 +51,7 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
   };
 
   const handleOrderCancel = async (orderId: string) => {
-    if (!confirm(t('client.history.confirmCancelOrder'))) return;
+    if (!(await dialogs.confirm({ description: t('client.history.confirmCancelOrder'), destructive: true, tone: 'light' }))) return;
     const res = await cancelClientOrder(orderId);
     if (res.success) {
       toast.success(t('client.history.orderCancelled'));

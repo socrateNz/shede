@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cancelInventory, saveCount, validateInventory, type InventoryDetail, type InventoryLine } from '@/app/actions/inventory';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 
 type Filter = 'all' | 'uncounted' | 'counted';
 type SaveState = 'saving' | 'saved' | 'error';
@@ -18,6 +19,7 @@ const TYPE_ICON = { ingredient: Carrot, product: Package, accompaniment: Coffee 
 /** Comptage d'un inventaire (mobile d'abord), puis validation ; consultation une fois clos. */
 export function InventoryCount({ inventory }: { inventory: InventoryDetail }) {
   const { t, format } = useT();
+  const dialogs = useDialogs();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const isOpen = inventory.status === 'DRAFT';
@@ -70,9 +72,9 @@ export function InventoryCount({ inventory }: { inventory: InventoryDetail }) {
     setSaveState((s) => ({ ...s, [line.id]: 'saved' }));
   }
 
-  function validate() {
+  async function validate() {
     const uncounted = inventory.lines.length - countedTotal;
-    if (!confirm(t('stockControl.inventory.validateConfirm', { counted: countedTotal, uncounted }))) return;
+    if (!(await dialogs.confirm({ description: t('stockControl.inventory.validateConfirm', { counted: countedTotal, uncounted }) }))) return;
     startTransition(async () => {
       const result = await validateInventory(inventory.id);
       if (!result.success) {
@@ -84,8 +86,8 @@ export function InventoryCount({ inventory }: { inventory: InventoryDetail }) {
     });
   }
 
-  function cancel() {
-    if (!confirm(t('stockControl.inventory.cancelConfirm'))) return;
+  async function cancel() {
+    if (!(await dialogs.confirm({ description: t('stockControl.inventory.cancelConfirm'), destructive: true }))) return;
     startTransition(async () => {
       const result = await cancelInventory(inventory.id);
       if (!result.success) {

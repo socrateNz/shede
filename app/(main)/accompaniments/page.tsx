@@ -1,6 +1,7 @@
 'use client';
 
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 
 import { getAccompaniments, createAccompaniment, updateAccompaniment, deleteAccompaniment } from '@/app/actions/accompaniments';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +29,7 @@ import { TablePagination } from '@/components/table-pagination';
 export default function AccompanimentsPage() {
   const [items, setItems] = useState<any[]>([]);
   const { t, format } = useT();
+  const dialogs = useDialogs();
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: '', price: 0, is_available: true });
@@ -73,14 +75,14 @@ export default function AccompanimentsPage() {
       setEditingId(null);
       fetchData();
     } else {
-      alert(res.error);
+      await dialogs.alert({ description: res.error ?? '', variant: 'error' });
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('products.accompaniments.confirmDelete'))) return;
+    if (!(await dialogs.confirm({ description: t('products.accompaniments.confirmDelete'), destructive: true }))) return;
     const res = await deleteAccompaniment(id);
-    if (!res.success) alert(res.error);
+    if (!res.success) await dialogs.alert({ description: res.error ?? '', variant: 'error' });
     else fetchData();
   };
 

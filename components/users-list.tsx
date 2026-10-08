@@ -25,6 +25,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { TablePagination } from './table-pagination';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 import type { TranslationKey } from '@/lib/i18n/translate';
 
 interface UsersListProps {
@@ -44,6 +45,7 @@ export function UsersList({ users }: UsersListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const { t } = useT();
+  const dialogs = useDialogs();
   const itemsPerPage = 10;
 
   const totalPages = Math.ceil(users.length / itemsPerPage);
@@ -57,7 +59,7 @@ export function UsersList({ users }: UsersListProps) {
   }
 
   const handleDelete = async (userId: string) => {
-    if (!confirm(t('team.list.confirmDelete'))) return;
+    if (!(await dialogs.confirm({ description: t('team.list.confirmDelete'), destructive: true }))) return;
 
     setDeletingId(userId);
     const result = await deleteUser(userId);

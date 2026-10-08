@@ -14,6 +14,7 @@ import {
   type PointApiStatus,
 } from '@/app/actions/api-keys';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 import { cn } from '@/lib/utils';
 
 const STATUS_STYLE = {
@@ -25,6 +26,7 @@ const STATUS_STYLE = {
 /** Adresse, secret, test et historique des webhooks d'un point. */
 export function WebhookSettings({ pointId, webhook }: { pointId: string; webhook: NonNullable<PointApiStatus['webhook']> }) {
   const { t, format } = useT();
+  const dialogs = useDialogs();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [url, setUrl] = useState(webhook.url ?? '');
@@ -94,8 +96,10 @@ export function WebhookSettings({ pointId, webhook }: { pointId: string; webhook
               size="sm"
               variant="ghost"
               disabled={pending}
-              onClick={() => {
-                if (confirm(t('api.webhooks.regenerateConfirm'))) run(() => regenerateWebhookSecret(pointId), t('api.webhooks.secretRegenerated'));
+              onClick={async () => {
+                if (await dialogs.confirm({ description: t('api.webhooks.regenerateConfirm'), destructive: true })) {
+                  run(() => regenerateWebhookSecret(pointId), t('api.webhooks.secretRegenerated'));
+                }
               }}
               className="h-7 text-slate-300"
             >

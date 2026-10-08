@@ -11,10 +11,12 @@ import { cancelPurchaseOrder, sendPurchaseOrder, type PurchaseOrderDetail } from
 import { ORDER_STATUS_STYLES } from '@/components/purchasing/orders-list';
 import { whatsappLink } from '@/lib/purchasing';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 
 /** Fiche d'un bon de commande : lignes, envoi, réceptions, annulation. */
 export function PurchaseOrderDetailView({ order, pointName }: { order: PurchaseOrderDetail; pointName: string }) {
   const { t, format } = useT();
+  const dialogs = useDialogs();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const canSend = order.canManage && (order.status === 'DRAFT' || order.status === 'SENT');
@@ -58,8 +60,8 @@ export function PurchaseOrderDetailView({ order, pointName }: { order: PurchaseO
     });
   }
 
-  function cancel() {
-    if (!confirm(t('purchasing.orders.cancelConfirm'))) return;
+  async function cancel() {
+    if (!(await dialogs.confirm({ description: t('purchasing.orders.cancelConfirm'), destructive: true }))) return;
     startTransition(async () => {
       const result = await cancelPurchaseOrder(order.id);
       if (!result.success) toast.error(result.error);

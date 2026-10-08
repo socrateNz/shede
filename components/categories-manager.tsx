@@ -18,6 +18,7 @@ import {
 import { createCategory, deleteCategory, reorderCategories, updateCategory, type CategoryRow } from '@/app/actions/categories';
 import { childrenByParent, sortCategoryTree } from '@/lib/category-tree';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 
 const SELECT_CLASS = 'h-10 w-full rounded-md border border-slate-600 bg-slate-900/50 px-3 text-sm text-slate-50';
 
@@ -30,6 +31,7 @@ type DialogState = { mode: 'create'; parentId: string } | { mode: 'edit'; catego
  */
 export function CategoriesManager({ initialCategories }: { initialCategories: CategoryRow[] | null }) {
   const { t } = useT();
+  const dialogs = useDialogs();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [categories, setCategories] = useState<CategoryRow[]>(initialCategories ?? []);
@@ -128,8 +130,8 @@ export function CategoriesManager({ initialCategories }: { initialCategories: Ca
     );
   }
 
-  function remove(category: CategoryRow) {
-    if (!confirm(t('categories.confirmDelete', { name: category.name }))) return;
+  async function remove(category: CategoryRow) {
+    if (!(await dialogs.confirm({ description: t('categories.confirmDelete', { name: category.name }), destructive: true }))) return;
     run(
       () => deleteCategory(category.id),
       t('categories.deleted'),

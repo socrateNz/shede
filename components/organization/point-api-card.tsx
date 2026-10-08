@@ -8,11 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { generatePointApiKey, revokePointApiKey, type PointApiStatus } from '@/app/actions/api-keys';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 import { WebhookSettings } from '@/components/organization/webhook-settings';
 
 /** Section « API » de la fiche d'un point (administrateur d'organisation). */
 export function PointApiCard({ pointId, status }: { pointId: string; status: PointApiStatus }) {
   const { t, format } = useT();
+  const dialogs = useDialogs();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [newKey, setNewKey] = useState<{ key: string; mode: 'live' | 'test' } | null>(null);
@@ -21,9 +23,9 @@ export function PointApiCard({ pointId, status }: { pointId: string; status: Poi
   if (!status.moduleEnabled) return <p className="text-sm text-amber-400">{t('api.keys.moduleRequired')}</p>;
   if (!status.installed) return <p className="text-sm text-amber-400">{t('api.keys.notInstalled')}</p>;
 
-  function generate(mode: 'live' | 'test' = 'live') {
+  async function generate(mode: 'live' | 'test' = 'live') {
     const existing = mode === 'test' ? status.testCredential : status.credential;
-    if (existing && !confirm(t(mode === 'test' ? 'api.keys.testRegenerateConfirm' : 'api.keys.regenerateConfirm'))) return;
+    if (existing && !(await dialogs.confirm({ description: t(mode === 'test' ? 'api.keys.testRegenerateConfirm' : 'api.keys.regenerateConfirm'), destructive: true }))) return;
     startTransition(async () => {
       const result = await generatePointApiKey(pointId, mode);
       if (!result.success) {
@@ -36,8 +38,8 @@ export function PointApiCard({ pointId, status }: { pointId: string; status: Poi
     });
   }
 
-  function revoke(mode: 'live' | 'test' = 'live') {
-    if (!confirm(t(mode === 'test' ? 'api.keys.testRevokeConfirm' : 'api.keys.revokeConfirm'))) return;
+  async function revoke(mode: 'live' | 'test' = 'live') {
+    if (!(await dialogs.confirm({ description: t(mode === 'test' ? 'api.keys.testRevokeConfirm' : 'api.keys.revokeConfirm'), destructive: true }))) return;
     startTransition(async () => {
       const result = await revokePointApiKey(pointId, mode);
       if (!result.success) toast.error(result.error);

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { generateMissingEntries, setAccountingLock } from '@/app/actions/accounting';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 
 export function GenerateMissingButton({ from, to }: { from: string; to: string }) {
   const { t } = useT();
@@ -41,12 +42,13 @@ export function GenerateMissingButton({ from, to }: { from: string; to: string }
 
 export function LockForm({ lockedUntil, canUnlock }: { lockedUntil: string | null; canUnlock: boolean }) {
   const { t, format } = useT();
+  const dialogs = useDialogs();
   const router = useRouter();
   const [date, setDate] = useState('');
   const [pending, startTransition] = useTransition();
 
-  function save(next: string | null) {
-    if (next && !confirm(t('accounting.dashboard.lockConfirm', { date: format.date(next) }))) return;
+  async function save(next: string | null) {
+    if (next && !(await dialogs.confirm({ description: t('accounting.dashboard.lockConfirm', { date: format.date(next) }) }))) return;
     startTransition(async () => {
       const result = await setAccountingLock(next);
       if (!result.success) {

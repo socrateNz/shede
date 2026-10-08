@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { receiveGoods, type CatalogItem, type PurchaseOrderDetail, type PurchasingSupplier } from '@/app/actions/purchasing';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 
 const INPUT = 'border-slate-600 bg-slate-900/50 text-slate-50 placeholder:text-slate-500';
 
@@ -43,6 +44,7 @@ export function ReceiptForm({
   hasAccounting: boolean;
 }) {
   const { t, format } = useT();
+  const dialogs = useDialogs();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [supplierId, setSupplierId] = useState(order?.supplier_id ?? '');
@@ -98,9 +100,9 @@ export function ReceiptForm({
     setToAdd('');
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!confirm(t('purchasing.receipts.confirm'))) return;
+    if (!(await dialogs.confirm({ description: t('purchasing.receipts.confirm') }))) return;
     startTransition(async () => {
       const result = await receiveGoods({
         supplierId,

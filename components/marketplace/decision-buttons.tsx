@@ -7,12 +7,14 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { acceptMarketplaceOrder, rejectMarketplaceOrder } from '@/app/actions/marketplace-orders';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 
 const PREP_CHOICES = [10, 15, 20, 30, 45, 60];
 
 /** Accepter (avec temps de préparation) ou refuser une commande marketplace. */
 export function DecisionButtons({ orderId, onDone }: { orderId: string; onDone?: () => void }) {
   const { t } = useT();
+  const dialogs = useDialogs();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [minutes, setMinutes] = useState(20);
@@ -31,8 +33,8 @@ export function DecisionButtons({ orderId, onDone }: { orderId: string; onDone?:
     });
   }
 
-  function reject() {
-    const reason = prompt(t('marketplace.rejectReason'));
+  async function reject() {
+    const reason = await dialogs.prompt({ description: t('marketplace.rejectReason'), destructive: true });
     if (reason === null) return;
     startTransition(async () => {
       const result = await rejectMarketplaceOrder(orderId, reason);

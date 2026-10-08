@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { cancelExpense, payExpense } from '@/app/actions/accounting';
 import { PAYMENT_METHODS } from '@/lib/accounting/mapping';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 
 const today = () => {
   const d = new Date();
@@ -29,6 +30,7 @@ export function ExpenseActions({
   canCancel: boolean;
 }) {
   const { t } = useT();
+  const dialogs = useDialogs();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [payOpen, setPayOpen] = useState(false);
@@ -50,9 +52,14 @@ export function ExpenseActions({
     });
   }
 
-  function cancel() {
-    if (!confirm(t('accounting.expenses.cancelConfirm'))) return;
-    const reason = prompt(t('accounting.expenses.cancelReason')) ?? undefined;
+  async function cancel() {
+    const answer = await dialogs.prompt({
+      description: t('accounting.expenses.cancelConfirm'),
+      label: t('accounting.expenses.cancelReason'),
+      destructive: true,
+    });
+    if (answer === null) return;
+    const reason = answer || undefined;
     startTransition(async () => {
       const result = await cancelExpense(id, reason);
       if (!result.success) {

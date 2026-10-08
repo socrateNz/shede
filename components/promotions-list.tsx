@@ -28,6 +28,7 @@ import {
 import { togglePromotionStatus, deletePromotion } from '@/app/actions/promotions';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 import { toast } from 'sonner';
 import { PromotionDetailDialog } from './promotion-detail-dialog';
 import { PromotionEditDialog } from './promotion-edit-dialog';
@@ -65,6 +66,7 @@ export function PromotionsList({ promotions: initialPromotions, products }: Prom
   const [editOpen, setEditOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const { t, format } = useT();
+  const dialogs = useDialogs();
   const itemsPerPage = 10;
 
   const totalPages = Math.ceil(promotions.length / itemsPerPage);
@@ -86,7 +88,7 @@ export function PromotionsList({ promotions: initialPromotions, products }: Prom
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('promotions.list.confirmDelete'))) return;
+    if (!(await dialogs.confirm({ description: t('promotions.list.confirmDelete'), destructive: true }))) return;
     
     const result = await deletePromotion(id);
     if (result.success) {

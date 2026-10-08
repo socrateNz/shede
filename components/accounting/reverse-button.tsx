@@ -7,9 +7,11 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { reverseAccountingEntry } from '@/app/actions/accounting';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 
 export function ReverseButton({ entryId, number }: { entryId: string; number: string }) {
   const { t } = useT();
+  const dialogs = useDialogs();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -18,9 +20,14 @@ export function ReverseButton({ entryId, number }: { entryId: string; number: st
       size="sm"
       variant="ghost"
       disabled={pending}
-      onClick={() => {
-        if (!confirm(t('accounting.journal.reverseConfirm', { number }))) return;
-        const reason = prompt(t('accounting.journal.reverseReason')) ?? undefined;
+      onClick={async () => {
+        const answer = await dialogs.prompt({
+          description: t('accounting.journal.reverseConfirm', { number }),
+          label: t('accounting.journal.reverseReason'),
+          destructive: true,
+        });
+        if (answer === null) return;
+        const reason = answer || undefined;
         startTransition(async () => {
           const result = await reverseAccountingEntry(entryId, reason);
           if (!result.success) {

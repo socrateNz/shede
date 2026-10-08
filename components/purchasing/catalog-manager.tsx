@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { addSupplierItems, deleteSupplierItem, saveSupplierItem, type CatalogItem, type CatalogOption, type PurchasingSupplier } from '@/app/actions/purchasing';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 
 const INPUT = 'border-slate-600 bg-slate-900/50 text-slate-50 placeholder:text-slate-500';
 const SELECT = 'h-10 w-full rounded-md border border-slate-600 bg-slate-900/50 px-3 text-sm text-slate-50 disabled:opacity-60';
@@ -44,6 +45,7 @@ export function CatalogManager({
   canManage: boolean;
 }) {
   const { t, format } = useT();
+  const dialogs = useDialogs();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState<CatalogItem | 'new' | null>(null);
@@ -129,8 +131,8 @@ export function CatalogManager({
     });
   }
 
-  function remove(item: CatalogItem) {
-    if (!confirm(t('purchasing.catalog.confirmDelete', { name: item.name }))) return;
+  async function remove(item: CatalogItem) {
+    if (!(await dialogs.confirm({ description: t('purchasing.catalog.confirmDelete', { name: item.name }), destructive: true }))) return;
     startTransition(async () => {
       const result = await deleteSupplierItem(item.id);
       if (!result.success) toast.error(result.error);

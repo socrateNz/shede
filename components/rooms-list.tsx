@@ -33,6 +33,7 @@ import { useActionState } from 'react';
 import { toast } from 'sonner';
 import { TablePagination } from './table-pagination';
 import { useT } from '@/lib/i18n/client';
+import { useDialogs } from '@/components/dialog-provider';
 
 type RoomType = 'Standard' | 'Double' | 'Studio' | 'Suite' | 'Familiale' | 'Autre';
 
@@ -42,6 +43,7 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const { t, format } = useT();
+  const dialogs = useDialogs();
   
   const [editImage1, setEditImage1] = useState<string | null>(null);
   const [editImage2, setEditImage2] = useState<string | null>(null);
@@ -102,7 +104,7 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
   };
 
   const handleDelete = async (roomId: string) => {
-    if (confirm(t('hotel.rooms.confirmDelete'))) {
+    if (await dialogs.confirm({ description: t('hotel.rooms.confirmDelete'), destructive: true })) {
       const res = await deleteRoom(roomId);
       if (res.success) {
         toast.success(t('hotel.rooms.deleted'));
