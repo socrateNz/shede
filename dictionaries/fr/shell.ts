@@ -44,6 +44,7 @@ const shell = {
     pointsLicense: 'Points & licence',
     orders: 'Commandes',
     floorPlan: 'Plan de salle',
+    waiterMode: 'Mode serveur',
     kitchen: 'Cuisine (KDS)',
     bar: 'Bar',
     products: 'Produits',

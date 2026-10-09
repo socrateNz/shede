@@ -36,6 +36,7 @@ import purchasing from './purchasing';
 import forecasts from './forecasts';
 import planning from './planning';
 import operations from './operations';
+import waiter from './waiter';
 
 export const en: Dictionary = {
   common,
@@ -75,4 +76,5 @@ export const en: Dictionary = {
   forecasts,
   planning,
   operations,
+  waiter,
 };

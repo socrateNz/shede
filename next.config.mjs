@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Développement : autorise les téléphones du réseau local (http://192.168.x.x:3000) à charger
+  // les ressources de dev, sinon la page s'affiche mais ses boutons ne réagissent pas.
+  // Sans effet en production.
+  allowedDevOrigins: ['192.168.*.*', '10.*.*.*', '172.16.*.*'],
   typescript: {
     ignoreBuildErrors: true,
   },

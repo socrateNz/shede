@@ -9,6 +9,7 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { redirect } from 'next/navigation';
 import { getT } from '@/lib/i18n/server';
 import { STAFF_ROLES, staffRoleIcon } from '@/lib/staff-roles';
+import { WaiterPinSetter } from '@/components/waiter/pin-setter';
 
 export default async function EditUserPage({
   params,
@@ -247,6 +248,9 @@ export default async function EditUserPage({
             </form>
           </CardContent>
         </Card>
+
+        {/* Mode serveur : code PIN (comptes Serveur uniquement ; l'empreinte ne quitte jamais le serveur) */}
+        {user.role === 'SERVEUR' && <WaiterPinSetter userId={user.id} hasPin={Boolean(user.pin_hash)} />}
 
         {/* Footer */}
         <div className="mt-8 text-center">

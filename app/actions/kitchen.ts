@@ -5,6 +5,7 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 import { te } from '@/lib/i18n/server';
 import { syncOrderWebhook } from '@/lib/api/webhooks';
+import { notifyUser } from '@/lib/notifications';
 
 const KITCHEN_ROLES = ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CUISINIER'] as const;
 
@@ -52,6 +53,7 @@ export async function getKitchenOrders(structureId: string): Promise<KitchenOrde
         id,
         quantity,
         notes,
+        held,
         products(name, destination)
       )
     `)
@@ -76,7 +78,8 @@ export async function getKitchenOrders(structureId: string): Promise<KitchenOrde
     notes: o.notes,
     created_at: o.created_at,
     items: (o.order_items || [])
-      .filter((item: any) => item.products?.destination === 'CUISINE')
+      // Plats en attente (envoi en deux temps) : pas encore partis en cuisine
+      .filter((item: any) => !item.held && item.products?.destination === 'CUISINE')
       .map((item: any) => ({
         id: item.id,
         product_name: item.products?.name ?? unknownProduct,
@@ -104,7 +107,7 @@ export async function updateOrderStatusFromKitchen(
   // Vérifier que la commande appartient à la structure
   const { data: order, error: fetchError } = await admin
     .from('orders')
-    .select('id, kitchen_status, bar_status, order_items(products(destination))')
+    .select('id, kitchen_status, bar_status, order_items(held, products(destination))')
     .eq('id', orderId)
     .eq('structure_id', session.structureId!)
     .single();
@@ -136,14 +139,15 @@ export async function updateOrderStatusFromKitchen(
   }
 
   // Calculate if global status should be updated
-  const hasBarItems = order.order_items?.some((i: any) => 
-    i.products?.destination === 'BAR' || i.products?.destination === 'BOISSON'
+  const hasBarItems = order.order_items?.some((i: any) =>
+    !i.held && (i.products?.destination === 'BAR' || i.products?.destination === 'BOISSON')
   );
   
   const barReady = !hasBarItems || order.bar_status === 'READY';
   
   if (newStatus === 'READY' && barReady) {
     await admin.from('orders').update({ status: 'READY' }).eq('id', orderId);
+    await notifyOrderReady(orderId, session.structureId!);
   } else if (newStatus === 'IN_PROGRESS') {
     // If kitchen starts working, global status is at least IN_PROGRESS
     await admin.from('orders').update({ status: 'IN_PROGRESS' }).eq('id', orderId);
@@ -181,6 +185,7 @@ export async function getBarOrders(structureId: string): Promise<KitchenOrder[]>
         id,
         quantity,
         notes,
+        held,
         products(name, category, destination)
       )
     `)
@@ -200,6 +205,7 @@ export async function getBarOrders(structureId: string): Promise<KitchenOrder[]>
       created_at: o.created_at,
       items: (o.order_items || [])
         .filter((item: any) => {
+          if (item.held) return false; // pas encore envoyé (envoi en deux temps)
           if (item.products?.destination) {
             return item.products.destination === 'BAR';
           }
@@ -225,7 +231,7 @@ export async function updateOrderStatusFromBar(
   newStatus: 'IN_PROGRESS' | 'READY'
 ) {
   const session = await getSession();
-  if (!session) {
+  if (!session || !['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'BAR'].includes(session.role)) {
     return { success: false, error: await te('errors.unauthorized') };
   }
 
@@ -233,7 +239,7 @@ export async function updateOrderStatusFromBar(
 
   const { data: order, error: fetchError } = await admin
     .from('orders')
-    .select('id, kitchen_status, bar_status, order_items(products(destination))')
+    .select('id, kitchen_status, bar_status, order_items(held, products(destination))')
     .eq('id', orderId)
     .eq('structure_id', session.structureId!)
     .single();
@@ -265,14 +271,15 @@ export async function updateOrderStatusFromBar(
   }
 
   // Calculate if global status should be updated
-  const hasKitchenItems = order.order_items?.some((i: any) => 
-    i.products?.destination === 'CUISINE'
+  const hasKitchenItems = order.order_items?.some((i: any) =>
+    !i.held && i.products?.destination === 'CUISINE'
   );
   
   const kitchenReady = !hasKitchenItems || order.kitchen_status === 'READY';
   
   if (newStatus === 'READY' && kitchenReady) {
     await admin.from('orders').update({ status: 'READY' }).eq('id', orderId);
+    await notifyOrderReady(orderId, session.structureId!);
   } else if (newStatus === 'IN_PROGRESS') {
     await admin.from('orders').update({ status: 'IN_PROGRESS' }).eq('id', orderId);
   }
@@ -280,4 +287,24 @@ export async function updateOrderStatusFromBar(
   await syncOrderWebhook(orderId);
   revalidatePath('/bar');
   return { success: true };
+}
+
+/** Commande entièrement prête : le serveur qui l'a prise est prévenu sur son téléphone. */
+async function notifyOrderReady(orderId: string, structureId: string) {
+  const { data: order } = await getAdminSupabase()
+    .from('orders')
+    .select('user_id, table_number, users!user_id(role)')
+    .eq('id', orderId)
+    .single();
+  const waiter = order?.users as { role?: string } | null;
+  if (!order?.user_id || waiter?.role !== 'SERVEUR') return;
+  await notifyUser({
+    userId: order.user_id,
+    structureId,
+    message: ({ t }) => ({
+      title: t('notify.orderReady.title'),
+      body: t('notify.orderReady.body', { table: order.table_number ?? '—' }),
+    }),
+    url: '/serveur',
+  });
 }

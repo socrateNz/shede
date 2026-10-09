@@ -29,6 +29,9 @@ const PUBLIC_EXACT = new Set([
   '/docs',
   '/docs/api',
   '/unauthorized',
+  // Mode serveur : enregistrement du téléphone et connexion par code PIN
+  '/serveur/connexion',
+  '/serveur/appareil',
   '/cart',
   '/forgot-password',
   '/reset-password',
@@ -74,6 +77,7 @@ const STAFF_PREFIXES = [
   '/floor-manager',
   '/organization',
   '/accounting',
+  '/serveur',
 ];
 
 /** Espace de l'administrateur d'organisation (il n'opère pas dans les points). */
@@ -106,6 +110,9 @@ const ROUTE_RULES: RouteRule[] = [
 
   // Commandes
   { prefix: '/orders', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR'], modules: ['POS'] },
+
+  // Mode serveur (prise de commande sur téléphone)
+  { prefix: '/serveur', roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR'], modules: ['POS'] },
 
   // Cuisine & Bar
   { prefix: '/kitchen',  roles: ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CUISINIER'], modules: ['CUISINE'] },
@@ -154,7 +161,7 @@ const ROUTE_RULES: RouteRule[] = [
 const AUTH_ONLY_PATHS = new Set(['/login', '/register-client', '/register-business', '/forgot-password']);
 
 function isStaticAsset(pathname: string): boolean {
-  return /\.(webp|png|jpg|jpeg|gif|svg|ico|woff2?|ttf|css|js|map)$/i.test(pathname);
+  return /\.(webp|png|jpg|jpeg|gif|svg|ico|woff2?|ttf|css|js|map|webmanifest)$/i.test(pathname);
 }
 
 function isPublicPath(pathname: string): boolean {
@@ -217,12 +224,25 @@ export async function middleware(request: NextRequest) {
   if (isPublicPath(pathname)) {
     const session = await getSessionFromRequest(request);
     if (session && AUTH_ONLY_PATHS.has(pathname)) {
-      return NextResponse.redirect(new URL(getStaffHome(session), request.url));
+      return NextResponse.redirect(new URL(session.pin ? '/serveur' : getStaffHome(session), request.url));
+    }
+    if (session?.pin && pathname === '/serveur/connexion') {
+      return NextResponse.redirect(new URL('/serveur', request.url));
     }
     return NextResponse.next();
   }
 
   const session = await getSessionFromRequest(request);
+
+  // Téléphone serveur enregistré, personne de connecté : écran du code PIN
+  if (!session && matchesPrefix(pathname, ['/serveur']) && request.cookies.get('shede_waiter_device')) {
+    return NextResponse.redirect(new URL('/serveur/connexion', request.url));
+  }
+
+  // Session ouverte par code PIN : uniquement le mode serveur
+  if (session?.pin && !matchesPrefix(pathname, ['/serveur'])) {
+    return NextResponse.redirect(new URL('/serveur', request.url));
+  }
 
   if (!session) {
     const loginUrl = new URL('/login', request.url);

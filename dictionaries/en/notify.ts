@@ -63,6 +63,10 @@ const notify: typeof fr = {
     title: 'License changed',
     body: 'The modules of the {name} organisation have been updated. Log in again to use them.',
   },
+  orderReady: {
+    title: 'Order ready',
+    body: 'Table {table}: the order is ready to serve.',
+  },
 };
 
 export default notify;

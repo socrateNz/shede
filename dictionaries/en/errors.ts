@@ -21,6 +21,7 @@ const errors: typeof fr = {
   noActiveShift: 'No register is open.',
 
   orderNotFound: 'Order not found.',
+  notEnoughSeats: 'Not enough seats at this table ({free} free).',
   orderCreateFailed: 'The order could not be created.',
   orderUpdateFailed: 'The order could not be updated.',
   orderCancelFailed: 'The order could not be cancelled.',

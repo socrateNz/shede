@@ -35,6 +35,7 @@ import {
   Network,
   BookOpenCheck,
   Receipt,
+  Smartphone,
 } from 'lucide-react';
 import { ShiftStatusIndicator } from './shift-status-indicator';
 import { logout } from '@/app/actions/auth';
@@ -147,6 +148,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       badge: counts.orders,
       badgeColor: 'bg-red-500',
     },
+    { group: 'sales', name: t('nav.waiterMode'), href: '/serveur', icon: Smartphone, roles: ['ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR'], module: 'POS' },
     {
       group: 'sales',
       name: t('nav.floorPlan'),

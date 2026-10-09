@@ -45,6 +45,7 @@ const shell: typeof fr = {
     pointsLicense: 'Outlets & license',
     orders: 'Orders',
     floorPlan: 'Floor plan',
+    waiterMode: 'Waiter mode',
     kitchen: 'Kitchen (KDS)',
     bar: 'Bar',
     products: 'Products',

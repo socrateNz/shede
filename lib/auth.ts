@@ -58,6 +58,8 @@ export interface SessionPayload {
    * Jamais signé dans le jeton.
    */
   staleModules?: string[];
+  /** Session ouverte par code PIN sur un téléphone serveur : limitée au mode serveur (/serveur). */
+  pin?: boolean;
   iat: number;
   exp: number;
 }

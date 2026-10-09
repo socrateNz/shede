@@ -22,6 +22,7 @@ const errors = {
 
   // Commandes
   orderNotFound: 'Commande introuvable.',
+  notEnoughSeats: 'Plus assez de places à cette table ({free} libre(s)).',
   orderCreateFailed: 'La commande n’a pas pu être créée.',
   orderUpdateFailed: 'La commande n’a pas pu être mise à jour.',
   orderCancelFailed: 'La commande n’a pas pu être annulée.',

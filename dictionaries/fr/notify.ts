@@ -62,6 +62,10 @@ const notify = {
     title: 'Licence modifiée',
     body: 'Les modules de l’organisation {name} ont été mis à jour. Reconnectez-vous pour en profiter.',
   },
+  orderReady: {
+    title: 'Commande prête',
+    body: 'Table {table} : la commande est prête à servir.',
+  },
 };
 
 export default notify;

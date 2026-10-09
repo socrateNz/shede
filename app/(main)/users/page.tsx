@@ -7,13 +7,18 @@ import { Plus, Users, UserCheck, UserCog, Shield,  } from 'lucide-react';
 import Link from 'next/link';
 import { UsersList } from '@/components/users-list';
 import { getT } from '@/lib/i18n/server';
+import { listWaiterDevices } from '@/app/actions/waiter-devices';
+import { WaiterDevicesManager } from '@/components/waiter/devices-manager';
 
 export default async function UsersPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string; role?: string }> }) {
   const session = await requireRole('ADMIN', 'SUPER_ADMIN');
   const { t } = await getT();
   const params = await searchParams;
   // 20 membres par page ; statistiques calculées en SQL sur toute l'équipe.
-  const { items: users, meta } = await listUsers({ page: parsePage(params.page), q: params.q, role: params.role });
+  const [{ items: users, meta }, devices] = await Promise.all([
+    listUsers({ page: parsePage(params.page), q: params.q, role: params.role }),
+    session.modules?.includes('POS') ? listWaiterDevices() : Promise.resolve(undefined),
+  ]);
   const { stats } = meta;
 
   return (
@@ -121,6 +126,8 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
             )}
           </CardContent>
         </Card>
+
+        {devices !== undefined && <WaiterDevicesManager devices={devices} />}
 
         {/* Footer */}
         <div className="mt-6 text-center">

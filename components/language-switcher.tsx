@@ -2,7 +2,6 @@
 
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Languages } from 'lucide-react';
 import { setLocale } from '@/app/actions/locale';
 import { LOCALES, type Locale } from '@/lib/i18n/config';
 import { useT } from '@/lib/i18n/client';
@@ -27,13 +26,12 @@ export function LanguageSwitcher({ tone = 'dark', className }: { tone?: 'dark' |
       role="group"
       aria-label={t('common.language')}
       className={cn(
-        'inline-flex items-center gap-1 rounded-lg border p-0.5 text-xs font-semibold',
+        'inline-flex items-center gap-0.5 rounded-lg border p-0.5 text-xs font-semibold',
         tone === 'dark' ? 'border-slate-600 bg-slate-800' : 'border-slate-200 bg-white',
         pending && 'opacity-60',
         className
       )}
     >
-      <Languages className={cn('mx-1 h-3.5 w-3.5', tone === 'dark' ? 'text-slate-400' : 'text-slate-500')} aria-hidden />
       {LOCALES.map((code) => (
         <button
           key={code}
@@ -43,7 +41,7 @@ export function LanguageSwitcher({ tone = 'dark', className }: { tone?: 'dark' |
           aria-pressed={locale === code}
           lang={code}
           className={cn(
-            'rounded-md px-2 py-1 uppercase transition-colors',
+            'min-h-8 min-w-9 rounded-md px-2 py-1 uppercase transition-colors',
             locale === code
               ? 'bg-blue-600 text-white'
               : tone === 'dark'
