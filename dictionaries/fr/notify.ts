@@ -74,6 +74,45 @@ const notify = {
     title: 'Table servie, à encaisser',
     body: '{table} a été servie par {waiter} : {amount} à encaisser.',
   },
+  counterReady: {
+    title: 'Commande prête',
+    body: 'La commande {ref} est prête à remettre.',
+    bodyTable: '{table} : la commande {ref} est prête à servir.',
+  },
+  deliveryReady: {
+    title: 'Livraison prête à partir',
+    body: 'La commande {ref} ({name}) est prête : un livreur peut la prendre.',
+  },
+  deliveryAssigned: {
+    title: 'Nouvelle course',
+    body: 'La livraison {ref} vous a été attribuée.',
+  },
+  deliveryFailed: {
+    title: 'Livraison échouée',
+    body: 'La livraison {ref} n’a pas pu être faite : {reason}',
+  },
+  shiftVariance: {
+    title: 'Écart de caisse à la clôture',
+    short: 'Il manque {amount} (attendu {expected}, compté {actual}).',
+    over: 'Excédent de {amount} (attendu {expected}, compté {actual}).',
+  },
+  lossDeclared: {
+    title: 'Perte déclarée',
+    body: '{quantity} × {name} ({reason}), valeur {value}.',
+  },
+  goodsReceived: {
+    title: 'Livraison fournisseur reçue',
+    body: 'Réception {number} enregistrée : {amount} HT.',
+  },
+  expenseToPay: {
+    title: 'Dépense à payer',
+    body: '{label} : {amount} à régler.',
+  },
+  lowStock: {
+    title: 'Stock bas',
+    outTitle: 'Rupture de stock',
+    body: '{name} : plus que {quantity} en stock.',
+  },
 };
 
 export default notify;

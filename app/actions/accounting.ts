@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getSession, type SessionPayload } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { getLocale, te } from '@/lib/i18n/server';
+import { notifyStructureStaff } from '@/lib/notifications';
 import { buildChart, type AccountLabel } from '@/lib/accounting/chart';
 import {
   EXPENSE_CATEGORIES,
@@ -692,6 +693,18 @@ export async function createExpense(input: {
     return { success: false, error: await errorMessage(postError) };
   }
   revalidatePath('/accounting', 'layout');
+  if (!input.paid) {
+    await notifyStructureStaff({
+      structureId: scope.structureId,
+      roles: ['ADMIN', 'COMPTABLE'],
+      excludeUserId: scope.userId,
+      message: ({ t, format }) => ({
+        title: t('notify.expenseToPay.title'),
+        body: t('notify.expenseToPay.body', { label, amount: format.money(ttc) }),
+      }),
+      url: '/accounting/expenses',
+    });
+  }
   return { success: true, data: { id: expense.id } };
 }
 

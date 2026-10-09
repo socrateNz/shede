@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { te } from '@/lib/i18n/server';
 import { syncOrderWebhook } from '@/lib/api/webhooks';
 import { notifyUser } from '@/lib/notifications';
+import { notifyStructureStaff } from '@/lib/notifications';
 
 const KITCHEN_ROLES = ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CUISINIER'] as const;
 
@@ -17,12 +18,74 @@ export interface KitchenOrder {
   status: 'PENDING' | 'IN_PROGRESS' | 'READY';
   notes: string | null;
   created_at: string;
+  /** Où servir : table (nom + salle), chambre, livraison ou à emporter. */
+  place: { kind: 'TABLE' | 'ROOM' | 'DELIVERY' | 'TAKEAWAY'; label: string | null; floor: string | null };
+  covers: number | null;
+  waiter: string | null;
+  customer: string | null;
   items: Array<{
     id: string;
     product_name: string;
     quantity: number;
     notes: string | null;
+    accompaniments: Array<{ name: string; quantity: number }>;
+    /** Envoyé après la commande (suite d'un envoi en deux temps ou ajout). */
+    late: boolean;
   }>;
+}
+
+// Tout ce qu'il faut à la cuisine et au bar pour préparer et servir sans aller voir la caisse.
+const DISPLAY_SELECT = `
+  id, table_number, room_id, phone, status, kitchen_status, bar_status, notes, created_at,
+  consumption_type, covers, customer_name,
+  tables(name, floor_name), rooms(number), waiter:users!user_id(first_name, last_name, role),
+  order_items(
+    id, quantity, notes, held, fired_at, parent_order_item_id,
+    products(name, category, destination),
+    order_accompaniments(quantity, accompaniments(name))
+  )
+`;
+
+function toDisplayOrder(o: any, status: string, keep: (item: any) => boolean, unknownProduct: string): KitchenOrder {
+  const place: KitchenOrder['place'] = o.tables?.name
+    ? { kind: 'TABLE', label: o.tables.name, floor: o.tables.floor_name ?? null }
+    : o.table_number
+    ? { kind: 'TABLE', label: String(o.table_number), floor: null }
+    : o.rooms?.number || o.room_id
+    ? { kind: 'ROOM', label: o.rooms?.number ?? null, floor: null }
+    : o.consumption_type === 'DELIVERY'
+    ? { kind: 'DELIVERY', label: null, floor: null }
+    : { kind: 'TAKEAWAY', label: null, floor: null };
+  const waiter = o.waiter ? [o.waiter.first_name, o.waiter.last_name].filter(Boolean).join(' ') : '';
+  const created = new Date(o.created_at).getTime();
+  return {
+    id: o.id,
+    table_number: o.table_number,
+    room_id: o.room_id,
+    phone: o.phone,
+    status: (status || 'PENDING') as KitchenOrder['status'],
+    notes: o.notes,
+    created_at: o.created_at,
+    place,
+    covers: Number(o.covers) || null,
+    waiter: waiter || null,
+    customer: o.customer_name || null,
+    items: (o.order_items || [])
+      // Plats en attente (envoi en deux temps) : pas encore partis en cuisine / au bar
+      .filter((item: any) => !item.held && !item.parent_order_item_id && keep(item))
+      .sort((a: any, b: any) => String(a.fired_at ?? '').localeCompare(String(b.fired_at ?? '')))
+      .map((item: any) => ({
+        id: item.id,
+        product_name: item.products?.name ?? unknownProduct,
+        quantity: item.quantity,
+        notes: item.notes ?? null,
+        accompaniments: (item.order_accompaniments || []).map((a: any) => ({
+          name: a.accompaniments?.name ?? unknownProduct,
+          quantity: Number(a.quantity) || 1,
+        })),
+        late: Boolean(item.fired_at) && new Date(item.fired_at).getTime() - created > 60_000,
+      })),
+  };
 }
 
 /**
@@ -40,23 +103,7 @@ export async function getKitchenOrders(structureId: string): Promise<KitchenOrde
 
   const { data: orders, error } = await admin
     .from('orders')
-    .select(`
-      id,
-      table_number,
-      room_id,
-      phone,
-      status,
-      kitchen_status,
-      notes,
-      created_at,
-      order_items(
-        id,
-        quantity,
-        notes,
-        held,
-        products(name, destination)
-      )
-    `)
+    .select(DISPLAY_SELECT)
     .eq('structure_id', structureId)
     // kitchen_status vaut NULL tant que la cuisine n'a pas commencé (aucune valeur par
     // défaut en base) ; ON_HOLD = commande marketplace pas encore acceptée.
@@ -69,24 +116,9 @@ export async function getKitchenOrders(structureId: string): Promise<KitchenOrde
     return [];
   }
 
-  return (orders || []).map((o: any) => ({
-    id: o.id,
-    table_number: o.table_number,
-    room_id: o.room_id,
-    phone: o.phone,
-    status: o.kitchen_status || 'PENDING',
-    notes: o.notes,
-    created_at: o.created_at,
-    items: (o.order_items || [])
-      // Plats en attente (envoi en deux temps) : pas encore partis en cuisine
-      .filter((item: any) => !item.held && item.products?.destination === 'CUISINE')
-      .map((item: any) => ({
-        id: item.id,
-        product_name: item.products?.name ?? unknownProduct,
-        quantity: item.quantity,
-        notes: item.notes ?? null,
-      })),
-  })).filter((o) => o.items.length > 0);
+  return (orders || [])
+    .map((o: any) => toDisplayOrder(o, o.kitchen_status, (item) => item.products?.destination === 'CUISINE', unknownProduct))
+    .filter((o) => o.items.length > 0);
 }
 
 /**
@@ -172,54 +204,21 @@ export async function getBarOrders(structureId: string): Promise<KitchenOrder[]>
 
   const { data: orders } = await admin
     .from('orders')
-    .select(`
-      id,
-      table_number,
-      room_id,
-      phone,
-      status,
-      bar_status,
-      notes,
-      created_at,
-      order_items(
-        id,
-        quantity,
-        notes,
-        held,
-        products(name, category, destination)
-      )
-    `)
+    .select(DISPLAY_SELECT)
     .eq('structure_id', structureId)
     .or('bar_status.is.null,bar_status.in.(PENDING,IN_PROGRESS)')
     .in('status', ['PENDING', 'IN_PROGRESS'])
     .order('created_at', { ascending: true });
 
   return (orders || [])
-    .map((o: any) => ({
-      id: o.id,
-      table_number: o.table_number,
-      room_id: o.room_id,
-      phone: o.phone,
-      status: o.bar_status || 'PENDING',
-      notes: o.notes,
-      created_at: o.created_at,
-      items: (o.order_items || [])
-        .filter((item: any) => {
-          if (item.held) return false; // pas encore envoyé (envoi en deux temps)
-          if (item.products?.destination) {
-            return item.products.destination === 'BAR';
-          }
-          // Fallback if destination is not yet fully populated
-          const cat = (item.products?.category || '').toUpperCase();
-          return cat.includes('BAR') || cat.includes('BOISSON') || cat.includes('DRINK');
-        })
-        .map((item: any) => ({
-          id: item.id,
-          product_name: item.products?.name ?? unknownProduct,
-          quantity: item.quantity,
-          notes: item.notes ?? null,
-        })),
-    }))
+    .map((o: any) =>
+      toDisplayOrder(o, o.bar_status, (item) => {
+        if (item.products?.destination) return item.products.destination === 'BAR';
+        // Destination pas encore renseignée : on se fie à la catégorie
+        const cat = (item.products?.category || '').toUpperCase();
+        return cat.includes('BAR') || cat.includes('BOISSON') || cat.includes('DRINK');
+      }, unknownProduct),
+    )
     .filter((o) => o.items.length > 0);
 }
 
@@ -289,22 +288,52 @@ export async function updateOrderStatusFromBar(
   return { success: true };
 }
 
-/** Commande entièrement prête : le serveur qui l'a prise est prévenu sur son téléphone. */
+/**
+ * Commande entièrement prête. Prévenu : le serveur qui l'a prise (sur son téléphone) ;
+ * pour une livraison, les livreurs et le responsable ; sinon la caisse (à emporter, caisse).
+ */
 async function notifyOrderReady(orderId: string, structureId: string) {
   const { data: order } = await getAdminSupabase()
     .from('orders')
-    .select('user_id, table_number, users!user_id(role)')
+    .select('user_id, table_number, consumption_type, customer_name, tables(name), users!user_id(role)')
     .eq('id', orderId)
     .single();
-  const waiter = order?.users as { role?: string } | null;
-  if (!order?.user_id || waiter?.role !== 'SERVEUR') return;
-  await notifyUser({
-    userId: order.user_id,
+  if (!order) return;
+  const taker = order.users as { role?: string } | null;
+  const table = (order.tables as { name?: string } | null)?.name ?? (order.table_number ? String(order.table_number) : null);
+  const ref = orderId.slice(0, 8);
+
+  if (order.user_id && taker?.role === 'SERVEUR') {
+    await notifyUser({
+      userId: order.user_id,
+      structureId,
+      message: ({ t }) => ({
+        title: t('notify.orderReady.title'),
+        body: t('notify.orderReady.body', { table: table ?? '—' }),
+      }),
+      url: '/serveur',
+    });
+    return;
+  }
+  if (order.consumption_type === 'DELIVERY') {
+    await notifyStructureStaff({
+      structureId,
+      roles: ['LIVREUR', 'MANAGER', 'ADMIN'],
+      message: ({ t }) => ({
+        title: t('notify.deliveryReady.title'),
+        body: t('notify.deliveryReady.body', { ref, name: order.customer_name || '—' }),
+      }),
+      url: '/delivery',
+    });
+    return;
+  }
+  await notifyStructureStaff({
     structureId,
+    roles: ['CAISSE', 'ADMIN'],
     message: ({ t }) => ({
-      title: t('notify.orderReady.title'),
-      body: t('notify.orderReady.body', { table: order.table_number ?? '—' }),
+      title: t('notify.counterReady.title'),
+      body: table ? t('notify.counterReady.bodyTable', { table, ref }) : t('notify.counterReady.body', { ref }),
     }),
-    url: '/serveur',
+    url: `/orders/${orderId}`,
   });
 }

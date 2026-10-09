@@ -5,6 +5,7 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { buildMeta, emptyPage, pageRange, settlePage, type Paginated } from '@/lib/pagination';
 import { revalidatePath } from 'next/cache';
 import { te } from '@/lib/i18n/server';
+import { notifyStructureStaff } from '@/lib/notifications';
 
 // The `structures.modules` column has drifted schema (TEXT[] vs JSONB) across
 // migrations, and has been seen holding stray stringified-JSON fragments
@@ -144,6 +145,24 @@ export async function closeShift(actualAmount: number, notes: string) {
   if (error) {
     console.error('[shifts]', error.message);
     return { success: false, error: await te('errors.unexpected') };
+  }
+
+  // Écart entre le fond compté et le fond attendu : le responsable doit le voir
+  if (Math.round(difference) !== 0) {
+    await notifyStructureStaff({
+      structureId: session.structureId as string,
+      roles: ['ADMIN', 'MANAGER'],
+      excludeUserId: session.userId,
+      message: ({ t, format }) => ({
+        title: t('notify.shiftVariance.title'),
+        body: t(difference < 0 ? 'notify.shiftVariance.short' : 'notify.shiftVariance.over', {
+          amount: format.money(Math.abs(difference)),
+          expected: format.money(expectedAmount),
+          actual: format.money(actualAmount),
+        }),
+      }),
+      url: '/shifts',
+    });
   }
 
   revalidatePath('/');

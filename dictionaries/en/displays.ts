@@ -17,6 +17,14 @@ const displays: typeof fr = {
   room: 'Room',
   takeaway: 'Takeaway',
   updateError: 'The order could not be updated',
+  detail: {
+    table: 'Table {name}',
+    room: 'Room {number}',
+    delivery: 'Delivery',
+    covers: '{count} cover(s)',
+    waiter: 'Waiter: {name}',
+    late: 'Next course',
+  },
   kitchen: {
     title: 'Kitchen display',
     subtitle: 'Orders to prepare in the kitchen',

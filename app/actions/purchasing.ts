@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { getT, te } from '@/lib/i18n/server';
+import { notifyStructureStaff } from '@/lib/notifications';
 import { sendMail } from '@/lib/mail';
 import { getStructureTaxSettings } from '@/lib/fiscal';
 import { accountingDate, postExpense } from '@/lib/accounting/posting';
@@ -734,6 +735,17 @@ export async function receiveGoods(input: {
       accountingWarning = await te('purchasing.errors.accountingFailed');
     }
   }
+
+  await notifyStructureStaff({
+    structureId: session.structureId,
+    roles: ['ADMIN', 'MANAGER', ...(session.modules?.includes('COMPTABILITE') ? ['COMPTABLE'] : [])],
+    excludeUserId: session.userId,
+    message: ({ t, format }) => ({
+      title: t('notify.goodsReceived.title'),
+      body: t('notify.goodsReceived.body', { number: receipt.number, amount: format.money(Number(receipt.total_ht) || 0) }),
+    }),
+    url: '/purchasing/receipts',
+  });
 
   revalidatePurchasing();
   revalidatePath('/accounting', 'layout');

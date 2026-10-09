@@ -1,5 +1,6 @@
 import { getAdminSupabase } from '@/lib/supabase';
 import { grossQuantity, type RecipeUnit } from '@/lib/recipes';
+import { notifyStructureStaff } from '@/lib/notifications';
 
 // Mouvements de stock — module serveur (pas une Server Action), utilisé par la
 // caisse comme par l'API marketplace, qui n'a pas de session utilisateur.
@@ -78,6 +79,26 @@ export async function recordStockMovement(input: {
     { onConflict: `structure_id, ${column}` }
   );
   if (stockError) throw stockError;
+
+  // Passage sous le seuil (pas à chaque mouvement suivant) : le magasin est prévenu une fois
+  const threshold = Number(currentStock?.threshold ?? 5);
+  if (input.type !== 'IN' && currentQty > threshold && newQty <= threshold) {
+    await notifyLowStock(input.structureId, input.itemType, input.itemId, newQty);
+  }
+}
+
+async function notifyLowStock(structureId: string, itemType: StockItemType, itemId: string, quantity: number) {
+  const table = itemType === 'ingredient' ? 'ingredients' : itemType === 'accompaniment' ? 'accompaniments' : 'products';
+  const { data: item } = await getAdminSupabase().from(table).select('name').eq('id', itemId).maybeSingle();
+  await notifyStructureStaff({
+    structureId,
+    roles: ['ADMIN', 'MANAGER', 'MAGASINIER'],
+    message: ({ t, format }) => ({
+      title: t(quantity <= 0 ? 'notify.lowStock.outTitle' : 'notify.lowStock.title'),
+      body: t('notify.lowStock.body', { name: (item?.name as string) ?? '—', quantity: format.number(quantity) }),
+    }),
+    url: itemType === 'ingredient' ? '/stock/ingredients' : '/stock',
+  });
 }
 
 /**

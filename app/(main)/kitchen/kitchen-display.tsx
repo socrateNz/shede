@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { getKitchenOrders, updateOrderStatusFromKitchen } from '@/app/actions/kitchen';
 import type { KitchenOrder } from '@/app/actions/kitchen';
 import { cn } from '@/lib/utils';
+import { OrderItems, OrderPlace } from '@/components/displays/order-detail';
 import { useT } from '@/lib/i18n/client';
 
 // Client Supabase public pour le Realtime (sans service role)
@@ -24,11 +25,11 @@ interface KitchenDisplayProps {
 
 /** Calcule le temps écoulé depuis la création de la commande */
 function useElapsedTime(createdAt: string) {
-  const [elapsed, setElapsed] = useState(() => {
-    return Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000);
-  });
+  // Calculé seulement dans le navigateur : l'heure du serveur ferait diverger l'hydratation.
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
+    setElapsed(Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000));
     const interval = setInterval(() => {
       setElapsed(Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000));
     }, 1000);
@@ -71,14 +72,6 @@ function OrderCard({
   const isNew      = order.status === 'PENDING';
   const isCooking  = order.status === 'IN_PROGRESS';
 
-  const locationLabel = order.table_number
-    ? t('displays.table', { number: order.table_number })
-    : order.room_id
-    ? t('displays.room')
-    : order.phone
-    ? `📱 ${order.phone}`
-    : t('displays.takeaway');
-
   return (
     <div
       className={cn(
@@ -116,39 +109,20 @@ function OrderCard({
         </div>
       </div>
 
-      {/* Localisation */}
+      {/* Où servir, couverts, serveur */}
       <div className="px-4 pt-3">
-        <span className="text-xs text-slate-400 bg-slate-700/50 px-2 py-0.5 rounded-full">
-          {locationLabel}
-        </span>
+        <OrderPlace order={order} />
       </div>
 
       {/* Items */}
-      <div className="flex-1 px-4 py-3 space-y-1.5">
-        {order.items.map((item) => (
-          <div key={item.id} className="flex items-start gap-2">
-            <span
-              className={cn(
-                'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
-                isNew ? 'bg-amber-500/20 text-amber-300' : 'bg-blue-500/20 text-blue-300'
-              )}
-            >
-              {item.quantity}
-            </span>
-            <div className="min-w-0">
-              <span className="text-slate-200 text-sm font-medium">{item.product_name}</span>
-              {item.notes && (
-                <p className="text-xs text-slate-500 mt-0.5 italic">{item.notes}</p>
-              )}
-            </div>
-          </div>
-        ))}
+      <div className="flex-1 px-4 py-3">
+        <OrderItems order={order} tone={isNew ? 'amber' : 'blue'} />
       </div>
 
       {/* Notes commande */}
       {order.notes && (
         <div className="mx-4 mb-3 px-3 py-2 rounded-lg bg-slate-700/40 border border-slate-600/30">
-          <p className="text-xs text-slate-400 italic">📋 {order.notes}</p>
+          <p className="text-sm text-slate-300 italic">📋 {order.notes}</p>
         </div>
       )}
 

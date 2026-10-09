@@ -42,7 +42,7 @@ import { logout } from '@/app/actions/auth';
 import { cn } from '@/lib/utils';
 import { Structure } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
-import { getSidebarCounts } from '@/app/actions/sidebar';
+import { getSidebarCounts, type SidebarCounts } from '@/app/actions/sidebar';
 import { useT } from '@/lib/i18n/client';
 import type { TranslationKey } from '@/lib/i18n/translate';
 
@@ -74,7 +74,7 @@ interface SidebarProps {
 export function Sidebar({ session, structure, mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const { t } = useT();
-  const [counts, setCounts] = useState({ orders: 0, unpaidOrders: 0, stock: 0, bookings: 0, notifications: 0 });
+  const [counts, setCounts] = useState<SidebarCounts | null>(null);
 
   const role = session.role;
   const isOrgAdmin = role === 'ORG_ADMIN';
@@ -83,8 +83,11 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     // ORG_ADMIN et SUPER_ADMIN ne sont rattachés à aucun point : pas de compteurs opérationnels.
     if (!session.structureId) return;
     const fetchCounts = async () => {
-      const res = await getSidebarCounts();
-      setCounts(res);
+      try {
+        setCounts(await getSidebarCounts());
+      } catch {
+        // Réseau coupé : on garde les derniers compteurs
+      }
     };
     fetchCounts();
     const interval = setInterval(fetchCounts, 30000);
@@ -101,6 +104,12 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
    * règle du middleware (middleware.ts) et du requireRole() de la page. Un lien
    * n'est affiché que s'il mène à une page utilisable par le rôle connecté.
    */
+  /** Pastille de compteur : nombre, couleur et explication au survol (lue aussi par les lecteurs d'écran). */
+  const badge = (key: keyof SidebarCounts, color: string, titleKey: string) => {
+    const value = counts?.[key] ?? 0;
+    return { badge: value, badgeColor: color, badgeTitle: t(titleKey as 'nav.ordersPendingBadge', { count: value }) };
+  };
+
   type NavGroup = keyof typeof GROUP_STYLES;
   type NavItem = {
     group: NavGroup;
@@ -150,14 +159,12 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       icon: ShoppingCart,
       roles: ['ADMIN', 'CAISSE', 'SERVEUR'],
       module: 'POS',
-      badge: counts.orders,
-      badgeColor: 'bg-red-500',
-      badgeTitle: t('nav.ordersPendingBadge', { count: counts.orders }),
-      extraBadge: counts.unpaidOrders,
+      ...badge('orders', 'bg-red-500', 'nav.ordersPendingBadge'),
+      extraBadge: counts?.unpaidOrders ?? 0,
       extraBadgeColor: 'bg-amber-500',
-      extraBadgeTitle: t('nav.ordersUnpaidBadge', { count: counts.unpaidOrders }),
+      extraBadgeTitle: t('nav.ordersUnpaidBadge', { count: counts?.unpaidOrders ?? 0 }),
     },
-    { group: 'sales', name: t('nav.waiterMode'), href: '/serveur', icon: Smartphone, roles: ['ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR'], module: 'POS' },
+    { group: 'sales', name: t('nav.waiterMode'), href: '/serveur', icon: Smartphone, roles: ['ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR'], module: 'POS', ...badge('readyOrders', 'bg-emerald-500', 'nav.readyBadge') },
     {
       group: 'sales',
       name: t('nav.floorPlan'),
@@ -167,10 +174,10 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       module: 'TABLES',
     },
 
-    { group: 'sales', name: t('nav.deliveries'), href: '/delivery', icon: Truck, roles: ['ADMIN', 'MANAGER', 'LIVREUR'], module: 'LIVRAISON' },
+    { group: 'sales', name: t('nav.deliveries'), href: '/delivery', icon: Truck, roles: ['ADMIN', 'MANAGER', 'LIVREUR'], module: 'LIVRAISON', ...badge('deliveries', 'bg-sky-500', 'nav.deliveriesBadge') },
 
-    { group: 'production', name: t('nav.kitchen'), href: '/kitchen', icon: ChefHat, roles: ['ADMIN', 'MANAGER', 'CUISINIER'], module: 'CUISINE' },
-    { group: 'production', name: t('nav.bar'), href: '/bar', icon: Beer, roles: ['ADMIN', 'MANAGER', 'BAR'], module: 'BAR' },
+    { group: 'production', name: t('nav.kitchen'), href: '/kitchen', icon: ChefHat, roles: ['ADMIN', 'MANAGER', 'CUISINIER'], module: 'CUISINE', ...badge('kitchen', 'bg-orange-500', 'nav.kitchenBadge') },
+    { group: 'production', name: t('nav.bar'), href: '/bar', icon: Beer, roles: ['ADMIN', 'MANAGER', 'BAR'], module: 'BAR', ...badge('bar', 'bg-amber-500', 'nav.barBadge') },
 
     { group: 'catalog', name: t('nav.products'), href: '/products', icon: Package, roles: ['ADMIN'], module: 'POS' },
     { group: 'catalog', name: t('nav.categories'), href: '/categories', icon: Layers, roles: ['ADMIN'], module: 'POS' },
@@ -183,25 +190,24 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       icon: Boxes,
       roles: ['ADMIN', 'MANAGER', 'MAGASINIER'],
       module: 'STOCK',
-      badge: counts.stock,
-      badgeColor: 'bg-orange-500',
+      ...badge('stock', 'bg-orange-500', 'nav.lowStockBadge'),
     },
     { group: 'stock', name: t('nav.ingredients'), href: '/stock/ingredients', icon: Carrot, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'STOCK' },
-    { group: 'stock', name: t('nav.inventories'), href: '/stock/inventories', icon: ClipboardCheck, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'STOCK' },
+    { group: 'stock', name: t('nav.inventories'), href: '/stock/inventories', icon: ClipboardCheck, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'STOCK', ...badge('inventories', 'bg-sky-500', 'nav.inventoriesBadge') },
     { group: 'stock', name: t('nav.losses'), href: '/stock/losses', icon: Trash, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'STOCK' },
     { group: 'stock', name: t('nav.variances'), href: '/stock/variances', icon: Scale, roles: ['ADMIN', 'MANAGER'], module: 'STOCK' },
     { group: 'stock', name: t('nav.foodCost'), href: '/stock/food-cost', icon: PieChart, roles: ['ADMIN', 'MANAGER'], module: 'STOCK' },
 
     { group: 'purchasing', name: t('nav.suppliers'), href: '/purchasing/suppliers', icon: Truck, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'ACHATS' },
-    { group: 'purchasing', name: t('nav.purchaseOrders'), href: '/purchasing/orders', icon: ClipboardList, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'ACHATS' },
-    { group: 'purchasing', name: t('nav.receipts'), href: '/purchasing/receipts', icon: PackageCheck, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'ACHATS' },
+    { group: 'purchasing', name: t('nav.purchaseOrders'), href: '/purchasing/orders', icon: ClipboardList, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'ACHATS', ...badge('purchaseDrafts', 'bg-slate-500', 'nav.purchaseDraftsBadge') },
+    { group: 'purchasing', name: t('nav.receipts'), href: '/purchasing/receipts', icon: PackageCheck, roles: ['ADMIN', 'MANAGER', 'MAGASINIER'], module: 'ACHATS', ...badge('purchasePending', 'bg-sky-500', 'nav.purchasePendingBadge') },
 
     { group: 'planning', name: t('nav.forecasts'), href: '/forecasts', icon: TrendingUp, roles: ['ADMIN', 'MANAGER'], module: 'PREVISIONS' },
     { group: 'planning', name: t('nav.suggestedOrders'), href: '/forecasts/orders', icon: ShoppingCart, roles: ['ADMIN', 'MANAGER'], module: 'PREVISIONS' },
     { group: 'planning', name: t('nav.production'), href: '/production', icon: CookingPot, roles: ['ADMIN', 'MANAGER', 'CUISINIER', 'BAR'], module: 'PREVISIONS' },
 
 
-    { group: 'hotel', name: t('nav.rooms'), href: '/rooms', icon: Bed, roles: ['ADMIN', 'RECEPTION'], module: 'HOTEL' },
+    { group: 'hotel', name: t('nav.rooms'), href: '/rooms', icon: Bed, roles: ['ADMIN', 'RECEPTION'], module: 'HOTEL', ...badge('roomsCleaning', 'bg-amber-500', 'nav.roomsCleaningBadge') },
     {
       group: 'hotel',
       name: t('nav.bookings'),
@@ -209,8 +215,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       icon: CalendarDays,
       roles: ['ADMIN', 'RECEPTION'],
       module: 'HOTEL',
-      badge: counts.bookings,
-      badgeColor: 'bg-purple-500',
+      ...badge('bookings', 'bg-purple-500', 'nav.bookingsBadge'),
     },
 
     { group: 'customers', name: t('nav.promotions'), href: '/promotions', icon: Tag, roles: ['ADMIN'], module: 'PROMOTION' },
@@ -222,8 +227,8 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     { group: 'management', name: t('nav.shifts'), href: '/shifts', icon: HistoryIcon, roles: ['ADMIN'], module: 'POS' },
 
     // Le manager ne fait que saisir les dépenses ; l'admin et le comptable ont tout le module.
-    { group: 'accounting', name: t('nav.accounting'), href: '/accounting', icon: BookOpenCheck, roles: ['ADMIN', 'COMPTABLE'], module: 'COMPTABILITE' },
-    { group: 'accounting', name: t('nav.expenses'), href: '/accounting/expenses', icon: Receipt, roles: ['MANAGER'], module: 'COMPTABILITE' },
+    { group: 'accounting', name: t('nav.accounting'), href: '/accounting', icon: BookOpenCheck, roles: ['ADMIN', 'COMPTABLE'], module: 'COMPTABILITE', ...badge('unpaidExpenses', 'bg-rose-500', 'nav.unpaidExpensesBadge') },
+    { group: 'accounting', name: t('nav.expenses'), href: '/accounting/expenses', icon: Receipt, roles: ['MANAGER'], module: 'COMPTABILITE', ...badge('unpaidExpenses', 'bg-rose-500', 'nav.unpaidExpensesBadge') },
 
     {
       group: 'account',
@@ -231,8 +236,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       href: '/notifications',
       icon: Bell,
       roles: ['ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR', 'RECEPTION', 'CUISINIER', 'BAR', 'LIVREUR', 'COMPTABLE', 'MAGASINIER', 'RH'],
-      badge: counts.notifications,
-      badgeColor: 'bg-blue-600',
+      ...badge('notifications', 'bg-blue-600', 'nav.notificationsBadge'),
     },
     {
       group: 'account',

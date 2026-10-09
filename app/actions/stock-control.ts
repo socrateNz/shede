@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { te } from '@/lib/i18n/server';
+import { notifyStructureStaff } from '@/lib/notifications';
 import { buildMeta, emptyPage, fetchAll, pageRange, settlePage, type Paginated } from '@/lib/pagination';
 import { LOSS_REASONS, recordLoss, type LossReason, type StockItemType } from '@/lib/stock';
 
@@ -41,7 +42,7 @@ export async function declareLoss(input: {
 
   // L'article doit appartenir au point.
   const table = input.itemType === 'ingredient' ? 'ingredients' : input.itemType === 'accompaniment' ? 'accompaniments' : 'products';
-  const { data: item } = await getAdminSupabase().from(table).select('id').eq('id', input.itemId).eq('structure_id', session.structureId).maybeSingle();
+  const { data: item } = await getAdminSupabase().from(table).select('id, name').eq('id', input.itemId).eq('structure_id', session.structureId).maybeSingle();
   if (!item) return { success: false, error: await te('stockControl.losses.errors.itemInvalid') };
 
   try {
@@ -53,6 +54,21 @@ export async function declareLoss(input: {
       quantity: input.quantity,
       reason: input.reason,
       note: String(input.note ?? '').trim().slice(0, 300) || null,
+    });
+    await notifyStructureStaff({
+      structureId: session.structureId,
+      roles: ['ADMIN', 'MANAGER'],
+      excludeUserId: session.userId,
+      message: ({ t, format }) => ({
+        title: t('notify.lossDeclared.title'),
+        body: t('notify.lossDeclared.body', {
+          quantity: format.number(input.quantity),
+          name: item.name ?? '—',
+          reason: t(`stockControl.losses.reasons.${input.reason}` as 'stockControl.losses.reasons.expired'),
+          value: format.money(value ?? 0),
+        }),
+      }),
+      url: '/stock/losses',
     });
     revalidatePath('/stock');
     revalidatePath('/stock/losses');

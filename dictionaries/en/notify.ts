@@ -75,6 +75,45 @@ const notify: typeof fr = {
     title: 'Table served, payment due',
     body: '{table} was served by {waiter}: {amount} to collect.',
   },
+  counterReady: {
+    title: 'Order ready',
+    body: 'Order {ref} is ready to hand over.',
+    bodyTable: '{table}: order {ref} is ready to serve.',
+  },
+  deliveryReady: {
+    title: 'Delivery ready to go',
+    body: 'Order {ref} ({name}) is ready: a courier can pick it up.',
+  },
+  deliveryAssigned: {
+    title: 'New delivery',
+    body: 'Delivery {ref} has been assigned to you.',
+  },
+  deliveryFailed: {
+    title: 'Delivery failed',
+    body: 'Delivery {ref} could not be completed: {reason}',
+  },
+  shiftVariance: {
+    title: 'Cash variance at closing',
+    short: '{amount} missing (expected {expected}, counted {actual}).',
+    over: '{amount} over (expected {expected}, counted {actual}).',
+  },
+  lossDeclared: {
+    title: 'Loss recorded',
+    body: '{quantity} × {name} ({reason}), worth {value}.',
+  },
+  goodsReceived: {
+    title: 'Supplier delivery received',
+    body: 'Receipt {number} recorded: {amount} excl. tax.',
+  },
+  expenseToPay: {
+    title: 'Expense to pay',
+    body: '{label}: {amount} to pay.',
+  },
+  lowStock: {
+    title: 'Low stock',
+    outTitle: 'Out of stock',
+    body: '{name}: only {quantity} left in stock.',
+  },
 };
 
 export default notify;

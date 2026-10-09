@@ -10,6 +10,7 @@ import { getBarOrders, updateOrderStatusFromBar } from '@/app/actions/kitchen';
 import type { KitchenOrder } from '@/app/actions/kitchen';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n/client';
+import { OrderItems, OrderPlace } from '@/components/displays/order-detail';
 
 const supabasePublic = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -108,23 +109,17 @@ export function BarDisplay({ initialOrders, structureId }: BarDisplayProps) {
                     #{order.id.slice(-6).toUpperCase()}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">
-                      {order.table_number ? t('displays.table', { number: order.table_number }) : order.phone || t('displays.takeaway')}
-                    </span>
                     <Badge variant="outline" className="border-amber-500/40 text-amber-400 text-[10px] h-5">
                       {order.status === 'PENDING' ? t('displays.new') : t('displays.inProgress')}
                     </Badge>
                   </div>
                 </div>
-                <div className="flex-1 p-4 space-y-2">
-                  {order.items.map((item) => (
-                    <div key={item.id} className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center text-xs font-bold">
-                        {item.quantity}
-                      </span>
-                      <span className="text-slate-200 text-sm">{item.product_name}</span>
-                    </div>
-                  ))}
+                <div className="px-4 pt-3">
+                  <OrderPlace order={order} />
+                </div>
+                <div className="flex-1 p-4">
+                  <OrderItems order={order} tone="amber" />
+                  {order.notes && <p className="mt-3 rounded-lg bg-slate-700/40 px-3 py-2 text-sm italic text-slate-300">📋 {order.notes}</p>}
                 </div>
                 <div className="px-4 pb-4">
                   <Button onClick={() => handleReady(order.id)} className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold gap-2">

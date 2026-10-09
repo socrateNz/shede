@@ -16,6 +16,14 @@ const displays = {
   room: 'Chambre',
   takeaway: 'À emporter',
   updateError: 'La commande n’a pas pu être mise à jour',
+  detail: {
+    table: 'Table {name}',
+    room: 'Chambre {number}',
+    delivery: 'Livraison',
+    covers: '{count} couvert(s)',
+    waiter: 'Serveur : {name}',
+    late: 'Suite',
+  },
   kitchen: {
     title: 'Écran cuisine',
     subtitle: 'Commandes à préparer en cuisine',

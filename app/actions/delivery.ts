@@ -5,6 +5,7 @@ import { getSession, type SessionPayload } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { getActiveDeliveryZones, type DeliveryStatus } from '@/lib/delivery';
 import { te } from '@/lib/i18n/server';
+import { notifyStructureStaff, notifyUser } from '@/lib/notifications';
 import { emitWebhook, syncOrderWebhook } from '@/lib/api/webhooks';
 
 // ─────────────────────────────────────────────────────────
@@ -209,6 +210,19 @@ export async function assignCourier(orderId: string, courierId: string | null) {
   if (error) return { success: false, error: await te('errors.assignFailed') };
   if (!data?.length) return { success: false, error: await te('errors.deliveryTaken') };
 
+  // Course attribuée par un responsable : le livreur est prévenu
+  if (courierId && courierId !== session.userId) {
+    await notifyUser({
+      userId: courierId,
+      structureId: session.structureId,
+      message: ({ t }) => ({
+        title: t('notify.deliveryAssigned.title'),
+        body: t('notify.deliveryAssigned.body', { ref: orderId.slice(0, 8) }),
+      }),
+      url: '/delivery',
+    });
+  }
+
   revalidatePath('/delivery');
   return { success: true, error: '' };
 }
@@ -253,6 +267,19 @@ export async function updateDeliveryStatus(orderId: string, status: DeliveryStat
     .eq('id', orderId)
     .eq('delivery_status', order.delivery_status);
   if (error) return { success: false, error: await te('errors.deliveryUpdateFailed') };
+
+  if (status === 'FAILED') {
+    await notifyStructureStaff({
+      structureId: session.structureId,
+      roles: ['ADMIN', 'MANAGER'],
+      excludeUserId: session.userId,
+      message: ({ t }) => ({
+        title: t('notify.deliveryFailed.title'),
+        body: t('notify.deliveryFailed.body', { ref: orderId.slice(0, 8), reason: cleanNote }),
+      }),
+      url: '/delivery',
+    });
+  }
 
   if (order.source === 'API') {
     // Commande marketplace livrée par le restaurant : la marketplace a encaissé

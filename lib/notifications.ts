@@ -84,14 +84,17 @@ export async function notifyStructureStaff(input: {
   message: NotificationMessage;
   url?: string;
   roles?: string[];
+  /** L'auteur de l'action n'a pas besoin d'être prévenu de ce qu'il vient de faire. */
+  excludeUserId?: string | null;
 }) {
   try {
-    const recipients = await loadRecipients((query) =>
-      query
+    const recipients = await loadRecipients((query) => {
+      const q = query
         .eq('structure_id', input.structureId)
         .in('role', input.roles || ['ADMIN', 'CAISSE', 'SUPER_ADMIN', 'RECEPTION'])
-        .eq('is_active', true)
-    );
+        .eq('is_active', true);
+      return input.excludeUserId ? q.neq('id', input.excludeUserId) : q;
+    });
     await deliver({ ...input, recipients, pushScopedToStructure: true });
   } catch (error) {
     console.error('[notifyStructureStaff]', error);
