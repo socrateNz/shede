@@ -52,6 +52,9 @@ export async function createClientBooking(
 
     const parsedCheckIn = new Date(checkIn).toISOString();
     const parsedCheckOut = new Date(checkOut).toISOString();
+    if (new Date(parsedCheckOut) <= new Date(parsedCheckIn)) {
+      return { success: false, error: await te('errors.roomDatesRequired') };
+    }
 
     const { data: overlappingBookings, error: overlapError } = await admin
       .from('bookings')

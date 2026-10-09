@@ -1,7 +1,7 @@
 import { requireRole } from '@/app/actions/auth';
 import { listOrders } from '@/app/actions/orders';
 import { parsePage } from '@/lib/pagination';
-import { getStructureActiveShift } from '@/app/actions/shifts';
+import { getStructureActiveShift } from '@/lib/shifts-server';
 import { getT } from '@/lib/i18n/server';
 import { Button } from '@/components/ui/button';
 import { Plus, ShoppingCart, AlertTriangle } from 'lucide-react';

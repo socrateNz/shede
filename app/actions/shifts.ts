@@ -64,23 +64,6 @@ export async function getActiveShift() {
   return data;
 }
 
-export async function getStructureActiveShift(structureId: string) {
-  const admin = getAdminSupabase();
-  const { data, error } = await admin
-    .from('shifts')
-    .select('*')
-    .eq('structure_id', structureId)
-    .eq('status', 'OPEN')
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error('Error fetching structure active shift:', error);
-    return null;
-  }
-  return data;
-}
-
 export async function openShift(openingBalance: number) {
   const session = await getSession();
   if (!session?.userId || !session?.structureId) return { success: false, error: await te('errors.unauthorized') };

@@ -4,7 +4,7 @@ import { requireRole } from '@/app/actions/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { NewOrderForm } from '@/components/new-order-form';
 import { getPromotions } from '@/app/actions/promotions';
-import { getStructureActiveShift } from '@/app/actions/shifts';
+import { getStructureActiveShift } from '@/lib/shifts-server';
 import { getActiveDeliveryZones } from '@/lib/delivery';
 import { categoriesForProducts } from '@/lib/categories';
 import { getT } from '@/lib/i18n/server';

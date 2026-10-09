@@ -2,7 +2,7 @@
 
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
-import { getStructureActiveShift } from './shifts';
+import { getStructureActiveShift } from '@/lib/shifts-server';
 import { processOrderStock } from './stock';
 import { assignInvoiceNumber } from '@/lib/fiscal';
 import { postSaleSafely } from '@/lib/accounting/posting';
@@ -89,22 +89,3 @@ export async function createPayment(
   }
 }
 
-export async function getOrderPayments(orderId: string) {
-  try {
-    const admin = getAdminSupabase();
-
-    const { data: payments, error } = await admin
-      .from('payments')
-      .select('*')
-      .eq('order_id', orderId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      return [];
-    }
-
-    return payments || [];
-  } catch (error) {
-    return [];
-  }
-}

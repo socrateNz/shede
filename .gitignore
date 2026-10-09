@@ -15,3 +15,7 @@ node_modules
 .next/
 .DS_Store
 .env
+# Données de la base locale (copie de la base distante : comptes, clients)
+supabase/seed.sql
+supabase/.temp/
+supabase/.branches/

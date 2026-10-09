@@ -3,8 +3,10 @@
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { notifyStructureStaff, notifyUser } from '@/lib/notifications';
-import { validatePromoCode, recordPromoUsage } from './promotions';
-import { getActiveShift, getStructureActiveShift } from './shifts';
+import { validatePromoCode } from './promotions';
+import { recordPromoUsage } from '@/lib/promotions-server';
+import { getActiveShift } from './shifts';
+import { getStructureActiveShift } from '@/lib/shifts-server';
 import { postSaleSafely } from '@/lib/accounting/posting';
 import { recomputeOrderTotal } from '@/lib/order-totals';
 import { syncOrderWebhook } from '@/lib/api/webhooks';
@@ -825,6 +827,9 @@ export async function updateOrderStatus(
   if (!['ADMIN', 'CAISSE', 'SUPER_ADMIN', 'SERVEUR'].includes(session.role)) {
     return { success: false, error: await te('errors.unauthorized') };
   }
+  if (!['PENDING', 'IN_PROGRESS', 'READY', 'SERVED', 'COMPLETED', 'CANCELLED'].includes(status)) {
+    return { success: false, error: await te('errors.orderUpdateFailed') };
+  }
 
   try {
     const admin = getAdminSupabase();
@@ -834,14 +839,20 @@ export async function updateOrderStatus(
       updatePayload.paid_at = new Date().toISOString();
     }
 
-    const { error } = await admin
+    const { data: updated, error } = await admin
       .from('orders')
       .update(updatePayload)
       .eq('id', orderId)
-      .eq('structure_id', session.structureId);
+      .eq('structure_id', session.structureId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       return { success: false, error: await te('errors.orderUpdateFailed') };
+    }
+    // Commande d'un autre point (ou inexistante) : ni stock ni comptabilité.
+    if (!updated) {
+      return { success: false, error: await te('errors.orderNotFound') };
     }
 
     // REDUIRE LE STOCK SI COMMANDE TERMINEE
@@ -887,12 +898,21 @@ export async function removeOrderItem(itemId: string) {
   try {
     const admin = getAdminSupabase();
 
-    // Get the order_id to update totals
+    if (!session.structureId || !['ADMIN', 'CAISSE', 'SERVEUR', 'SUPER_ADMIN'].includes(session.role)) {
+      return { success: false, error: await te('errors.unauthorized') };
+    }
+
+    // La ligne doit appartenir à une commande du point de la session, encore modifiable.
     const { data: item } = await admin
       .from('order_items')
-      .select('order_id')
+      .select('order_id, orders!inner(structure_id, status)')
       .eq('id', itemId)
-      .single();
+      .eq('orders.structure_id', session.structureId)
+      .maybeSingle();
+    const orderStatus = (item as any)?.orders?.status as string | undefined;
+    if (!item || orderStatus === 'COMPLETED' || orderStatus === 'CANCELLED') {
+      return { success: false, error: await te('errors.itemNotFound') };
+    }
 
     const { error } = await admin
       .from('order_items')

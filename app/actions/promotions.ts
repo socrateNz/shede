@@ -408,15 +408,5 @@ export async function deletePromotion(promotionId: string) {
     console.error('Delete promotion error:', error);
     return { success: false, error: await te('errors.promotionDeleteFailed') };
   }
-}/**
- * Records the usage of a promo code
- */
-export async function recordPromoUsage(promotionId: string, userId?: string) {
-  const admin = getAdminSupabase();
-  
-  // Increment counter safely using raw update (or RPC if available)
-  const { data: current } = await admin.from('promotions').select('used_count').eq('id', promotionId).single();
-  if (current) {
-    await admin.from('promotions').update({ used_count: (current.used_count || 0) + 1 }).eq('id', promotionId);
-  }
 }
+

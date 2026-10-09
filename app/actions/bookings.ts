@@ -5,7 +5,8 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { buildMeta, emptyPage, pageRange, searchTerm, settlePage, type Paginated } from '@/lib/pagination';
 import { revalidatePath } from 'next/cache';
 import { notifyUser } from '@/lib/notifications';
-import { getActiveShift, getStructureActiveShift } from './shifts';
+import { getActiveShift } from './shifts';
+import { getStructureActiveShift } from '@/lib/shifts-server';
 import { assignInvoiceNumber, priceBooking, saveBookingTax } from '@/lib/fiscal';
 import { postSaleSafely } from '@/lib/accounting/posting';
 import { te } from '@/lib/i18n/server';
@@ -147,6 +148,18 @@ export async function createBooking(
   }
 }
 
+/** Réservation d'une chambre du point (null sinon). */
+async function ownedBooking(structureId: string | undefined, bookingId: string) {
+  if (!structureId) return null;
+  const { data } = await getAdminSupabase()
+    .from('bookings')
+    .select('id, room_id, rooms!inner(structure_id)')
+    .eq('id', bookingId)
+    .eq('rooms.structure_id', structureId)
+    .maybeSingle();
+  return data as { id: string; room_id: string } | null;
+}
+
 export async function updateBookingStatus(bookingId: string, status: string, roomId: string) {
   const session = await getSession();
   if (!session || !['ADMIN', 'SUPER_ADMIN', 'RECEPTION'].includes(session.role)) {
@@ -161,6 +174,15 @@ export async function updateBookingStatus(bookingId: string, status: string, roo
 
   try {
     const admin = getAdminSupabase();
+
+    if (!['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].includes(status)) {
+      return { success: false, error: await te('errors.statusUpdateFailed') };
+    }
+    // La réservation doit être une chambre du point de la session ; la chambre vient de la
+    // réservation elle-même, jamais de l'identifiant envoyé par le navigateur (roomId ignoré).
+    const owned = await ownedBooking(session.structureId, bookingId);
+    if (!owned) return { success: false, error: await te('errors.bookingNotFound') };
+    roomId = owned.room_id;
 
     const { error } = await admin
       .from('bookings')
@@ -219,6 +241,9 @@ export async function markBookingAsPaid(bookingId: string) {
     const admin = getAdminSupabase();
     // Assuming we add a new column `is_paid`
     // If we don't have it yet, this will error in Supabase but we'll then add the column
+    if (!(await ownedBooking(session.structureId, bookingId))) {
+      return { success: false, error: await te('errors.bookingNotFound') };
+    }
     const { error } = await admin
       .from('bookings')
       .update({ is_paid: true })

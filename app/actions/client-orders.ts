@@ -3,7 +3,8 @@
 import { getAdminSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { notifyStructureStaff } from '@/lib/notifications';
-import { validatePromoCode, recordPromoUsage } from './promotions';
+import { validatePromoCode } from './promotions';
+import { recordPromoUsage } from '@/lib/promotions-server';
 import { recomputeOrderTotal } from '@/lib/order-totals';
 import { resolveDelivery, type DeliveryRequest } from '@/lib/delivery';
 import { te } from '@/lib/i18n/server';
@@ -27,7 +28,60 @@ export async function createClientOrder(
     // 1. Create the order with 'CLIENT' source
     const tableNum = options?.tableNumber ? parseInt(options.tableNumber.toString(), 10) : null;
     const session = await getSession();
-    const clientId = session?.userId || options?.clientId || null;
+    const clientId = session?.userId || null;
+
+    // 2. Articles vérifiés AVANT de créer la commande : quantités entières, produits du point
+    //    disponibles, prix de la base ; jamais les prix ni les identifiants envoyés tels quels.
+    if (items.some((i) => !i.productId || !Number.isInteger(Number(i.quantity)) || Number(i.quantity) < 1 || Number(i.quantity) > 999)) {
+      return { success: false, error: await te('errors.productsUnavailable') };
+    }
+    const uniqueProductIds = [...new Set(items.map((i) => i.productId))];
+    const { data: dbProducts } = await admin
+      .from('products')
+      .select('id, price')
+      .eq('structure_id', structureId)
+      .eq('is_deleted', false)
+      .eq('is_available', true)
+      .in('id', uniqueProductIds);
+    const realPrices = new Map((dbProducts || []).map((p) => [p.id as string, Number(p.price)]));
+    if (realPrices.size !== uniqueProductIds.length) {
+      return { success: false, error: await te('errors.productsUnavailable') };
+    }
+
+    // Chambre et table : uniquement celles du point
+    if (options?.roomId) {
+      const { data: room } = await admin.from('rooms').select('id').eq('id', options.roomId).eq('structure_id', structureId).maybeSingle();
+      if (!room) return { success: false, error: await te('errors.unauthorized') };
+    }
+    if (options?.tableId) {
+      const { data: table } = await admin.from('tables').select('id').eq('id', options.tableId).eq('structure_id', structureId).maybeSingle();
+      if (!table) return { success: false, error: await te('errors.unauthorized') };
+    }
+
+    // Accompagnements : du point, disponibles, rattachés au produit ; prix et quantité de la base
+    const selectedAccIds = [
+      ...new Set(items.flatMap((i) => (i.selectedAccompaniments ?? []).map((a: any) => String(a?.accompaniment_id ?? '')))),
+    ].filter(Boolean);
+    const accPrice = new Map<string, number>();
+    const accMultiplier = new Map<string, number>();
+    if (selectedAccIds.length) {
+      const [{ data: accRows }, { data: mappings }] = await Promise.all([
+        admin
+          .from('accompaniments')
+          .select('id, price')
+          .eq('structure_id', structureId)
+          .eq('is_available', true)
+          .eq('is_deleted', false)
+          .in('id', selectedAccIds),
+        admin.from('product_accompaniments').select('product_id, accompaniment_id, quantity').in('product_id', uniqueProductIds).in('accompaniment_id', selectedAccIds),
+      ]);
+      for (const a of accRows || []) accPrice.set(a.id as string, Number(a.price) || 0);
+      for (const m of mappings || []) accMultiplier.set(`${m.product_id}:${m.accompaniment_id}`, Number(m.quantity) || 1);
+      const invalid = items.some((i) =>
+        (i.selectedAccompaniments ?? []).some((a: any) => !accPrice.has(a?.accompaniment_id) || !accMultiplier.has(`${i.productId}:${a?.accompaniment_id}`)),
+      );
+      if (invalid) return { success: false, error: await te('errors.accompanimentsUnavailable') };
+    }
 
     let verifiedPromo = null;
     if (options?.promoCode) {
@@ -85,14 +139,6 @@ export async function createClientOrder(
       return { success: false, error: await te('errors.orderCreateFailed') };
     }
 
-    // 2. Fetch real original prices from the database
-    const uniqueProductIds = [...new Set(items.map(i => i.productId))];
-    const { data: dbProducts } = await admin
-      .from('products')
-      .select('id, price')
-      .in('id', uniqueProductIds);
-      
-    const realPrices = new Map((dbProducts || []).map(p => [p.id, Number(p.price)]));
 
     // 3. Fetch active BUY_X_GET_Y promos to calculate free units (auto-complete)
     const { data: bogoPromos } = await admin
@@ -105,7 +151,7 @@ export async function createClientOrder(
       .gte('end_date', new Date().toISOString());
 
     const orderItemsPayload = items.map(item => {
-      const realDbPrice = realPrices.get(item.productId) || item.price;
+      const realDbPrice = realPrices.get(item.productId) ?? 0;
       
       let finalQuantity = item.quantity;
       const bogo = (bogoPromos || []).find(p => p.product_id === item.productId);
@@ -161,9 +207,9 @@ export async function createClientOrder(
                    order_id: order.id,
                    parent_order_item_id: parentOrderItemId,
                    accompaniment_id: acc.accompaniment_id,
-                   quantity: acc.quantity * cartItem.quantity, // scale by cart item qty
-                   unit_price_snapshot: acc.price,
-                   total_price_snapshot: acc.price * acc.quantity * cartItem.quantity,
+                   quantity: (accMultiplier.get(`${cartItem.productId}:${acc.accompaniment_id}`) ?? 1) * cartItem.quantity,
+                   unit_price_snapshot: accPrice.get(acc.accompaniment_id) ?? 0,
+                   total_price_snapshot: (accPrice.get(acc.accompaniment_id) ?? 0) * (accMultiplier.get(`${cartItem.productId}:${acc.accompaniment_id}`) ?? 1) * cartItem.quantity,
                    is_price_counted: true,
                 });
              }
