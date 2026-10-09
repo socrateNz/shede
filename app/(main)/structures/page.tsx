@@ -1,5 +1,8 @@
 import { requireRole } from '@/app/actions/auth';
-import { getAllOrganizations } from '@/app/actions/structures';
+import { listOrganizations } from '@/app/actions/structures';
+import { parsePage } from '@/lib/pagination';
+import { PageNav } from '@/components/page-nav';
+import { UrlSearch } from '@/components/url-filters';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -35,26 +38,14 @@ function getLicenseStatus({ t, format }: I18n, expiresAt: string | null) {
   return { status: 'active', label: t('business.list.statusValidUntil', { date: format.date(expiry) }), color: 'text-green-400', bg: 'bg-green-500/10' };
 }
 
-function getOrganizationsStats(organizations: any[]) {
-  const licenses = organizations.map((o) => firstOf(o.licenses));
-  const total = organizations.length;
-  const active = licenses.filter((l) => l?.is_active === true).length;
-  const expiringSoon = licenses.filter((l) => {
-    if (!l?.expires_at) return false;
-    const daysLeft = Math.ceil((new Date(l.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    return daysLeft <= 7 && daysLeft > 0;
-  }).length;
-  const points = organizations.reduce((sum, o) => sum + (o.structures?.length ?? 0), 0);
-
-  return { total, active, expiringSoon, points };
-}
-
-export default async function StructuresPage() {
+export default async function StructuresPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string }> }) {
   await requireRole('SUPER_ADMIN');
   const i18n = await getT();
   const { t, format } = i18n;
-  const organizations = await getAllOrganizations();
-  const stats = getOrganizationsStats(organizations);
+  const params = await searchParams;
+  // 20 organisations par page ; statistiques de licences calculées en SQL.
+  const { items: organizations, meta } = await listOrganizations({ page: parsePage(params.page), q: params.q });
+  const { stats } = meta;
 
   const statCards = [
     { label: t('business.list.statOrganizations'), value: stats.total, icon: Network, color: 'text-white', iconColor: 'text-blue-400', bg: 'bg-blue-500/10' },
@@ -109,18 +100,23 @@ export default async function StructuresPage() {
           <CardHeader className="border-b border-slate-700/50">
             <CardTitle className="text-slate-50 flex items-center gap-2">
               <Network className="w-5 h-5 text-blue-400" />
-              {t('business.list.allTitle', { count: organizations.length })}
+              {t('business.list.allTitle', { count: stats.total })}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {organizations.length === 0 ? (
+            {stats.total === 0 ? (
               <div className="text-center py-16 text-slate-400">
                 <Network className="w-10 h-10 mx-auto mb-4 opacity-30" />
                 <p className="text-lg">{t('business.list.emptyTitle')}</p>
                 <p className="text-sm mt-2">{t('business.list.emptyText')}</p>
               </div>
             ) : (
+              <>
+              <div className="border-b border-slate-700 p-3">
+                <UrlSearch placeholder={t('business.list.search')} className="max-w-sm" />
+              </div>
               <div className="divide-y divide-slate-700">
+                {organizations.length === 0 && <p className="py-10 text-center text-sm text-slate-400">{t('business.list.noMatch')}</p>}
                 {organizations.map((organization: any) => {
                   const license = firstOf<any>(organization.licenses);
                   const isActive = license?.is_active === true;
@@ -288,6 +284,8 @@ export default async function StructuresPage() {
                   );
                 })}
               </div>
+              <PageNav meta={meta} />
+              </>
             )}
           </CardContent>
         </Card>

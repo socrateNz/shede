@@ -3,17 +3,23 @@ import { addDays, localToday } from '@/lib/forecast';
 import { computeForecast, loadSales } from '@/lib/forecast-server';
 import { grossQuantity, type RecipeUnit } from '@/lib/recipes';
 import { computeSuggestions, type ItemKey, type SupplierInfo, type SupplierOffer, type UsageByProduct } from '@/lib/replenishment';
+import { fetchAll } from '@/lib/pagination';
 
 // Commandes suggérées et plan de production (module PREVISIONS) — accès base.
 
 /** Ce que consomme une unité vendue de chaque produit : ingrédients de sa recette, sinon lui-même s'il est suivi en stock. */
 async function loadUsage(structureId: string, trackedProducts: Set<string>): Promise<UsageByProduct> {
   const usage: UsageByProduct = new Map();
-  const { data: recipes } = await getAdminSupabase()
-    .from('recipe_items')
-    .select('product_id, ingredient_id, quantity, unit, waste_percent')
-    .eq('structure_id', structureId)
-    .not('product_id', 'is', null);
+  // Lignes de recettes : produits × ingrédients, lues par tranches (limite de 1000 lignes de l'API).
+  const recipes = await fetchAll<any>((a, b) =>
+    getAdminSupabase()
+      .from('recipe_items')
+      .select('product_id, ingredient_id, quantity, unit, waste_percent')
+      .eq('structure_id', structureId)
+      .not('product_id', 'is', null)
+      .order('id')
+      .range(a, b),
+  );
   for (const r of recipes || []) {
     const list = usage.get(r.product_id as string) ?? [];
     list.push({
@@ -57,7 +63,9 @@ export async function loadSuggestions(structureId: string) {
   ]);
 
   // Produits suivis en stock sans fiche recette (boissons…) : ils se commandent eux-mêmes
-  const { data: recipeOwners } = await admin.from('recipe_items').select('product_id').eq('structure_id', structureId).not('product_id', 'is', null);
+  const recipeOwners = await fetchAll<{ product_id: string }>((a, b) =>
+    admin.from('recipe_items').select('product_id').eq('structure_id', structureId).not('product_id', 'is', null).order('id').range(a, b),
+  );
   const withRecipe = new Set((recipeOwners || []).map((r) => r.product_id as string));
   const trackedProducts = (stocks || []).filter((s: any) => !s.products?.is_deleted && !withRecipe.has(s.product_id));
 
@@ -134,16 +142,20 @@ export async function loadProductionPlan(structureId: string, dayOffset: 0 | 1) 
   const admin = getAdminSupabase();
   const today = localToday();
   const date = addDays(today, dayOffset);
-  const [forecast, profileResult, soldToday, { data: products }, { data: recipes }] = await Promise.all([
+  const [forecast, profileResult, soldToday, { data: products }, recipes] = await Promise.all([
     computeForecast(structureId, 2),
     admin.rpc('hourly_sales_profile', { p_structure_id: structureId, p_from: addDays(today, -28), p_to: addDays(today, -1) }),
     dayOffset === 0 ? loadSales(structureId, today, today) : Promise.resolve([]),
     admin.from('products').select('id, name, destination').eq('structure_id', structureId).eq('is_deleted', false),
-    admin
-      .from('recipe_items')
-      .select('product_id, ingredient_id, quantity, unit, waste_percent, ingredients(name, unit)')
-      .eq('structure_id', structureId)
-      .not('product_id', 'is', null),
+    fetchAll<any>((a, b) =>
+      admin
+        .from('recipe_items')
+        .select('product_id, ingredient_id, quantity, unit, waste_percent, ingredients(name, unit)')
+        .eq('structure_id', structureId)
+        .not('product_id', 'is', null)
+        .order('id')
+        .range(a, b),
+    ),
   ]);
   if (profileResult.error) throw profileResult.error;
 

@@ -24,6 +24,7 @@ import {
   type EntryLine,
 } from '@/lib/accounting/posting';
 import type { LedgerLine } from '@/lib/accounting/reports';
+import { buildMeta, pageRange, settlePage } from '@/lib/pagination';
 import {
   ACCOUNTING_MODULE,
   canPostEntries,
@@ -297,6 +298,8 @@ export async function getJournalEntries(params: {
   from?: string | null;
   to?: string | null;
   journal?: string | null;
+  /** Page de 20 écritures ; absent : toute la période (export). */
+  page?: number;
 }) {
   const scope = await getScope(params.point);
   if (!scope || !scope.canReports) return null;
@@ -304,16 +307,30 @@ export async function getJournalEntries(params: {
   const journal = JOURNALS.includes(params.journal as Journal) ? (params.journal as Journal) : null;
   const admin = getAdminSupabase();
   try {
-    const entries = await fetchAll<Omit<JournalEntry, 'lines' | 'reversed'>>((a, b) => {
+    const entriesQuery = (count = false) => {
       let q = admin
         .from('accounting_entries')
-        .select('id, structure_id, journal, number, entry_date, label, reference, source_type, reversal_of')
+        .select('id, structure_id, journal, number, entry_date, label, reference, source_type, reversal_of', count ? { count: 'exact' } : undefined)
         .in('structure_id', scope.structureIds)
         .gte('entry_date', period.from)
         .lte('entry_date', period.to);
       if (journal) q = q.eq('journal', journal);
-      return q.order('entry_date', { ascending: false }).order('number', { ascending: false }).range(a, b);
-    });
+      return q.order('entry_date', { ascending: false }).order('number', { ascending: false }).order('id', { ascending: false });
+    };
+    // Écran : une page de 20 écritures avec le total ; export : toute la période, par tranches.
+    const page = params.page ? Math.max(1, params.page) : null;
+    let entries: Omit<JournalEntry, 'lines' | 'reversed'>[];
+    let total: number;
+    if (page) {
+      const [from, to] = pageRange(page);
+      const { data, count, error } = await settlePage(entriesQuery(true).range(from, to));
+      if (error) throw error;
+      entries = (data ?? []) as Omit<JournalEntry, 'lines' | 'reversed'>[];
+      total = count ?? 0;
+    } else {
+      entries = await fetchAll<Omit<JournalEntry, 'lines' | 'reversed'>>((a, b) => entriesQuery().range(a, b));
+      total = entries.length;
+    }
     const ids = entries.map((e) => e.id);
     const lines: (JournalEntry['lines'][number] & { entry_id: string })[] = [];
     const reversed = new Set<string>();
@@ -338,10 +355,10 @@ export async function getJournalEntries(params: {
       reversed: reversed.has(e.id),
       lines: (byEntry.get(e.id) ?? []).sort((a, b) => b.debit - a.debit),
     }));
-    return { scope, period, journal, entries: result, chart: await loadChart(scope.structureIds), installed: true as const };
+    return { scope, period, journal, entries: result, meta: buildMeta(page ?? 1, total, undefined), chart: await loadChart(scope.structureIds), installed: true as const };
   } catch (error) {
     console.error('[accounting] journal :', error);
-    return { scope, period, journal, entries: [] as JournalEntry[], chart: await loadChart([]), installed: false as const };
+    return { scope, period, journal, entries: [] as JournalEntry[], meta: buildMeta(1, 0, undefined), chart: await loadChart([]), installed: false as const };
   }
 }
 
@@ -551,34 +568,45 @@ export type Expense = {
   suppliers: { name: string } | null;
 };
 
-export async function getExpenses(params: { from?: string | null; to?: string | null; status?: string | null }) {
+export type ExpenseListStats = { count: number; total: number; unpaidTotal: number };
+
+/** Dépenses du point sur la période, 20 par page ; totaux de la période et dettes non réglées en SQL. */
+export async function getExpenses(params: { from?: string | null; to?: string | null; status?: string | null; page?: number }) {
   const scope = await getScope();
   if (!scope?.canExpense || !scope.structureId) return null;
   const period = await resolvePeriod(params.from, params.to);
   const admin = getAdminSupabase();
+  const page = Math.max(1, params.page ?? 1);
+  const emptyStats: ExpenseListStats = { count: 0, total: 0, unpaidTotal: 0 };
   try {
     const status = params.status && ['UNPAID', 'PAID', 'CANCELLED'].includes(params.status) ? params.status : null;
-    const expenses = await fetchAll<Expense>((a, b) => {
-      let q = admin
-        .from('expenses')
-        .select('*, suppliers(name)')
-        .eq('structure_id', scope.structureId!)
-        .gte('expense_date', period.from)
-        .lte('expense_date', period.to);
-      if (status) q = q.eq('status', status);
-      return q.order('expense_date', { ascending: false }).range(a, b);
-    });
-    // Dettes fournisseurs non réglées, toutes périodes confondues
-    const { data: unpaid } = await admin
+    const [from, to] = pageRange(page);
+    let q = admin
       .from('expenses')
-      .select('amount_ttc')
+      .select('*, suppliers(name)', { count: 'exact' })
       .eq('structure_id', scope.structureId)
-      .eq('status', 'UNPAID');
-    const unpaidTotal = (unpaid || []).reduce((s, e) => s + Number(e.amount_ttc), 0);
-    return { scope, period, expenses, unpaidTotal, suppliers: await getSuppliers(), installed: true as const };
+      .gte('expense_date', period.from)
+      .lte('expense_date', period.to);
+    if (status) q = q.eq('status', status);
+    const [{ data, count, error }, statsRes] = await Promise.all([
+      settlePage(q.order('expense_date', { ascending: false }).order('id', { ascending: false }).range(from, to)),
+      admin.rpc('expense_list_stats', { p_structure_id: scope.structureId, p_from: period.from, p_to: period.to, p_status: status }),
+    ]);
+    if (error) throw error;
+    const raw = (statsRes.data ?? emptyStats) as ExpenseListStats;
+    const stats: ExpenseListStats = { count: Number(raw.count) || 0, total: Number(raw.total) || 0, unpaidTotal: Number(raw.unpaidTotal) || 0 };
+    return {
+      scope,
+      period,
+      expenses: (data ?? []) as Expense[],
+      meta: buildMeta(page, count ?? 0, stats),
+      unpaidTotal: stats.unpaidTotal,
+      suppliers: await getSuppliers(),
+      installed: true as const,
+    };
   } catch (error) {
     console.error('[accounting] dépenses :', error);
-    return { scope, period, expenses: [] as Expense[], unpaidTotal: 0, suppliers: [] as Supplier[], installed: false as const };
+    return { scope, period, expenses: [] as Expense[], meta: buildMeta(page, 0, emptyStats), unpaidTotal: 0, suppliers: [] as Supplier[], installed: false as const };
   }
 }
 

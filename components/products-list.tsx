@@ -22,48 +22,31 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { deleteProduct } from '@/app/actions/products';
 import { useState, useMemo } from 'react';
-import { TablePagination } from './table-pagination';
+import { useRouter } from 'next/navigation';
+import { PageNav } from './page-nav';
+import { UrlSearch, UrlSelect } from './url-filters';
+import type { PageMeta } from '@/lib/pagination';
 import { useT } from '@/lib/i18n/client';
 import { useDialogs } from '@/components/dialog-provider';
-import { categoryLabel, productInCategory, sortCategoryTree, type CategoryNode } from '@/lib/category-tree';
+import { categoryLabel, sortCategoryTree, type CategoryNode } from '@/lib/category-tree';
 
 interface ProductsListProps {
+  /** Une page de produits, déjà filtrée par le serveur. */
   products: Product[];
+  meta: PageMeta<unknown>;
   /** Toutes les catégories du point (pour le filtre et les libellés « Catégorie › Sous-catégorie »). */
   categories?: CategoryNode[];
   onProductDeleted?: () => void;
 }
 
-export function ProductsList({ products, categories = [], onProductDeleted }: ProductsListProps) {
+export function ProductsList({ products, meta, categories = [], onProductDeleted }: ProductsListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { t, format } = useT();
   const dialogs = useDialogs();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [destinationFilter, setDestinationFilter] = useState<string>('ALL');
-  const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
-  const itemsPerPage = 10;
+  const router = useRouter();
 
   // Filtre : catégories dans l'ordre du point, sous-catégories en retrait
   const categoryOptions = useMemo(() => sortCategoryTree(categories), [categories]);
-
-  const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
-      if (destinationFilter !== 'ALL' && (p.destination || 'CUISINE') !== destinationFilter) return false;
-      if (categoryFilter === 'NONE') return !p.categories?.length;
-      if (categoryFilter !== 'ALL') return productInCategory(p.categories?.map((c) => c.id), categoryFilter, categories);
-      return true;
-    });
-  }, [products, destinationFilter, categoryFilter, categories]);
-
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const paginatedProducts = filteredProducts.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  if (currentPage > totalPages && totalPages > 0) {
-    setCurrentPage(1);
-  }
 
   const handleDelete = async (productId: string) => {
     if (!(await dialogs.confirm({ description: t('products.list.confirmDelete'), destructive: true }))) return;
@@ -75,6 +58,7 @@ export function ProductsList({ products, categories = [], onProductDeleted }: Pr
       await dialogs.alert({ description: res.error ?? '', variant: 'error' });
     } else {
       onProductDeleted?.();
+      router.refresh();
     }
   };
 
@@ -93,35 +77,28 @@ export function ProductsList({ products, categories = [], onProductDeleted }: Pr
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap justify-end gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <UrlSearch placeholder={t('products.list.search')} className="min-w-48 flex-1" />
         {categoryOptions.length > 0 && (
-          <select
-            value={categoryFilter}
-            onChange={(e) => {
-              setCategoryFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="bg-slate-900/50 border border-slate-600 text-slate-50 rounded-lg py-2 px-3 text-sm focus:border-blue-500 focus:ring-blue-500/20"
-          >
-            <option value="ALL">{t('products.list.allCategories')}</option>
-            {categoryOptions.map((c) => (
-              <option key={c.id} value={c.id}>{c.parent_id ? `  › ${c.name}` : c.name}</option>
-            ))}
-            <option value="NONE">{t('products.list.noCategory')}</option>
-          </select>
+          <UrlSelect
+            param="category"
+            label={t('products.list.allCategories')}
+            options={[
+              { value: '', label: t('products.list.allCategories') },
+              ...categoryOptions.map((c) => ({ value: c.id, label: c.parent_id ? `  › ${c.name}` : c.name })),
+              { value: 'NONE', label: t('products.list.noCategory') },
+            ]}
+          />
         )}
-        <select
-          value={destinationFilter}
-          onChange={(e) => {
-            setDestinationFilter(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="bg-slate-900/50 border border-slate-600 text-slate-50 rounded-lg py-2 px-3 text-sm focus:border-blue-500 focus:ring-blue-500/20"
-        >
-          <option value="ALL">{t('products.list.allDestinations')}</option>
-          <option value="CUISINE">{t('products.destination.CUISINE')}</option>
-          <option value="BAR">{t('products.destination.BAR')}</option>
-        </select>
+        <UrlSelect
+          param="destination"
+          label={t('products.list.allDestinations')}
+          options={[
+            { value: '', label: t('products.list.allDestinations') },
+            { value: 'CUISINE', label: t('products.destination.CUISINE') },
+            { value: 'BAR', label: t('products.destination.BAR') },
+          ]}
+        />
       </div>
       <div className="rounded-xl border border-slate-700/50 overflow-hidden bg-slate-800/30">
         <Table>
@@ -136,7 +113,12 @@ export function ProductsList({ products, categories = [], onProductDeleted }: Pr
           </TableRow>
         </TableHeader>
         <TableBody>
-          {paginatedProducts.map((product) => (
+          {products.length === 0 && (
+              <TableRow className="border-slate-700 hover:bg-transparent">
+                <TableCell colSpan={99} className="py-10 text-center text-slate-400">{t('products.list.noMatch')}</TableCell>
+              </TableRow>
+            )}
+            {products.map((product) => (
             <TableRow
               key={product.id}
               className="border-slate-700 hover:bg-slate-800/50 transition-colors group"
@@ -267,11 +249,7 @@ export function ProductsList({ products, categories = [], onProductDeleted }: Pr
           ))}
         </TableBody>
         </Table>
-        <TablePagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
+        <PageNav meta={meta} />
       </div>
     </div>
   );

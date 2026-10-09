@@ -570,9 +570,6 @@ export default function DocsPage() {
 
           {/* ── FAQ ── */}
           <section id="faq" className="mb-20 scroll-mt-24">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-              <HelpCircle className="w-3.5 h-3.5" /> FAQ
-            </div>
             <h2 className="text-3xl font-bold text-slate-900 mb-6">{c.faq.title}</h2>
             <div className="space-y-4">
               {c.faq.items.map((item) => (

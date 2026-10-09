@@ -1,4 +1,5 @@
-import { getRooms } from '@/app/actions/rooms';
+import { listRooms } from '@/app/actions/rooms';
+import { parsePage } from '@/lib/pagination';
 import { requireAuth } from '@/app/actions/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,20 +9,13 @@ import RoomsList from '@/components/rooms-list';
 import { requireRole } from '@/app/actions/auth';
 import { getT } from '@/lib/i18n/server';
 
-async function getRoomsStats(rooms: any[]) {
-  const total = rooms.length;
-  const available = rooms.filter(room => room.status === 'AVAILABLE').length;
-  const occupied = rooms.filter(room => room.status === 'OCCUPIED').length;
-  const cleaning = rooms.filter(room => room.status === 'CLEANING').length;
-
-  return { total, available, occupied, cleaning };
-}
-
-export default async function RoomsPage() {
+export default async function RoomsPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string; status?: string }> }) {
   await requireRole('ADMIN', 'RECEPTION');
   const { t } = await getT();
-  const rooms = await getRooms();
-  const stats = await getRoomsStats(rooms);
+  const params = await searchParams;
+  // 20 chambres par page ; statistiques calculées en SQL.
+  const { items: rooms, meta } = await listRooms({ page: parsePage(params.page), q: params.q, status: params.status });
+  const { stats } = meta;
 
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -104,11 +98,11 @@ export default async function RoomsPage() {
           <CardHeader className="border-b border-slate-700/50">
             <CardTitle className="text-slate-50 flex items-center gap-2">
               <BedDouble className="w-5 h-5 text-blue-400" />
-              {t('hotel.rooms.allRooms', { count: rooms.length })}
+              {t('hotel.rooms.allRooms', { count: stats.total })}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {rooms.length === 0 ? (
+            {stats.total === 0 ? (
               <div className="text-center py-16 text-slate-400">
                 <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-700/50 flex items-center justify-center">
                   <Hotel className="w-10 h-10 opacity-30" />
@@ -123,7 +117,7 @@ export default async function RoomsPage() {
                 </Link>
               </div>
             ) : (
-              <RoomsList rooms={rooms} />
+              <RoomsList rooms={rooms} meta={meta} />
             )}
           </CardContent>
         </Card>

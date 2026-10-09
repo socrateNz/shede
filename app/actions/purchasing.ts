@@ -8,6 +8,7 @@ import { sendMail } from '@/lib/mail';
 import { getStructureTaxSettings } from '@/lib/fiscal';
 import { accountingDate, postExpense } from '@/lib/accounting/posting';
 import { EXPENSE_CATEGORIES } from '@/lib/accounting/mapping';
+import { buildMeta, emptyPage, pageRange, searchTerm, settlePage, type Paginated } from '@/lib/pagination';
 
 // Achats (docs/phase18-purchasing.sql), module ACHATS : fournisseurs et leur
 // catalogue, bons de commande, réceptions (entrée en stock et coût moyen pondéré,
@@ -54,18 +55,9 @@ export type PurchasingSupplier = {
 };
 
 /** Fournisseurs du point. null : migration phase 18 non exécutée. */
-export async function listPurchasingSuppliers(includeInactive = true): Promise<PurchasingSupplier[] | null> {
-  const session = await requirePurchasing(RECEIVE_ROLES);
-  if (!session) return [];
-  let query = getAdminSupabase()
-    .from('suppliers')
-    .select('id, name, contact_name, phone, email, niu, address, delivery_days, lead_time_days, min_order_amount, charges_vat, is_active, supplier_items(id, is_active)')
-    .eq('structure_id', session.structureId)
-    .order('name');
-  if (!includeInactive) query = query.eq('is_active', true);
-  const { data, error } = await query;
-  if (error) return notInstalled(error) ? null : [];
-  return (data || []).map((s: any) => ({
+/** Ligne de la base → fournisseur affichable. */
+function toPurchasingSupplier(s: any): PurchasingSupplier {
+  return {
     id: s.id,
     name: s.name,
     contact_name: s.contact_name,
@@ -79,7 +71,46 @@ export async function listPurchasingSuppliers(includeInactive = true): Promise<P
     charges_vat: s.charges_vat !== false,
     is_active: s.is_active !== false,
     item_count: (s.supplier_items || []).filter((i: any) => i.is_active).length,
-  }));
+  };
+}
+
+export type SupplierListStats = { total: number; active: number };
+
+/** Fournisseurs du point pour la page de gestion : 20 par page (ordre alphabétique), recherche nom/contact. null : module non installé. */
+export async function listSuppliersPage(filters: { page?: number; q?: string } = {}): Promise<Paginated<PurchasingSupplier, SupplierListStats> | null> {
+  const empty: SupplierListStats = { total: 0, active: 0 };
+  const page = Math.max(1, filters.page ?? 1);
+  const session = await requirePurchasing(RECEIVE_ROLES);
+  if (!session) return emptyPage(empty, page);
+  const admin = getAdminSupabase();
+  const [from, to] = pageRange(page);
+  const q = searchTerm(filters.q);
+  let query = admin
+    .from('suppliers')
+    .select('id, name, contact_name, phone, email, niu, address, delivery_days, lead_time_days, min_order_amount, charges_vat, is_active, supplier_items(id, is_active)', { count: 'exact' })
+    .eq('structure_id', session.structureId)
+    .order('name')
+    .order('id')
+    .range(from, to);
+  if (q) query = query.or(`name.ilike.%${q}%,contact_name.ilike.%${q}%,phone.ilike.%${q}%`);
+  const head = () => admin.from('suppliers').select('id', { count: 'exact', head: true }).eq('structure_id', session.structureId);
+  const [{ data, count, error }, total, active] = await Promise.all([settlePage(query), head(), head().eq('is_active', true)]);
+  if (error) return notInstalled(error) ? null : emptyPage(empty, page);
+  return { items: (data || []).map(toPurchasingSupplier), meta: buildMeta(page, count ?? 0, { total: total.count ?? 0, active: active.count ?? 0 }) };
+}
+
+export async function listPurchasingSuppliers(includeInactive = true): Promise<PurchasingSupplier[] | null> {
+  const session = await requirePurchasing(RECEIVE_ROLES);
+  if (!session) return [];
+  let query = getAdminSupabase()
+    .from('suppliers')
+    .select('id, name, contact_name, phone, email, niu, address, delivery_days, lead_time_days, min_order_amount, charges_vat, is_active, supplier_items(id, is_active)')
+    .eq('structure_id', session.structureId)
+    .order('name');
+  if (!includeInactive) query = query.eq('is_active', true);
+  const { data, error } = await query;
+  if (error) return notInstalled(error) ? null : [];
+  return (data || []).map(toPurchasingSupplier);
 }
 
 export async function saveSupplier(input: {
@@ -356,17 +387,43 @@ export type PurchaseOrderSummary = {
   line_count: number;
 };
 
-export async function listPurchaseOrders(): Promise<PurchaseOrderSummary[] | null> {
+export type PurchaseOrderStat = { count: number; amount: number };
+export type PurchaseOrderListStats = { total: PurchaseOrderStat; byStatus: Record<string, PurchaseOrderStat> };
+const PURCHASE_ORDER_STATUSES = ['DRAFT', 'SENT', 'PARTIAL', 'RECEIVED', 'CANCELLED'];
+
+/**
+ * Bons de commande du point, 20 par page (les plus récents d'abord), filtre par statut et
+ * recherche par numéro ; statistiques par statut en SQL. null : module non installé.
+ */
+export async function listPurchaseOrders(
+  filters: { page?: number; q?: string; status?: string | null } = {},
+): Promise<Paginated<PurchaseOrderSummary, PurchaseOrderListStats> | null> {
+  const empty: PurchaseOrderListStats = { total: { count: 0, amount: 0 }, byStatus: {} };
+  const page = Math.max(1, filters.page ?? 1);
   const session = await requirePurchasing(RECEIVE_ROLES);
-  if (!session) return [];
-  const { data, error } = await getAdminSupabase()
+  if (!session) return emptyPage(empty, page);
+  const admin = getAdminSupabase();
+  const [from, to] = pageRange(page);
+  const q = searchTerm(filters.q);
+
+  let query = admin
     .from('purchase_orders')
-    .select('id, number, status, supplier_id, expected_date, total_ht, created_at, suppliers(name), purchase_order_lines(id)')
+    .select('id, number, status, supplier_id, expected_date, total_ht, created_at, suppliers(name), purchase_order_lines(id)', { count: 'exact' })
     .eq('structure_id', session.structureId)
     .order('created_at', { ascending: false })
-    .limit(200);
-  if (error) return notInstalled(error) ? null : [];
-  return (data || []).map((o: any) => ({
+    .order('id', { ascending: false })
+    .range(from, to);
+  if (filters.status && PURCHASE_ORDER_STATUSES.includes(filters.status)) query = query.eq('status', filters.status);
+  if (q) query = query.ilike('number', `%${q}%`);
+
+  const [{ data, count, error }, statsRes] = await Promise.all([settlePage(query), admin.rpc('purchase_order_list_stats', { p_structure_id: session.structureId })]);
+  if (error) return notInstalled(error) ? null : emptyPage(empty, page);
+  const raw = (statsRes.data ?? empty) as PurchaseOrderListStats;
+  const stats: PurchaseOrderListStats = {
+    total: { count: Number(raw.total?.count) || 0, amount: Number(raw.total?.amount) || 0 },
+    byStatus: Object.fromEntries(Object.entries(raw.byStatus ?? {}).map(([k, v]) => [k, { count: Number(v.count) || 0, amount: Number(v.amount) || 0 }])),
+  };
+  const items = (data || []).map((o: any) => ({
     id: o.id,
     number: o.number,
     status: o.status,
@@ -377,6 +434,7 @@ export async function listPurchaseOrders(): Promise<PurchaseOrderSummary[] | nul
     created_at: o.created_at,
     line_count: (o.purchase_order_lines || []).length,
   }));
+  return { items, meta: buildMeta(page, count ?? 0, stats) };
 }
 
 export type PurchaseOrderLine = {
@@ -751,19 +809,32 @@ export type ReceiptSummary = {
   accounted: boolean;
 };
 
-export async function listReceipts(from: string, to: string): Promise<ReceiptSummary[] | null> {
+export type ReceiptListStats = { count: number; amount: number; direct: number; unaccounted: number };
+
+/** Réceptions du point sur une période, 20 par page (les plus récentes d'abord) ; totaux de la période en SQL. null : module non installé. */
+export async function listReceipts(periodFrom: string, periodTo: string, filters: { page?: number } = {}): Promise<Paginated<ReceiptSummary, ReceiptListStats> | null> {
+  const empty: ReceiptListStats = { count: 0, amount: 0, direct: 0, unaccounted: 0 };
+  const page = Math.max(1, filters.page ?? 1);
   const session = await requirePurchasing(RECEIVE_ROLES);
-  if (!session) return [];
-  const { data, error } = await getAdminSupabase()
-    .from('goods_receipts')
-    .select('id, number, purchase_order_id, invoice_reference, received_at, total_ht, expense_ids, suppliers(name), purchase_orders(number), users!received_by(first_name, last_name), goods_receipt_lines(id)')
-    .eq('structure_id', session.structureId)
-    .gte('received_at', from)
-    .lt('received_at', to)
-    .order('received_at', { ascending: false })
-    .limit(500);
-  if (error) return notInstalled(error) ? null : [];
-  return (data || []).map((r: any) => ({
+  if (!session) return emptyPage(empty, page);
+  const admin = getAdminSupabase();
+  const [from, to] = pageRange(page);
+  const [{ data, count, error }, statsRes] = await Promise.all([
+    settlePage(admin
+      .from('goods_receipts')
+      .select('id, number, purchase_order_id, invoice_reference, received_at, total_ht, expense_ids, suppliers(name), purchase_orders(number), users!received_by(first_name, last_name), goods_receipt_lines(id)', { count: 'exact' })
+      .eq('structure_id', session.structureId)
+      .gte('received_at', periodFrom)
+      .lt('received_at', periodTo)
+      .order('received_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, to)),
+    admin.rpc('receipt_list_stats', { p_structure_id: session.structureId, p_from: periodFrom, p_to: periodTo }),
+  ]);
+  if (error) return notInstalled(error) ? null : emptyPage(empty, page);
+  const raw = (statsRes.data ?? empty) as ReceiptListStats;
+  const stats: ReceiptListStats = { count: Number(raw.count) || 0, amount: Number(raw.amount) || 0, direct: Number(raw.direct) || 0, unaccounted: Number(raw.unaccounted) || 0 };
+  const items = (data || []).map((r: any) => ({
     id: r.id,
     number: r.number,
     supplier_name: r.suppliers?.name ?? '—',
@@ -776,6 +847,7 @@ export async function listReceipts(from: string, to: string): Promise<ReceiptSum
     line_count: (r.goods_receipt_lines || []).length,
     accounted: (r.expense_ids || []).length > 0,
   }));
+  return { items, meta: buildMeta(page, count ?? 0, stats) };
 }
 
 /** Données du formulaire de réception directe (sans bon de commande). */

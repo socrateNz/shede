@@ -24,6 +24,7 @@ const stock = {
     today: 'Aujourd’hui',
   },
   list: {
+    search: 'Rechercher un article…',
     filterAll: 'Tous',
     filterProducts: 'Produits',
     filterAccompaniments: 'Accompagnements',
@@ -80,6 +81,11 @@ const stock = {
     initial_stock: 'Stock de départ',
   },
   movements: {
+    statTotal: 'Mouvements',
+    statIn: 'Entrées',
+    statOut: 'Sorties',
+    statAdjustment: 'Ajustements',
+    allDirections: 'Tous les sens',
     title: 'Historique des mouvements',
     subtitle: 'Suivez chaque changement de stock effectué dans votre établissement.',
     back: 'Retour à l’inventaire',

@@ -3,185 +3,96 @@
 import { getAdminSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 
-export async function getAnalyticsData(structureId: string, role: string, range: string = '30') {
+type AnalyticsSummary = {
+  orderRevenue: number;
+  ordersCount: number;
+  completedOrdersCount: number;
+  ordersByStatus: Record<string, number>;
+  hotelRevenue: number;
+  bookingsCount: number;
+  bookingsByStatus: Record<string, number>;
+  paymentsByMethod: Record<string, number>;
+};
+
+const numbers = (record: Record<string, unknown> | null | undefined) =>
+  Object.fromEntries(Object.entries(record ?? {}).map(([k, v]) => [k, Number(v) || 0])) as Record<string, number>;
+
+/**
+ * Statistiques de la page Statistiques. Le périmètre vient de la session (jamais du
+ * navigateur) : toute la plateforme pour le super-admin, le point de la session pour
+ * un admin. Tous les totaux sont calculés en SQL (analytics_summary).
+ */
+export async function getAnalyticsData(range: string = '30') {
+  const session = await getSession();
+  if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) return null;
+  const global = session.role === 'SUPER_ADMIN';
+  if (!global && !session.structureId) return null;
+
   const admin = getAdminSupabase();
   let startDate: string | null = null;
-
   if (range !== 'all') {
-    const days = parseInt(range);
+    const days = Number.parseInt(range, 10);
     const date = new Date();
-    date.setDate(date.getDate() - days);
+    date.setDate(date.getDate() - (Number.isFinite(days) && days > 0 ? days : 30));
     startDate = date.toISOString();
   }
 
-  if (role === 'SUPER_ADMIN') {
-    let paymentsQuery = admin
-      .from('payments')
-      .select('amount, payment_method')
-      .eq('status', 'COMPLETED');
+  const { data, error } = await admin.rpc('analytics_summary', { p_structure_id: global ? null : session.structureId, p_since: startDate });
+  if (error) console.error('[getAnalyticsData]', error);
+  const raw = (data ?? {}) as Partial<AnalyticsSummary>;
+  const s: AnalyticsSummary = {
+    orderRevenue: Number(raw.orderRevenue) || 0,
+    ordersCount: Number(raw.ordersCount) || 0,
+    completedOrdersCount: Number(raw.completedOrdersCount) || 0,
+    ordersByStatus: numbers(raw.ordersByStatus),
+    hotelRevenue: Number(raw.hotelRevenue) || 0,
+    bookingsCount: Number(raw.bookingsCount) || 0,
+    bookingsByStatus: numbers(raw.bookingsByStatus),
+    paymentsByMethod: numbers(raw.paymentsByMethod),
+  };
+  const totalRevenue = s.orderRevenue + s.hotelRevenue;
 
-    if (startDate) {
-      paymentsQuery = paymentsQuery.gte('created_at', startDate);
-    }
-
-    const { data: globalPayments } = await paymentsQuery;
-
-    let globalCompletedOrdersQuery = admin
-      .from('orders')
-      .select('total, status');
-
-    if (startDate) {
-      globalCompletedOrdersQuery = globalCompletedOrdersQuery.gte('created_at', startDate);
-    }
-
-    const { data: globalOrders } = await globalCompletedOrdersQuery;
-    let totalOrderRevenue = (globalOrders || []).filter(o => o.status === 'COMPLETED').reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-
-    let bookingsRevenueQuery = admin
-      .from('bookings')
-      .select('total_amount, status, is_paid')
-      .or(`status.eq.COMPLETED,is_paid.eq.true`);
-
-    if (startDate) {
-      bookingsRevenueQuery = bookingsRevenueQuery.gte('created_at', startDate);
-    }
-
-    const { data: globalBookings } = await bookingsRevenueQuery;
-
-    let totalHotelRevenue = (globalBookings || []).reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
-
-    const paymentsByMethod: Record<string, number> = {};
-    (globalPayments || []).forEach((p) => {
-      const method = String(p.payment_method || 'AUTRE');
-      paymentsByMethod[method] = (paymentsByMethod[method] || 0) + p.amount;
-    });
-
-    let ordersQuery = admin.from('orders').select('status');
-    if (startDate) ordersQuery = ordersQuery.gte('created_at', startDate);
-    const { data: allOrders } = await ordersQuery;
-
-    const ordersByStatus: Record<string, number> = {};
-    (allOrders || []).forEach((order) => {
-      const status = String(order.status || 'UNKNOWN');
-      ordersByStatus[status] = (ordersByStatus[status] || 0) + 1;
-    });
-
-    let bookingsStatusQuery = admin.from('bookings').select('status');
-    if (startDate) bookingsStatusQuery = bookingsStatusQuery.gte('created_at', startDate);
-    const { data: allBookings } = await bookingsStatusQuery;
-
-    const bookingsByStatus: Record<string, number> = {};
-    (allBookings || []).forEach((booking) => {
-      const status = String(booking.status || 'UNKNOWN');
-      bookingsByStatus[status] = (bookingsByStatus[status] || 0) + 1;
-    });
-
-    let structuresQuery = admin.from('structures').select('*', { count: 'exact', head: true });
+  if (global) {
+    let structuresQuery = admin.from('structures').select('id', { count: 'exact', head: true });
     if (startDate) structuresQuery = structuresQuery.gte('created_at', startDate);
     const { count: newStructuresCount } = await structuresQuery;
-
     return {
-      type: 'SUPER_ADMIN',
-      totalRevenue: totalOrderRevenue + totalHotelRevenue,
-      hotelRevenue: totalHotelRevenue,
-      orderRevenue: totalOrderRevenue,
-      completedOrdersCount: allOrders?.length || 0,
-      totalBookingsCount: allBookings?.length || 0,
-      averageOrderValue: allOrders && allOrders.length > 0 ? (totalOrderRevenue + totalHotelRevenue) / allOrders.length : 0,
+      type: 'SUPER_ADMIN' as const,
+      totalRevenue,
+      hotelRevenue: s.hotelRevenue,
+      orderRevenue: s.orderRevenue,
+      completedOrdersCount: s.ordersCount,
+      totalBookingsCount: s.bookingsCount,
+      averageOrderValue: s.ordersCount > 0 ? totalRevenue / s.ordersCount : 0,
       newStructuresCount: newStructuresCount || 0,
-      paymentsByMethod,
-      ordersByStatus,
-      bookingsByStatus,
+      paymentsByMethod: s.paymentsByMethod,
+      ordersByStatus: s.ordersByStatus,
+      bookingsByStatus: s.bookingsByStatus,
     };
   }
 
-  // Re-calcul des revenus pour l'ADMIN (Restaurant + Hotel)
-  // 1. Revenu Restaurant: somme des totaux des commandes COMPLETED (plus fiable que payments)
-  let adminOrdersQuery = admin
-    .from('orders')
-    .select('total, status, created_at')
-    .eq('structure_id', structureId);
-
-  if (startDate) adminOrdersQuery = adminOrdersQuery.gte('created_at', startDate);
-  const { data: allOrders } = await adminOrdersQuery;
-
-  // 2. Revenu Hotel: toutes les réservations payées ou complétées liée à la structure
-  let adminBookingsQuery = admin
-    .from('bookings')
-    .select('total_amount, status, is_paid, rooms!inner(structure_id)')
-    .eq('rooms.structure_id', structureId)
-    .or(`status.eq.COMPLETED,is_paid.eq.true`);
-
-  if (startDate) adminBookingsQuery = adminBookingsQuery.gte('created_at', startDate);
-  const { data: paidBookings } = await adminBookingsQuery;
-
-  let orderRevenue = (allOrders || []).filter(o => o.status === 'COMPLETED').reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-  let hotelRevenue = (paidBookings || []).reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
-  let totalRevenue = orderRevenue + hotelRevenue;
-
-  // breakdown par méthode de paiement (depuis la table payments)
-  let adminPaymentsQuery = admin
-    .from('payments')
-    .select('amount, payment_method, orders!inner(structure_id)')
-    .eq('orders.structure_id', structureId)
-    .eq('status', 'COMPLETED');
-
-  if (startDate) adminPaymentsQuery = adminPaymentsQuery.gte('created_at', startDate);
-  const { data: completedPayments } = await adminPaymentsQuery;
-
-  const paymentsByMethod: Record<string, number> = {};
-  (completedPayments || []).forEach((payment: any) => {
-    const method = payment.payment_method || 'AUTRE';
-    paymentsByMethod[method] = (paymentsByMethod[method] || 0) + payment.amount;
-  });
-
-  let completedOrdersCount = allOrders?.filter(o => o.status === 'COMPLETED').length || 0;
-  const averageOrderValue = completedOrdersCount > 0 ? orderRevenue / completedOrdersCount : 0;
-
-  // Récupérer les stats des réservations
-  let adminAllBookingsQuery = admin
-    .from('bookings')
-    .select('status, rooms!inner(structure_id)')
-    .eq('rooms.structure_id', structureId);
-
-  if (startDate) adminAllBookingsQuery = adminAllBookingsQuery.gte('created_at', startDate);
-  const { data: allBookings } = await adminAllBookingsQuery;
-
-  const bookingsByStatus: Record<string, number> = {};
-  (allBookings || []).forEach((booking) => {
-    const status = booking.status || 'UNKNOWN';
-    bookingsByStatus[status] = (bookingsByStatus[status] || 0) + 1;
-  });
-
   const { count: productCount } = await admin
     .from('products')
-    .select('*', { count: 'exact', head: true })
-    .eq('structure_id', structureId)
+    .select('id', { count: 'exact', head: true })
+    .eq('structure_id', session.structureId!)
     .eq('is_deleted', false);
 
-  const ordersByStatus: Record<string, number> = {};
-  (allOrders || []).forEach((order) => {
-    const status = order.status || 'UNKNOWN';
-    ordersByStatus[status] = (ordersByStatus[status] || 0) + 1;
-  });
-
   return {
-    type: 'ADMIN',
+    type: 'ADMIN' as const,
     totalRevenue,
-    hotelRevenue,
-    orderRevenue,
-    completedOrdersCount: completedOrdersCount,
-    totalBookingsCount: allBookings?.length || 0,
-    averageOrderValue,
+    hotelRevenue: s.hotelRevenue,
+    orderRevenue: s.orderRevenue,
+    completedOrdersCount: s.completedOrdersCount,
+    totalBookingsCount: s.bookingsCount,
+    averageOrderValue: s.completedOrdersCount > 0 ? s.orderRevenue / s.completedOrdersCount : 0,
     productCount: productCount || 0,
-    paymentsByMethod,
-    ordersByStatus,
-    bookingsByStatus,
+    paymentsByMethod: s.paymentsByMethod,
+    ordersByStatus: s.ordersByStatus,
+    bookingsByStatus: s.bookingsByStatus,
   };
 }
 
+/** Changement de période depuis l'écran : même périmètre, déterminé par la session. */
 export async function fetchClientAnalyticsData(range: string) {
-  const session = await getSession();
-  if (!session) return null;
-  return getAnalyticsData(session.structureId!, session.role as string, range);
+  return getAnalyticsData(range);
 }

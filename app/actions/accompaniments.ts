@@ -2,29 +2,35 @@
 
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
+import { buildMeta, emptyPage, pageRange, settlePage, type Paginated } from '@/lib/pagination';
 import { revalidatePath } from 'next/cache';
 import { te } from '@/lib/i18n/server';
 import { emitMenuUpdated } from '@/lib/api/webhooks';
 
-export async function getAccompaniments() {
-  const session = await getSession();
-  if (!session || !['ADMIN'].includes(session.role)) {
-    return [];
-  }
+export type AccompanimentListStats = { total: number; available: number; totalPrice: number };
 
-  try {
-    const admin = getAdminSupabase();
-    const { data } = await admin
+/** Accompagnements du point, 20 par page (ordre alphabétique) ; statistiques en SQL. */
+export async function listAccompaniments(filters: { page?: number } = {}): Promise<Paginated<any, AccompanimentListStats>> {
+  const empty: AccompanimentListStats = { total: 0, available: 0, totalPrice: 0 };
+  const page = Math.max(1, filters.page ?? 1);
+  const session = await getSession();
+  if (!session?.structureId || session.role !== 'ADMIN') return emptyPage(empty, page);
+  const admin = getAdminSupabase();
+  const [from, to] = pageRange(page);
+  const [{ data, count }, statsRes] = await Promise.all([
+    settlePage(admin
       .from('accompaniments')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('structure_id', session.structureId)
       .eq('is_deleted', false)
-      .order('name', { ascending: true });
-
-    return data || [];
-  } catch (error) {
-    return [];
-  }
+      .order('name', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, to)),
+    admin.rpc('accompaniment_list_stats', { p_structure_id: session.structureId }),
+  ]);
+  const raw = (statsRes.data ?? empty) as AccompanimentListStats;
+  const stats: AccompanimentListStats = { total: Number(raw.total) || 0, available: Number(raw.available) || 0, totalPrice: Number(raw.totalPrice) || 0 };
+  return { items: data ?? [], meta: buildMeta(page, count ?? 0, stats) };
 }
 
 export async function createAccompaniment(

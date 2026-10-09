@@ -5,6 +5,7 @@ import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { te } from '@/lib/i18n/server';
 import { getStructureTaxSettings } from '@/lib/fiscal';
+import { fetchAll } from '@/lib/pagination';
 import {
   foodCost,
   isCompatibleUnit,
@@ -152,8 +153,15 @@ export async function getFoodCostReport(): Promise<FoodCostRow[] | null> {
   const session = await requireRecipeAccess();
   if (!session) return [];
   const admin = getAdminSupabase();
+  // Lignes de recettes lues par tranches (limite de 1000 lignes de l'API).
+  const linesResult = fetchAll<any>((a, b) =>
+    admin.from('recipe_items').select('product_id, accompaniment_id, ingredient_id, quantity, unit, waste_percent').eq('structure_id', session.structureId).order('id').range(a, b),
+  ).then(
+    (data) => ({ data, error: null as { code?: string } | null }),
+    (error) => ({ data: [] as any[], error: error as { code?: string } }),
+  );
   const [{ data: lines, error }, { data: ingredients }, { data: products }, { data: accompaniments }, taxSettings] = await Promise.all([
-    admin.from('recipe_items').select('product_id, accompaniment_id, ingredient_id, quantity, unit, waste_percent').eq('structure_id', session.structureId),
+    linesResult,
     admin.from('ingredients').select('id, unit, cost_per_unit').eq('structure_id', session.structureId),
     // * : purchase_cost (coût d'achat des produits revendus) n'existe qu'après la migration phase 18
     admin.from('products').select('*').eq('structure_id', session.structureId).eq('is_deleted', false).order('name'),

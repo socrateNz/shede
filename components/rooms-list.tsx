@@ -31,34 +31,25 @@ import { Input } from '@/components/ui/input';
 import { updateRoom, updateRoomStatus, deleteRoom } from '@/app/actions/rooms';
 import { useActionState } from 'react';
 import { toast } from 'sonner';
-import { TablePagination } from './table-pagination';
+import { PageNav } from './page-nav';
+import { UrlSearch, UrlSelect } from './url-filters';
+import type { PageMeta } from '@/lib/pagination';
 import { useT } from '@/lib/i18n/client';
 import { useDialogs } from '@/components/dialog-provider';
 
 type RoomType = 'Standard' | 'Double' | 'Studio' | 'Suite' | 'Familiale' | 'Autre';
 
-export default function RoomsList({ rooms }: { rooms: any[] }) {
+/** Une page de chambres, déjà filtrée par le serveur. */
+export default function RoomsList({ rooms, meta }: { rooms: any[]; meta: PageMeta<unknown> }) {
   const [editingRoom, setEditingRoom] = useState<any>(null);
   const [viewingRoom, setViewingRoom] = useState<any>(null);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const { t, format } = useT();
   const dialogs = useDialogs();
   
   const [editImage1, setEditImage1] = useState<string | null>(null);
   const [editImage2, setEditImage2] = useState<string | null>(null);
 
-  const itemsPerPage = 10;
-
-  const totalPages = Math.ceil(rooms.length / itemsPerPage);
-  const paginatedRooms = rooms.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  if (currentPage > totalPages && totalPages > 0) {
-    setCurrentPage(1);
-  }
 
   const [updateState, updateAction, isUpdating] = useActionState(
     async (prevState: any, formData: FormData) => {
@@ -143,6 +134,19 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
   return (
     <>
       <div className="rounded-xl border border-slate-700/50 overflow-hidden bg-slate-800/30">
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-700/50 p-3">
+          <UrlSearch placeholder={t('hotel.rooms.search')} className="min-w-48 flex-1" />
+          <UrlSelect
+            param="status"
+            label={t('hotel.rooms.allStatuses')}
+            options={[
+              { value: '', label: t('hotel.rooms.allStatuses') },
+              { value: 'AVAILABLE', label: t('hotel.roomStatus.AVAILABLE') },
+              { value: 'OCCUPIED', label: t('hotel.roomStatus.OCCUPIED') },
+              { value: 'CLEANING', label: t('hotel.roomStatus.CLEANING') },
+            ]}
+          />
+        </div>
         <Table>
           <TableHeader>
             <TableRow className="border-slate-700 hover:bg-transparent bg-slate-800/50">
@@ -155,7 +159,12 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedRooms.map((room) => {
+            {rooms.length === 0 && (
+              <TableRow className="border-slate-700 hover:bg-transparent">
+                <TableCell colSpan={6} className="py-10 text-center text-slate-400">{t('hotel.rooms.noMatch')}</TableCell>
+              </TableRow>
+            )}
+            {rooms.map((room) => {
               const statusColor = statusColors[room.status] || statusColors.AVAILABLE;
               const StatusIcon = statusColor.icon;
               const isUpdatingStatus = updatingStatusId === room.id;
@@ -261,11 +270,7 @@ export default function RoomsList({ rooms }: { rooms: any[] }) {
           </TableBody>
         </Table>
       </div>
-      <TablePagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+      <PageNav meta={meta} />
 
       {/* Dialog pour voir les détails de la chambre */}
       <Dialog open={!!viewingRoom} onOpenChange={(open) => !open && setViewingRoom(null)}>

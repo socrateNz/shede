@@ -4,6 +4,7 @@ import { getSession, type SessionPayload } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { getLocale } from '@/lib/i18n/server';
 import { INTL_LOCALES } from '@/lib/i18n/config';
+import { buildMeta, pageRange, settlePage } from '@/lib/pagination';
 
 // ─────────────────────────────────────────────────────────
 // Vue propriétaire (ORG_ADMIN) : statistiques consolidées de tous les
@@ -451,7 +452,10 @@ export async function getOwnerDashboard(params: { range?: string; pointId?: stri
 export type OwnerDashboard = NonNullable<Awaited<ReturnType<typeof getOwnerDashboard>>>;
 
 /** Historique des sessions de caisse de tous les points (ou d'un point). */
-export async function getOwnerShifts(params: { pointId?: string; status?: string }) {
+export type OwnerShiftStats = { total: number; open: number; negative: number; totalDifference: number };
+
+/** Sessions de caisse des points du propriétaire, 20 par page ; totaux en SQL sur tout le périmètre filtré. */
+export async function getOwnerShifts(params: { pointId?: string; status?: string; page?: number }) {
   const session = await requireOrgAdmin();
   if (!session) return null;
 
@@ -467,17 +471,23 @@ export async function getOwnerShifts(params: { pointId?: string; status?: string
   const scopeIds = selected ? [selected.id] : allPoints.map((p) => p.id);
   const status = params.status === 'OPEN' || params.status === 'CLOSED' ? params.status : null;
 
-  const shifts = scopeIds.length
-    ? await fetchAll<any>((from, to) => {
-        let query = admin
-          .from('shifts')
-          .select('*, users(first_name, last_name)')
-          .in('structure_id', scopeIds)
-          .order('opened_at', { ascending: false });
-        if (status) query = query.eq('status', status);
-        return query.range(from, to);
-      })
-    : [];
+  const page = Math.max(1, params.page ?? 1);
+  const [from, to] = pageRange(page);
+  let query = admin
+    .from('shifts')
+    .select('*, users(first_name, last_name)', { count: 'exact' })
+    .in('structure_id', scopeIds)
+    .order('opened_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(from, to);
+  if (status) query = query.eq('status', status);
+  const emptyStats: OwnerShiftStats = { total: 0, open: 0, negative: 0, totalDifference: 0 };
+  const [{ data: rows, count }, statsRes] = scopeIds.length
+    ? await Promise.all([settlePage(query), admin.rpc('shift_scope_stats', { p_structure_ids: scopeIds, p_status: status })])
+    : [{ data: [], count: 0 }, { data: emptyStats }];
+  const shifts = (rows ?? []) as any[];
+  const raw = (statsRes.data ?? emptyStats) as OwnerShiftStats;
+  const stats: OwnerShiftStats = { total: Number(raw.total) || 0, open: Number(raw.open) || 0, negative: Number(raw.negative) || 0, totalDifference: Number(raw.totalDifference) || 0 };
 
   const pointName = new Map(allPoints.map((p) => [p.id, p.name]));
 
@@ -486,5 +496,6 @@ export async function getOwnerShifts(params: { pointId?: string; status?: string
     pointId: selected?.id ?? null,
     status,
     shifts: shifts.map((s) => ({ ...s, pointName: pointName.get(s.structure_id) ?? '—' })),
+    meta: buildMeta(page, count ?? 0, stats),
   };
 }

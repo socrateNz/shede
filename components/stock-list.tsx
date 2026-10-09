@@ -1,8 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useT } from '@/lib/i18n/client';
-import { TablePagination } from './table-pagination';
+import { PageNav } from './page-nav';
+import { UrlSearch } from './url-filters';
+import type { PageMeta } from '@/lib/pagination';
+import type { StockListStats } from '@/app/actions/stock';
 import { Package, Coffee, Carrot } from 'lucide-react';
 
 interface StockItem {
@@ -17,44 +21,46 @@ interface StockItem {
 }
 
 interface StockListProps {
+  /** Une page de lignes, déjà filtrée par le serveur. */
   stocks: StockItem[];
+  meta: PageMeta<StockListStats>;
 }
 
 function cn(...classes: any[]) {
   return classes.filter(Boolean).join(' ');
 }
 
-export function StockList({ stocks }: StockListProps) {
-  const [currentPage, setCurrentPage] = useState(1);
+export function StockList({ stocks, meta }: StockListProps) {
   const { t, format } = useT();
-  const [filter, setFilter] = useState<'all' | 'product' | 'accompaniment' | 'ingredient'>('all');
-  const itemsPerPage = 10;
-
-  const filtered = filter === 'all' ? stocks : stocks.filter((s) => s.type === filter);
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const paginatedStocks = filtered.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  if (currentPage > totalPages && totalPages > 0) {
-    setCurrentPage(1);
-  }
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const filter = (searchParams.get('type') ?? 'all') as 'all' | 'product' | 'accompaniment' | 'ingredient';
+  // Onglet de type : paramètre d'URL, retour à la page 1, recherche conservée.
+  const typeHref = (key: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('page');
+    if (key === 'all') params.delete('type');
+    else params.set('type', key);
+    const qs = params.toString();
+    return qs ? `${pathname}?${qs}` : pathname;
+  };
+  const paginatedStocks = stocks;
 
   return (
     <div className="bg-slate-800/50 border-slate-700/50 backdrop-blur-sm shadow-xl overflow-hidden rounded-xl border">
       {/* Filtres */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700/50 bg-slate-800/30">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-slate-700/50 bg-slate-800/30">
         {([
           { key: 'all', label: t('stock.list.filterAll'), icon: undefined },
           { key: 'product', label: t('stock.list.filterProducts'), icon: Package },
           { key: 'accompaniment', label: t('stock.list.filterAccompaniments'), icon: Coffee },
           { key: 'ingredient', label: t('stock.list.filterIngredients'), icon: Carrot },
         ] as const).map(({ key, label, icon: Icon }) => (
-          <button
+          <Link
             key={key}
-            type="button"
-            onClick={() => { setFilter(key); setCurrentPage(1); }}
+            href={typeHref(key)}
+            scroll={false}
+            aria-current={filter === key ? 'true' : undefined}
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
               filter === key
@@ -71,10 +77,11 @@ export function StockList({ stocks }: StockListProps) {
             {Icon && <Icon className="w-3.5 h-3.5" />}
             {label}
             <span className="ml-1 text-[10px] opacity-70">
-              ({key === 'all' ? stocks.length : stocks.filter(s => s.type === key).length})
+              ({format.number(key === 'all' ? meta.stats.total : meta.stats.byType[key])})
             </span>
-          </button>
+          </Link>
         ))}
+        <UrlSearch placeholder={t('stock.list.search')} className="ml-auto w-full sm:w-64" />
       </div>
 
       <div className="overflow-x-auto">
@@ -147,7 +154,7 @@ export function StockList({ stocks }: StockListProps) {
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {paginatedStocks.length === 0 && (
               <tr>
                 <td colSpan={6} className="p-8 text-center text-slate-500">
                   {t('stock.list.empty')}
@@ -157,11 +164,7 @@ export function StockList({ stocks }: StockListProps) {
           </tbody>
         </table>
       </div>
-      <TablePagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+      <PageNav meta={meta} />
     </div>
   );
 }

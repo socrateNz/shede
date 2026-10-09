@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 import { te } from '@/lib/i18n/server';
+import { buildMeta, emptyPage, pageRange, searchTerm, settlePage, type Paginated } from '@/lib/pagination';
 
 export async function getPromotions() {
   const session = await getSession();
@@ -25,6 +26,36 @@ export async function getPromotions() {
     console.error('Get promotions error:', error);
     return [];
   }
+}
+
+export type PromotionListStats = { total: number; active: number; percentage: number; fixed: number };
+
+/** Promotions du point, 20 par page (les plus récentes d'abord), recherche par nom et filtre actif/inactif ; statistiques en SQL. */
+export async function listPromotions(filters: { page?: number; q?: string; state?: string | null } = {}): Promise<Paginated<any, PromotionListStats>> {
+  const empty: PromotionListStats = { total: 0, active: 0, percentage: 0, fixed: 0 };
+  const session = await getSession();
+  const page = Math.max(1, filters.page ?? 1);
+  if (!session?.structureId || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) return emptyPage(empty, page);
+  const admin = getAdminSupabase();
+  const [from, to] = pageRange(page);
+  const q = searchTerm(filters.q);
+
+  let query = admin
+    .from('promotions')
+    .select('*', { count: 'exact' })
+    .eq('structure_id', session.structureId)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(from, to);
+  if (filters.state === 'active') query = query.eq('is_active', true);
+  if (filters.state === 'inactive') query = query.eq('is_active', false);
+  if (q) query = query.ilike('name', `%${q}%`);
+
+  const [{ data, count, error }, statsRes] = await Promise.all([settlePage(query), admin.rpc('promotion_list_stats', { p_structure_id: session.structureId })]);
+  if (error) console.error('[listPromotions] Error:', error);
+  const raw = (statsRes.data ?? empty) as PromotionListStats;
+  const stats: PromotionListStats = { total: Number(raw.total) || 0, active: Number(raw.active) || 0, percentage: Number(raw.percentage) || 0, fixed: Number(raw.fixed) || 0 };
+  return { items: data ?? [], meta: buildMeta(page, count ?? 0, stats) };
 }
 
 export async function getActivePromotionsForClient(structureId: string) {

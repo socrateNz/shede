@@ -93,6 +93,9 @@ const purchasing = {
     addHint: 'Une ligne par article. Les lignes sans article choisi sont ignorées.',
   },
   orders: {
+    statTotal: 'Toutes',
+    search: 'Rechercher un numéro de bon…',
+    allStatuses: 'Tous les statuts',
     badge: 'Achats',
     title: 'Bons de commande',
     subtitle: 'Commandez à vos fournisseurs, envoyez par e-mail ou WhatsApp, puis réceptionnez.',

@@ -75,6 +75,10 @@ const common: typeof fr = {
     previousAria: 'Previous page',
     next: 'Next',
     nextAria: 'Next page',
+    label: 'Pagination',
+    range: '{from}–{to} of {total}',
+    beyond: 'This page doesn’t exist.',
+    lastPage: 'Go to page {page}',
   },
 };
 

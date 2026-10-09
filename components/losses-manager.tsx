@@ -9,6 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { declareLoss, type LossRow } from '@/app/actions/stock-control';
+import type { LossListStats } from '@/app/actions/stock-control';
+import type { Paginated } from '@/lib/pagination';
+import { PageNav } from '@/components/page-nav';
 import { LOSS_REASONS, type LossReason } from '@/lib/stock-constants';
 import { useT } from '@/lib/i18n/client';
 
@@ -19,11 +22,12 @@ const SELECT_CLASS = 'h-10 w-full rounded-md border border-slate-600 bg-slate-90
 
 /** Pertes déclarées sur la période et déclaration d'une nouvelle perte. */
 export function LossesManager({
-  losses,
+  result,
   items,
   periodTabs,
 }: {
-  losses: LossRow[] | null;
+  /** Une page de pertes et les totaux SQL de la période ; null = migration absente. */
+  result: Paginated<LossRow, LossListStats> | null;
   items: LossItemOption[];
   periodTabs: React.ReactNode;
 }) {
@@ -37,13 +41,14 @@ export function LossesManager({
   const [reason, setReason] = useState<LossReason>('expired');
   const [note, setNote] = useState('');
 
+  const losses = result?.items ?? null;
   const list = losses ?? [];
-  const total = list.reduce((s, l) => s + (l.value ?? 0), 0);
-  const byReason = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const l of list) map.set(l.reason ?? 'other', (map.get(l.reason ?? 'other') ?? 0) + (l.value ?? 0));
-    return [...map.entries()].sort((a, b) => b[1] - a[1]);
-  }, [list]);
+  // Totaux de toute la période (SQL), pas seulement de la page affichée.
+  const total = result?.meta.stats.value ?? 0;
+  const byReason = useMemo(
+    () => Object.entries(result?.meta.stats.byReason ?? {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]),
+    [result],
+  );
 
   const options = items.filter((i) => i.type === itemType);
   const selected = items.find((i) => i.id === itemId);
@@ -112,7 +117,7 @@ export function LossesManager({
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/40">
-            {list.length === 0 ? (
+            {(result?.meta.total ?? 0) === 0 ? (
               <p className="py-12 text-center text-sm text-slate-400">{t('stockControl.losses.empty')}</p>
             ) : (
               <Table>
@@ -145,6 +150,7 @@ export function LossesManager({
                 </TableBody>
               </Table>
             )}
+            {result && <PageNav meta={result.meta} />}
           </div>
         </>
       )}

@@ -95,6 +95,9 @@ const purchasing: typeof fr = {
     addHint: 'One line per item. Lines without a chosen item are ignored.',
   },
   orders: {
+    statTotal: 'All',
+    search: 'Search a PO number…',
+    allStatuses: 'All statuses',
     badge: 'Purchasing',
     title: 'Purchase orders',
     subtitle: 'Order from your suppliers, send by email or WhatsApp, then receive.',

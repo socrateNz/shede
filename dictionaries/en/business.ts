@@ -40,6 +40,8 @@ const business: typeof fr = {
     passwordHint: 'At least 8 characters',
   },
   list: {
+    search: 'Search an organization, a city…',
+    noMatch: 'No organization matches this search.',
     badge: 'Organization management',
     title: 'Organizations',
     subtitle: 'Licenses, modules and administrators of partner organizations',

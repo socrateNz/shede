@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Paperclip } from 'lucide-react';
 import { getExpenses } from '@/app/actions/accounting';
+import { PageNav } from '@/components/page-nav';
+import { parsePage } from '@/lib/pagination';
 import { FilterBar, SetupNotice } from '@/components/accounting/filter-bar';
 import { ExpenseFormDialog } from '@/components/accounting/expense-form';
 import { ExpenseActions } from '@/components/accounting/expense-actions';
@@ -19,17 +21,17 @@ const STATUS_STYLE: Record<string, string> = {
 export default async function ExpensesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; status?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; status?: string; page?: string }>;
 }) {
   const params = await searchParams;
-  const data = await getExpenses(params);
+  // 20 dépenses par page ; totaux de la période calculés en SQL.
+  const data = await getExpenses({ ...params, page: parsePage(params.page) });
   if (!data) redirect('/unauthorized');
   const { t, format } = await getT();
-  const { scope, period, expenses } = data;
+  const { scope, period, expenses, meta } = data;
   const status = STATUSES.includes(params.status as (typeof STATUSES)[number]) ? params.status : null;
 
-  const active = expenses.filter((e) => e.status !== 'CANCELLED');
-  const total = active.reduce((s, e) => s + Number(e.amount_ttc), 0);
+  const total = meta.stats.total;
 
   const hrefFor = (next: string | null) => {
     const search = new URLSearchParams({ from: period.from, to: period.to });
@@ -48,7 +50,7 @@ export default async function ExpensesPage({
         <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-5">
           <p className="text-sm text-slate-400">{t('accounting.expenses.totalPeriod')}</p>
           <p className="mt-2 text-2xl font-bold tabular-nums text-slate-50">{format.money(total)}</p>
-          <p className="mt-1 text-xs text-slate-500">{t('accounting.expenses.count', { count: active.length })}</p>
+          <p className="mt-1 text-xs text-slate-500">{t('accounting.expenses.count', { count: meta.stats.count })}</p>
         </div>
         <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-5">
           <p className="text-sm text-slate-400">{t('accounting.expenses.unpaidTotal')}</p>
@@ -132,6 +134,7 @@ export default async function ExpensesPage({
             )}
           </tbody>
         </table>
+        <PageNav meta={meta} />
       </div>
     </div>
   );

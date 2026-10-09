@@ -1,5 +1,6 @@
 import { getAdminSupabase } from '@/lib/supabase';
 import { addDays, buildForecast, HISTORY_WEEKS, localToday, measureAccuracy, type ForecastEvent, type SalesRow } from '@/lib/forecast';
+import { fetchAll } from '@/lib/pagination';
 
 // Prévisions — accès base (module serveur, pas une Server Action) : partagé par
 // l'écran Prévisions et la tâche planifiée /api/cron/forecasts.
@@ -8,9 +9,15 @@ export const FORECAST_HORIZON = 7;
 export const ACCURACY_DAYS = 28;
 
 export async function loadSales(structureId: string, from: string, to: string): Promise<SalesRow[]> {
-  const { data, error } = await getAdminSupabase().rpc('daily_product_sales', { p_structure_id: structureId, p_from: from, p_to: to });
-  if (error) throw error;
-  return ((data || []) as any[]).map((r) => ({
+  // Jours × produits : dépasse vite 1000 lignes, la limite de l'API ; lecture par tranches.
+  const data = await fetchAll<any>((a, b) =>
+    getAdminSupabase()
+      .rpc('daily_product_sales', { p_structure_id: structureId, p_from: from, p_to: to })
+      .order('day')
+      .order('product_id')
+      .range(a, b),
+  );
+  return data.map((r) => ({
     day: String(r.day),
     product_id: r.product_id,
     quantity: Number(r.quantity) || 0,
@@ -78,13 +85,18 @@ export async function loadAccuracy(structureId: string) {
   const today = localToday();
   const from = addDays(today, -ACCURACY_DAYS);
   const to = addDays(today, -1);
-  const [{ data: snapshots }, actuals] = await Promise.all([
-    getAdminSupabase()
-      .from('forecast_snapshots')
-      .select('forecast_date, product_id, quantity, revenue')
-      .eq('structure_id', structureId)
-      .gte('forecast_date', from)
-      .lte('forecast_date', to),
+  const [snapshots, actuals] = await Promise.all([
+    fetchAll<any>((a, b) =>
+      getAdminSupabase()
+        .from('forecast_snapshots')
+        .select('forecast_date, product_id, quantity, revenue')
+        .eq('structure_id', structureId)
+        .gte('forecast_date', from)
+        .lte('forecast_date', to)
+        .order('forecast_date')
+        .order('product_id')
+        .range(a, b),
+    ),
     loadSales(structureId, from, to),
   ]);
   return measureAccuracy(

@@ -1,4 +1,5 @@
-import { getPromotions } from '@/app/actions/promotions';
+import { listPromotions } from '@/app/actions/promotions';
+import { parsePage } from '@/lib/pagination';
 import { requireRole } from '@/app/actions/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import {
   Tag,
   Plus,
-  ShieldCheck,
   LayoutDashboard,
   Percent,
   Banknote,
@@ -17,20 +17,13 @@ import Link from 'next/link';
 import { PromotionsList } from '@/components/promotions-list';
 import { getT } from '@/lib/i18n/server';
 
-async function getPromotionsStats(promotions: any[]) {
-  const total = promotions.length;
-  const active = promotions.filter(p => p.is_active).length;
-  const percentage = promotions.filter(p => p.type === 'PERCENTAGE').length;
-  const fixed = promotions.filter(p => p.type === 'FIXED').length;
-
-  return { total, active, percentage, fixed };
-}
-
-export default async function PromotionsPage() {
+export default async function PromotionsPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string; state?: string }> }) {
   const session = await requireRole('ADMIN', 'SUPER_ADMIN');
   const { t } = await getT();
-  const promotions = await getPromotions();
-  const stats = await getPromotionsStats(promotions);
+  const params = await searchParams;
+  // 20 promotions par page ; statistiques calculées en SQL.
+  const { items: promotions, meta } = await listPromotions({ page: parsePage(params.page), q: params.q, state: params.state });
+  const { stats } = meta;
 
   const admin = getAdminSupabase();
   const { data: products } = await admin
@@ -50,12 +43,6 @@ export default async function PromotionsPage() {
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
-              <ShieldCheck className="w-4 h-4 text-blue-400" />
-              <span className="text-sm text-blue-400 font-medium lowercase tracking-wide">
-                {t('promotions.page.badge', { role: session.role === 'ADMIN' ? t('roles.ADMIN') : t('roles.SUPER_ADMIN') })}
-              </span>
-            </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
               {t('promotions.page.title')}
             </h1>
@@ -134,13 +121,13 @@ export default async function PromotionsPage() {
                 {t('promotions.page.listTitle')}
               </CardTitle>
               <div className="text-xs text-slate-500 font-mono italic">
-                {t('promotions.page.configured', { count: promotions.length })}
+                {t('promotions.page.configured', { count: stats.total })}
               </div>
             </div>
           </CardHeader>
 
           <CardContent className="p-0">
-            {promotions.length === 0 ? (
+            {stats.total === 0 ? (
               <div className="text-center py-24 text-slate-400 relative">
                 <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-slate-700/30 flex items-center justify-center border border-slate-700/50">
                   <Tag className="w-12 h-12 opacity-20" />
@@ -157,7 +144,7 @@ export default async function PromotionsPage() {
                 </Link>
               </div>
             ) : (
-              <PromotionsList promotions={promotions} products={products || []} />
+              <PromotionsList promotions={promotions} meta={meta} products={products || []} />
             )}
           </CardContent>
         </Card>

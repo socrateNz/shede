@@ -5,6 +5,7 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { requireModule } from './auth';
 import { revalidatePath } from 'next/cache';
 import { deductOrderStock, recordStockMovement } from '@/lib/stock';
+import { buildMeta, fetchAll, pageRange, searchTerm, settlePage, type Paginated } from '@/lib/pagination';
 
 export type StockItemType = 'product' | 'accompaniment' | 'ingredient';
 
@@ -13,21 +14,20 @@ export async function getStockList() {
   const admin = getAdminSupabase();
 
   // 1. Produits
-  const { data: productStocks, error: productError } = await admin
-    .from('products')
-    .select(`
-      id,
-      name,
-      category,
-      stocks(quantity, threshold)
-    `)
-    .eq('structure_id', session.structureId)
-    .eq('is_deleted', false)
-    .order('name');
-
-  if (productError) {
-    console.error('Error fetching product stock list:', productError);
-  }
+  // Lectures complètes par tranches : l'API coupe sans erreur au-delà de 1000 lignes.
+  const productStocks = await fetchAll<any>((from, to) =>
+    admin
+      .from('products')
+      .select('id, name, category, stocks(quantity, threshold)')
+      .eq('structure_id', session.structureId)
+      .eq('is_deleted', false)
+      .order('name')
+      .order('id')
+      .range(from, to),
+  ).catch((error) => {
+    console.error('Error fetching product stock list:', error);
+    return [];
+  });
 
   const productItems = (productStocks || []).map((p: any) => ({
     id: p.id,
@@ -39,21 +39,20 @@ export async function getStockList() {
   }));
 
   // 2. Accompagnements
-  const { data: accompStocks, error: accompError } = await admin
-    .from('accompaniments')
-    .select(`
-      id,
-      name,
-      stocks(quantity, threshold)
-    `)
-    .eq('structure_id', session.structureId)
-    .eq('is_available', true)
-    .eq('is_deleted', false)
-    .order('name');
-
-  if (accompError) {
-    console.error('Error fetching accompaniment stock list:', accompError);
-  }
+  const accompStocks = await fetchAll<any>((from, to) =>
+    admin
+      .from('accompaniments')
+      .select('id, name, stocks(quantity, threshold)')
+      .eq('structure_id', session.structureId)
+      .eq('is_available', true)
+      .eq('is_deleted', false)
+      .order('name')
+      .order('id')
+      .range(from, to),
+  ).catch((error) => {
+    console.error('Error fetching accompaniment stock list:', error);
+    return [];
+  });
 
   const accompItems = (accompStocks || []).map((a: any) => ({
     id: a.id,
@@ -65,12 +64,16 @@ export async function getStockList() {
   }));
 
   // 3. Ingrédients (docs/phase16-ingredients.sql ; absents avant la migration)
-  const { data: ingredientStocks } = await admin
-    .from('ingredients')
-    .select('id, name, unit, stocks(quantity, threshold)')
-    .eq('structure_id', session.structureId)
-    .eq('is_active', true)
-    .order('name');
+  const ingredientStocks = await fetchAll<any>((from, to) =>
+    admin
+      .from('ingredients')
+      .select('id, name, unit, stocks(quantity, threshold)')
+      .eq('structure_id', session.structureId)
+      .eq('is_active', true)
+      .order('name')
+      .order('id')
+      .range(from, to),
+  ).catch(() => []);
 
   const ingredientItems = (ingredientStocks || []).map((i: any) => ({
     id: i.id,
@@ -83,6 +86,39 @@ export async function getStockList() {
   }));
 
   return [...productItems, ...accompItems, ...ingredientItems];
+}
+
+export type StockListStats = {
+  total: number;
+  byType: Record<StockItemType, number>;
+  low: number;
+  lowByType: Record<StockItemType, number>;
+};
+
+/** Seuil atteint ; un ingrédient n'est en alerte que s'il a un seuil. */
+function isLowStock(item: { type: StockItemType; quantity: number; threshold: number }) {
+  return item.type === 'ingredient' ? item.threshold > 0 && item.quantity <= item.threshold : item.quantity <= item.threshold;
+}
+
+/**
+ * État du stock, 20 lignes par page. Le catalogue (produits, accompagnements, ingrédients)
+ * est lu en entier côté serveur pour des statistiques exactes ; seule la page part au navigateur.
+ */
+export async function listStock(filters: { page?: number; q?: string; type?: string | null; low?: boolean } = {}): Promise<Paginated<Awaited<ReturnType<typeof getStockList>>[number], StockListStats>> {
+  const all = await getStockList();
+  const types: StockItemType[] = ['product', 'accompaniment', 'ingredient'];
+  const stats: StockListStats = {
+    total: all.length,
+    byType: Object.fromEntries(types.map((ty) => [ty, all.filter((s) => s.type === ty).length])) as Record<StockItemType, number>,
+    low: all.filter(isLowStock).length,
+    lowByType: Object.fromEntries(types.map((ty) => [ty, all.filter((s) => s.type === ty && isLowStock(s)).length])) as Record<StockItemType, number>,
+  };
+  const q = searchTerm(filters.q).toLowerCase();
+  const type = types.find((ty) => ty === filters.type) ?? null;
+  const filtered = all.filter((s) => (!type || s.type === type) && (!filters.low || isLowStock(s)) && (!q || s.name.toLowerCase().includes(q)));
+  const page = Math.max(1, filters.page ?? 1);
+  const [from, to] = pageRange(page);
+  return { items: filtered.slice(from, to + 1), meta: buildMeta(page, filtered.length, stats) };
 }
 
 export async function getAvailableAccompanimentsForStock() {
@@ -163,39 +199,42 @@ export async function processOrderStock(orderId: string) {
   await deductOrderStock(orderId, session.userId);
 }
 
-export async function getStockMovements(itemId?: string, itemType?: StockItemType) {
+export type StockMovementListStats = { total: number; in: number; out: number; adjustment: number };
+
+/**
+ * Mouvements de stock du point, 20 par page (les plus récents d'abord), filtres par sens
+ * (IN, OUT, ADJUSTMENT) et par type d'article ; statistiques en SQL.
+ */
+export async function listStockMovements(filters: { page?: number; direction?: string | null; kind?: string | null } = {}): Promise<Paginated<any, StockMovementListStats>> {
   const session = await requireModule('STOCK');
   const admin = getAdminSupabase();
+  const page = Math.max(1, filters.page ?? 1);
+  const [from, to] = pageRange(page);
 
-  const run = (withIngredients: boolean) => {
-    let query = admin
-      .from('stock_movements')
-      .select(`*, products(name), accompaniments(name), ${withIngredients ? 'ingredients(name, unit), ' : ''}users(first_name, last_name)`)
-      .eq('structure_id', session.structureId)
-      .order('created_at', { ascending: false });
-    if (itemId) {
-      const column = itemType === 'ingredient' ? 'ingredient_id' : itemType === 'accompaniment' ? 'accompaniment_id' : 'product_id';
-      query = query.eq(column, itemId);
-    }
-    return query;
-  };
+  let query = admin
+    .from('stock_movements')
+    .select('*, products(name), accompaniments(name), ingredients(name, unit), users(first_name, last_name)', { count: 'exact' })
+    .eq('structure_id', session.structureId)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(from, to);
+  if (filters.direction === 'IN' || filters.direction === 'OUT' || filters.direction === 'ADJUSTMENT') query = query.eq('type', filters.direction);
+  if (filters.kind === 'ingredient') query = query.not('ingredient_id', 'is', null);
+  if (filters.kind === 'accompaniment') query = query.not('accompaniment_id', 'is', null);
+  if (filters.kind === 'product') query = query.not('product_id', 'is', null);
 
-  let { data, error } = await run(true);
-  // Avant docs/phase16-ingredients.sql, la relation ingredients n'existe pas.
-  if (error) ({ data, error } = await run(false));
-
-  if (error) {
-    console.error('Error fetching movements:', error);
-    return [];
-  }
-
-  // Normalize: expose a unified `item_name` field
-  return (data || []).map((m: any) => ({
+  const [{ data, count, error }, statsRes] = await Promise.all([settlePage(query), admin.rpc('stock_movement_list_stats', { p_structure_id: session.structureId })]);
+  if (error) console.error('Error fetching movements:', error);
+  const raw = (statsRes.data ?? {}) as Partial<StockMovementListStats>;
+  const stats: StockMovementListStats = { total: Number(raw.total) || 0, in: Number(raw.in) || 0, out: Number(raw.out) || 0, adjustment: Number(raw.adjustment) || 0 };
+  // Libellé unifié de l'article (produit, accompagnement ou ingrédient)
+  const items = (data || []).map((m: any) => ({
     ...m,
     item_name: m.products?.name || m.accompaniments?.name || m.ingredients?.name || '—',
     item_type: m.ingredient_id ? 'ingredient' : m.accompaniment_id ? 'accompaniment' : 'product',
     item_unit: m.ingredients?.unit ?? null,
   }));
+  return { items, meta: buildMeta(page, count ?? 0, stats) };
 }
 
 export async function updateProductRecipe(productId: string, ingredients: { ingredientId: string, quantity: number }[]) {

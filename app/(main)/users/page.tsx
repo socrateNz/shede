@@ -1,5 +1,6 @@
 import { requireRole } from '@/app/actions/auth';
-import { getUsers } from '@/app/actions/users';
+import { listUsers } from '@/app/actions/users';
+import { parsePage } from '@/lib/pagination';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Users, UserCheck, UserCog, Shield,  } from 'lucide-react';
@@ -7,20 +8,13 @@ import Link from 'next/link';
 import { UsersList } from '@/components/users-list';
 import { getT } from '@/lib/i18n/server';
 
-async function getUsersStats(users: any[]) {
-  const total = users.length;
-  const admins = users.filter(user => user.role === 'ADMIN').length;
-  const reception = users.filter(user => user.role === 'RECEPTION').length;
-  const staff = total - admins - reception;
-
-  return { total, admins, reception, staff };
-}
-
-export default async function UsersPage() {
+export default async function UsersPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string; role?: string }> }) {
   const session = await requireRole('ADMIN', 'SUPER_ADMIN');
   const { t } = await getT();
-  const users = await getUsers(session.structureId!);
-  const stats = await getUsersStats(users);
+  const params = await searchParams;
+  // 20 membres par page ; statistiques calculées en SQL sur toute l'équipe.
+  const { items: users, meta } = await listUsers({ page: parsePage(params.page), q: params.q, role: params.role });
+  const { stats } = meta;
 
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -104,11 +98,11 @@ export default async function UsersPage() {
           <CardHeader className="border-b border-slate-700/50">
             <CardTitle className="text-slate-50 flex items-center gap-2">
               <Users className="w-5 h-5 text-blue-400" />
-              {t('team.list.members', { count: users.length })}
+              {t('team.list.members', { count: stats.total })}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {users.length === 0 ? (
+            {stats.total === 0 ? (
               <div className="text-center py-16 text-slate-400">
                 <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-700/50 flex items-center justify-center">
                   <Users className="w-10 h-10 opacity-30" />
@@ -123,7 +117,7 @@ export default async function UsersPage() {
                 </Link>
               </div>
             ) : (
-              <UsersList users={users} />
+              <UsersList users={users} meta={meta} />
             )}
           </CardContent>
         </Card>

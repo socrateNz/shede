@@ -6,6 +6,7 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { te } from '@/lib/i18n/server';
 import { recordStockMovement } from '@/lib/stock';
 import { INGREDIENT_UNITS, type IngredientUnit } from '@/lib/recipes';
+import { buildMeta, emptyPage, pageRange, searchTerm, settlePage, type Paginated } from '@/lib/pagination';
 
 // Ingrédients du point (docs/phase16-ingredients.sql), module STOCK : ce qu'on
 // achète et stocke, distinct des produits du menu.
@@ -40,17 +41,30 @@ function revalidateStock() {
 }
 
 /** Ingrédients du point avec leur stock. null : migration phase 16 non exécutée. */
-export async function listIngredients(): Promise<IngredientRow[] | null> {
+export type IngredientListStats = { total: number; active: number; low: number; inRecipes: number };
+
+/** Ingrédients du point, 20 par page (ordre alphabétique), recherche par nom ; statistiques en SQL. null : migration absente. */
+export async function listIngredients(filters: { page?: number; q?: string } = {}): Promise<Paginated<IngredientRow, IngredientListStats> | null> {
+  const empty: IngredientListStats = { total: 0, active: 0, low: 0, inRecipes: 0 };
+  const page = Math.max(1, filters.page ?? 1);
   const session = await requireStockManager();
-  if (!session) return [];
+  if (!session) return emptyPage(empty, page);
   const admin = getAdminSupabase();
-  const { data, error } = await admin
+  const [from, to] = pageRange(page);
+  const q = searchTerm(filters.q);
+  let query = admin
     .from('ingredients')
-    .select('id, name, unit, cost_per_unit, is_active, stocks(quantity, threshold), recipe_items(id)')
+    .select('id, name, unit, cost_per_unit, is_active, stocks(quantity, threshold), recipe_items(id)', { count: 'exact' })
     .eq('structure_id', session.structureId)
-    .order('name', { ascending: true });
-  if (error) return error.code === '42P01' || error.code === 'PGRST205' ? null : [];
-  return (data || []).map((i: any) => ({
+    .order('name', { ascending: true })
+    .order('id', { ascending: true })
+    .range(from, to);
+  if (q) query = query.ilike('name', `%${q}%`);
+  const [{ data, count, error }, statsRes] = await Promise.all([settlePage(query), admin.rpc('ingredient_list_stats', { p_structure_id: session.structureId })]);
+  if (error) return error.code === '42P01' || error.code === 'PGRST205' ? null : emptyPage(empty, page);
+  const raw = (statsRes.data ?? empty) as IngredientListStats;
+  const stats: IngredientListStats = { total: Number(raw.total) || 0, active: Number(raw.active) || 0, low: Number(raw.low) || 0, inRecipes: Number(raw.inRecipes) || 0 };
+  const items = (data || []).map((i: any) => ({
     id: i.id,
     name: i.name,
     unit: i.unit,
@@ -60,6 +74,7 @@ export async function listIngredients(): Promise<IngredientRow[] | null> {
     threshold: Number(i.stocks?.[0]?.threshold ?? 0) || 0,
     recipe_count: (i.recipe_items || []).length,
   }));
+  return { items, meta: buildMeta(page, count ?? 0, stats) };
 }
 
 type IngredientInput = {

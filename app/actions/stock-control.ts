@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { te } from '@/lib/i18n/server';
+import { buildMeta, emptyPage, fetchAll, pageRange, settlePage, type Paginated } from '@/lib/pagination';
 import { LOSS_REASONS, recordLoss, type LossReason, type StockItemType } from '@/lib/stock';
 
 // Pertes déclarées et rapport d'écarts de stock (docs/phase17-inventory.sql), module STOCK.
@@ -77,20 +78,37 @@ export type LossRow = {
 };
 
 /** Pertes déclarées sur une période. null : migration phase 17 non exécutée. */
-export async function listLosses(from: string, to: string): Promise<LossRow[] | null> {
+export type LossListStats = { count: number; value: number; byReason: Record<string, number> };
+
+/** Pertes déclarées sur une période, 20 par page (les plus récentes d'abord) ; totaux de la période en SQL. null : migration absente. */
+export async function listLosses(periodFrom: string, periodTo: string, filters: { page?: number } = {}): Promise<Paginated<LossRow, LossListStats> | null> {
+  const empty: LossListStats = { count: 0, value: 0, byReason: {} };
+  const page = Math.max(1, filters.page ?? 1);
   const session = await requireStock(DECLARE_ROLES);
-  if (!session) return [];
-  const { data, error } = await getAdminSupabase()
-    .from('stock_movements')
-    .select('id, created_at, product_id, accompaniment_id, ingredient_id, quantity, unit_cost, loss_reason, note, products(name), accompaniments(name), ingredients(name, unit), users(first_name, last_name)')
-    .eq('structure_id', session.structureId)
-    .eq('reason', 'loss')
-    .gte('created_at', from)
-    .lt('created_at', to)
-    .order('created_at', { ascending: false })
-    .limit(1000);
-  if (error) return error.code === '42703' || error.code === 'PGRST200' || error.code === 'PGRST204' ? null : [];
-  return (data || []).map((m: any) => ({
+  if (!session) return emptyPage(empty, page);
+  const admin = getAdminSupabase();
+  const [from, to] = pageRange(page);
+  const [{ data, count, error }, statsRes] = await Promise.all([
+    settlePage(admin
+      .from('stock_movements')
+      .select('id, created_at, product_id, accompaniment_id, ingredient_id, quantity, unit_cost, loss_reason, note, products(name), accompaniments(name), ingredients(name, unit), users(first_name, last_name)', { count: 'exact' })
+      .eq('structure_id', session.structureId)
+      .eq('reason', 'loss')
+      .gte('created_at', periodFrom)
+      .lt('created_at', periodTo)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, to)),
+    admin.rpc('loss_list_stats', { p_structure_id: session.structureId, p_from: periodFrom, p_to: periodTo }),
+  ]);
+  if (error) return error.code === '42703' || error.code === 'PGRST200' || error.code === 'PGRST204' ? null : emptyPage(empty, page);
+  const raw = (statsRes.data ?? empty) as LossListStats;
+  const stats: LossListStats = {
+    count: Number(raw.count) || 0,
+    value: Number(raw.value) || 0,
+    byReason: Object.fromEntries(Object.entries(raw.byReason ?? {}).map(([k, v]) => [k, Number(v) || 0])),
+  };
+  const items = (data || []).map((m: any) => ({
     id: m.id,
     created_at: m.created_at,
     item_type: itemTypeOf(m),
@@ -102,6 +120,7 @@ export async function listLosses(from: string, to: string): Promise<LossRow[] | 
     note: m.note,
     user: fullName(m.users),
   }));
+  return { items, meta: buildMeta(page, count ?? 0, stats) };
 }
 
 // ── Écarts : théorique (ventes) / pertes / inventaires ───
@@ -134,7 +153,8 @@ export async function getVarianceReport(from: string, to: string): Promise<Varia
   if (!session) return { rows: [], totals: { soldValue: 0, lostValue: 0, inventoryGapValue: 0 }, inventories: 0 };
   const admin = getAdminSupabase();
 
-  const [{ data: movements, error }, { data: inventories }] = await Promise.all([
+  // Tous les mouvements de la période, par tranches : l'API coupe sans erreur au-delà de 1000 lignes.
+  const movementsResult = fetchAll<any>((a, b) =>
     admin
       .from('stock_movements')
       .select('product_id, accompaniment_id, ingredient_id, reason, quantity, unit_cost, products(name), accompaniments(name), ingredients(name, unit)')
@@ -143,7 +163,14 @@ export async function getVarianceReport(from: string, to: string): Promise<Varia
       .in('reason', ['sale', 'loss'])
       .gte('created_at', from)
       .lt('created_at', to)
-      .limit(20000),
+      .order('id')
+      .range(a, b),
+  ).then(
+    (data) => ({ data, error: null as { code?: string } | null }),
+    (error) => ({ data: [] as any[], error: error as { code?: string } }),
+  );
+  const [{ data: movements, error }, { data: inventories }] = await Promise.all([
+    movementsResult,
     admin
       .from('inventories')
       .select('id, inventory_lines(item_type, product_id, accompaniment_id, ingredient_id, counted_quantity, expected_quantity, unit_cost, products(name), accompaniments(name), ingredients(name, unit))')

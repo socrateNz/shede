@@ -17,6 +17,7 @@ import {
 } from '@/lib/emails';
 import { getLocale, getT } from '@/lib/i18n/server';
 import type { Translator } from '@/lib/i18n/translate';
+import { buildMeta, emptyPage, pageRange, searchTerm, settlePage, type Paginated } from '@/lib/pagination';
 
 // ─────────────────────────────────────────────────────────
 // Organisations (Super Admin + inscription publique)
@@ -236,34 +237,40 @@ async function notifyOrganizationPoints(
   );
 }
 
-export async function getAllOrganizations() {
-  if (!(await requireSuperAdmin())) return [];
+export type OrganizationListStats = { total: number; points: number; active: number; expiringSoon: number };
 
-  try {
-    const admin = getAdminSupabase();
-    const { data, error } = await admin
-      .from('organizations')
-      .select(
-        'id, name, email, city, modules, created_at, ' +
-          // * : inclut api_monthly_orders après docs/phase13-api.sql sans casser avant
-          'licenses!organization_id(*), ' +
-          'structures!organization_id(id, name, city, is_active), ' +
-          'users!organization_id(id, email, first_name, last_name, role, is_active)'
-      )
-      .order('created_at', { ascending: false });
+/** Organisations (super-admin), 20 par page (les plus récentes d'abord), recherche nom/ville/e-mail ; statistiques en SQL. */
+export async function listOrganizations(filters: { page?: number; q?: string } = {}): Promise<Paginated<any, OrganizationListStats>> {
+  const empty: OrganizationListStats = { total: 0, points: 0, active: 0, expiringSoon: 0 };
+  const page = Math.max(1, filters.page ?? 1);
+  if (!(await requireSuperAdmin())) return emptyPage(empty, page);
+  const admin = getAdminSupabase();
+  const [from, to] = pageRange(page);
+  const q = searchTerm(filters.q);
+  let query = admin
+    .from('organizations')
+    .select(
+      'id, name, email, city, modules, created_at, ' +
+        // * : inclut api_monthly_orders après docs/phase13-api.sql sans casser avant
+        'licenses!organization_id(*), ' +
+        'structures!organization_id(id, name, city, is_active), ' +
+        'users!organization_id(id, email, first_name, last_name, role, is_active)',
+      { count: 'exact' },
+    )
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(from, to);
+  if (q) query = query.or(`name.ilike.%${q}%,city.ilike.%${q}%,email.ilike.%${q}%`);
 
-    if (error) {
-      console.error('[getAllOrganizations] error:', error);
-      return [];
-    }
-
-    return (data || []).map(({ users, ...organization }: any) => ({
-      ...organization,
-      orgAdmins: (users || []).filter((u: any) => u.role === 'ORG_ADMIN'),
-    }));
-  } catch {
-    return [];
-  }
+  const [{ data, count, error }, statsRes] = await Promise.all([settlePage(query), admin.rpc('organization_list_stats')]);
+  if (error) console.error('[listOrganizations] error:', error);
+  const raw = (statsRes.data ?? empty) as OrganizationListStats;
+  const stats: OrganizationListStats = { total: Number(raw.total) || 0, points: Number(raw.points) || 0, active: Number(raw.active) || 0, expiringSoon: Number(raw.expiringSoon) || 0 };
+  const items = (data || []).map(({ users, ...organization }: any) => ({
+    ...organization,
+    orgAdmins: (users || []).filter((u: any) => u.role === 'ORG_ADMIN'),
+  }));
+  return { items, meta: buildMeta(page, count ?? 0, stats) };
 }
 
 export async function createOrganizationWithAdmin(

@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, Carrot, Eye, EyeOff, Loader2, MoreVertical, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { AlertTriangle, Carrot, Eye, EyeOff, Loader2, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,9 +13,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { createIngredient, deleteIngredient, setIngredientActive, updateIngredient, type IngredientRow } from '@/app/actions/ingredients';
+import type { IngredientListStats } from '@/app/actions/ingredients';
+import type { Paginated } from '@/lib/pagination';
+import { PageNav } from '@/components/page-nav';
+import { UrlSearch } from '@/components/url-filters';
 import { INGREDIENT_UNITS, type IngredientUnit } from '@/lib/recipes';
 import { useT } from '@/lib/i18n/client';
 import { useDialogs } from '@/components/dialog-provider';
@@ -27,20 +30,18 @@ type Form = { name: string; unit: IngredientUnit; cost: string; threshold: strin
 const EMPTY_FORM: Form = { name: '', unit: 'kg', cost: '', threshold: '0', initial: '' };
 
 /** Ingrédients du point : liste, création et modification dans un dialogue. */
-export function IngredientsManager({ initialIngredients }: { initialIngredients: IngredientRow[] | null }) {
+/** Une page d'ingrédients (20), filtrée par le serveur ; null = migration absente. */
+export function IngredientsManager({ result }: { result: Paginated<IngredientRow, IngredientListStats> | null }) {
+  const initialIngredients = result?.items ?? null;
   const { t, format } = useT();
   const dialogs = useDialogs();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<IngredientRow | 'new' | null>(null);
   const [form, setForm] = useState<Form>(EMPTY_FORM);
   const ingredients = initialIngredients ?? [];
 
-  const visible = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return q ? ingredients.filter((i) => i.name.toLowerCase().includes(q)) : ingredients;
-  }, [ingredients, search]);
+  const visible = ingredients;
 
   const unitShort = (unit: IngredientUnit) => t(`ingredients.unitShort.${unit}`);
 
@@ -68,8 +69,7 @@ export function IngredientsManager({ initialIngredients }: { initialIngredients:
       unit: ingredient.unit,
       cost: String(ingredient.cost_per_unit),
       threshold: String(ingredient.threshold),
-      initial: '',
-    });
+      initial: '' });
     setEditing(ingredient);
   }
 
@@ -79,8 +79,7 @@ export function IngredientsManager({ initialIngredients }: { initialIngredients:
       name: form.name,
       unit: form.unit,
       costPerUnit: Number(form.cost) || 0,
-      threshold: Number(form.threshold) || 0,
-    };
+      threshold: Number(form.threshold) || 0 };
     if (editing === 'new') {
       run(() => createIngredient({ ...input, initialQuantity: Number(form.initial) || 0 }), t('ingredients.created'), () => setEditing(null));
     } else if (editing) {
@@ -117,16 +116,13 @@ export function IngredientsManager({ initialIngredients }: { initialIngredients:
       ) : (
         <div className="overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/40">
           <div className="border-b border-slate-700/50 p-4">
-            <div className="relative max-w-sm">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('ingredients.search')} className={`pl-9 ${INPUT_CLASS}`} />
-            </div>
+            <UrlSearch placeholder={t('ingredients.search')} className="max-w-sm" />
           </div>
           {visible.length === 0 ? (
             <div className="py-16 text-center">
               <Carrot className="mx-auto mb-3 h-10 w-10 text-slate-600" />
               <p className="mb-4 text-sm text-slate-400">{t('ingredients.empty')}</p>
-              {ingredients.length === 0 && (
+              {(result?.meta.stats.total ?? 0) === 0 && (
                 <Button type="button" variant="outline" onClick={openNew} className="border-slate-700 text-emerald-400 hover:bg-slate-800">
                   <Plus className="mr-2 h-4 w-4" />
                   {t('ingredients.newButton')}
@@ -208,6 +204,7 @@ export function IngredientsManager({ initialIngredients }: { initialIngredients:
               </TableBody>
             </Table>
           )}
+          {result && <PageNav meta={result.meta} />}
         </div>
       )}
 

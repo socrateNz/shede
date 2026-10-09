@@ -7,14 +7,19 @@ import { PeriodTabs } from '@/components/period-tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { parsePeriod, periodRange } from '@/lib/periods';
 import { getT } from '@/lib/i18n/server';
+import { parsePage } from '@/lib/pagination';
+import { PageNav } from '@/components/page-nav';
 
-export default async function ReceiptsPage({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
+export default async function ReceiptsPage({ searchParams }: { searchParams: Promise<{ period?: string; page?: string }> }) {
   await requireModule('ACHATS');
   const { t, format } = await getT();
-  const period = parsePeriod((await searchParams).period);
+  const params = await searchParams;
+  const period = parsePeriod(params.period);
   const { from, to } = periodRange(period);
-  const receipts = await listReceipts(from, to);
-  const total = (receipts ?? []).reduce((s, r) => s + r.total_ht, 0);
+  // 20 réceptions par page ; total de la période calculé en SQL.
+  const result = await listReceipts(from, to, { page: parsePage(params.page) });
+  const receipts = result?.items ?? null;
+  const total = result?.meta.stats.amount ?? 0;
 
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -52,7 +57,7 @@ export default async function ReceiptsPage({ searchParams }: { searchParams: Pro
             </p>
           </div>
           <div className="overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/40">
-            {receipts.length === 0 ? (
+            {result!.meta.total === 0 ? (
               <p className="py-14 text-center text-sm text-slate-400">{t('purchasing.receipts.empty')}</p>
             ) : (
               <Table>
@@ -88,6 +93,7 @@ export default async function ReceiptsPage({ searchParams }: { searchParams: Pro
                 </TableBody>
               </Table>
             )}
+            <PageNav meta={result!.meta} />
           </div>
         </>
       )}

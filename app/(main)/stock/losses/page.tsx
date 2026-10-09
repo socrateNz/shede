@@ -5,16 +5,19 @@ import { LossesManager, type LossItemOption } from '@/components/losses-manager'
 import { PeriodTabs } from '@/components/period-tabs';
 import { parsePeriod, periodRange } from '@/lib/periods';
 import { getT } from '@/lib/i18n/server';
+import { parsePage } from '@/lib/pagination';
 import { getAdminSupabase } from '@/lib/supabase';
 
-export default async function LossesPage({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
+export default async function LossesPage({ searchParams }: { searchParams: Promise<{ period?: string; page?: string }> }) {
   const session = await requireModule('STOCK');
   const { t } = await getT();
-  const period = parsePeriod((await searchParams).period);
+  const params = await searchParams;
+  const period = parsePeriod(params.period);
   const { from, to } = periodRange(period);
 
   const [losses, stock, { data: products }] = await Promise.all([
-    listLosses(from, to),
+    // 20 pertes par page ; totaux de la période calculés en SQL.
+    listLosses(from, to, { page: parsePage(params.page) }),
     getStockList(),
     // Tous les plats (une perte de plat avec fiche recette sort ses ingrédients)
     getAdminSupabase().from('products').select('id, name').eq('structure_id', session.structureId).eq('is_deleted', false).order('name'),
@@ -28,7 +31,7 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
 
   return (
     <LossesManager
-      losses={losses}
+      result={losses}
       items={items}
       periodTabs={
         <PeriodTabs

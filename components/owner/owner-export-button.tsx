@@ -8,8 +8,19 @@ import { useT } from '@/lib/i18n/client';
 
 export type OwnerExportSheets = Record<string, Record<string, string | number>[]>;
 
-/** Exporte le rapport propriétaire en un classeur Excel (une feuille par section). */
-export function OwnerExportButton({ sheets, filename }: { sheets: OwnerExportSheets; filename: string }) {
+/**
+ * Exporte un classeur Excel (une feuille par section). `load` : données chargées au clic,
+ * pour exporter toute une période quand l'écran n'en affiche qu'une page.
+ */
+export function OwnerExportButton({
+  sheets,
+  load,
+  filename,
+}: {
+  sheets?: OwnerExportSheets;
+  load?: () => Promise<OwnerExportSheets>;
+  filename: string;
+}) {
   const [pending, setPending] = useState(false);
   const { t } = useT();
 
@@ -17,8 +28,9 @@ export function OwnerExportButton({ sheets, filename }: { sheets: OwnerExportShe
     setPending(true);
     try {
       const XLSX = await import('xlsx');
+      const data = load ? await load() : (sheets ?? {});
       const workbook = XLSX.utils.book_new();
-      for (const [name, rows] of Object.entries(sheets)) {
+      for (const [name, rows] of Object.entries(data)) {
         const sheet = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Info: t('org.owner.export.empty') }]);
         XLSX.utils.book_append_sheet(workbook, sheet, name.slice(0, 31));
       }

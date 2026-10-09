@@ -39,6 +39,8 @@ const business = {
     passwordHint: 'Minimum 8 caractères',
   },
   list: {
+    search: 'Rechercher une organisation, une ville…',
+    noMatch: 'Aucune organisation ne correspond à cette recherche.',
     badge: 'Gestion des organisations',
     title: 'Organisations',
     subtitle: 'Licences, modules et administrateurs des organisations partenaires',

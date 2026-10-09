@@ -1,6 +1,5 @@
 'use client';
 
-import { User } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Edit2, Trash2, MoreVertical, Shield, UserCheck, UserCog, CreditCard, Coffee, Mail, Calendar, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -23,13 +22,19 @@ import { deleteUser } from '@/app/actions/users';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { TablePagination } from './table-pagination';
+import { PageNav } from './page-nav';
+import { UrlSearch, UrlSelect } from './url-filters';
+import type { PageMeta } from '@/lib/pagination';
+import type { UserRow } from '@/app/actions/users';
+import { TEAM_ROLES } from '@/lib/roles';
 import { useT } from '@/lib/i18n/client';
 import { useDialogs } from '@/components/dialog-provider';
 import type { TranslationKey } from '@/lib/i18n/translate';
 
 interface UsersListProps {
-  users: User[];
+  /** Une page de membres, déjà filtrée par le serveur. */
+  users: UserRow[];
+  meta: PageMeta<unknown>;
 }
 
 const roleConfig: Record<string, { icon: any; color: string; bg: string }> = {
@@ -40,23 +45,11 @@ const roleConfig: Record<string, { icon: any; color: string; bg: string }> = {
   RECEPTION: { icon: UserCheck, color: 'text-teal-400', bg: 'bg-teal-500/10' },
 };
 
-export function UsersList({ users }: UsersListProps) {
+export function UsersList({ users, meta }: UsersListProps) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const { t } = useT();
   const dialogs = useDialogs();
-  const itemsPerPage = 10;
-
-  const totalPages = Math.ceil(users.length / itemsPerPage);
-  const paginatedUsers = users.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  if (currentPage > totalPages && totalPages > 0) {
-    setCurrentPage(1);
-  }
 
   const handleDelete = async (userId: string) => {
     if (!(await dialogs.confirm({ description: t('team.list.confirmDelete'), destructive: true }))) return;
@@ -84,6 +77,14 @@ export function UsersList({ users }: UsersListProps) {
 
   return (
     <div className="rounded-xl border border-slate-700/50 overflow-hidden bg-slate-800/30">
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-700/50 p-3">
+        <UrlSearch placeholder={t('team.list.search')} className="min-w-48 flex-1" />
+        <UrlSelect
+          param="role"
+          label={t('team.list.allRoles')}
+          options={[{ value: '', label: t('team.list.allRoles') }, ...TEAM_ROLES.map((r) => ({ value: r, label: t(`roles.${r}` as TranslationKey) }))]}
+        />
+      </div>
       <Table>
         <TableHeader>
           <TableRow className="border-slate-700 hover:bg-transparent bg-slate-800/50">
@@ -95,7 +96,12 @@ export function UsersList({ users }: UsersListProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {paginatedUsers.map((user) => {
+          {users.length === 0 && (
+            <TableRow className="border-slate-700 hover:bg-transparent">
+              <TableCell colSpan={99} className="py-10 text-center text-slate-400">{t('team.list.noMatch')}</TableCell>
+            </TableRow>
+          )}
+          {users.map((user) => {
             const role = getRoleConfig(user.role);
             const RoleIcon = role.icon;
             const isSuperAdmin = user.role === 'SUPER_ADMIN';
@@ -200,11 +206,7 @@ export function UsersList({ users }: UsersListProps) {
           })}
         </TableBody>
       </Table>
-      <TablePagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+      <PageNav meta={meta} />
     </div>
   );
 }

@@ -1,7 +1,7 @@
-import { getProducts } from '@/app/actions/products';
+import { listProducts } from '@/app/actions/products';
+import { parsePage } from '@/lib/pagination';
 import { requireRole } from '@/app/actions/auth';
 import { getT } from '@/lib/i18n/server';
-import type { TranslationKey } from '@/lib/i18n/translate';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,7 +10,6 @@ import {
   CheckCircle,
   XCircle,
   LayoutDashboard,
-  ShieldCheck,
   Tag,
   AlertCircle
 } from 'lucide-react';
@@ -19,21 +18,20 @@ import { ProductsList } from '@/components/products-list';
 import { redirect } from 'next/navigation';
 import { loadCategories } from '@/lib/categories';
 
-async function getProductsStats(products: any[]) {
-  const total = products.length;
-  const available = products.filter(p => p.is_available).length;
-  const unavailable = products.filter(p => !p.is_available).length;
-  const categories = new Set(products.flatMap((p: any) => (p.categories || []).map((c: any) => c.id))).size;
-
-  return { total, available, unavailable, categories };
-}
-
-export default async function ProductsPage() {
+export default async function ProductsPage({
+  searchParams }: {
+  searchParams: Promise<{ page?: string; q?: string; category?: string; destination?: string }>;
+}) {
   const session = await requireRole('ADMIN', 'SUPER_ADMIN');
   const { t, format } = await getT();
-  const products = await getProducts();
-  const stats = await getProductsStats(products);
-  const categories = await loadCategories(session.structureId!);
+  const params = await searchParams;
+  // 20 produits par page, filtrés par le serveur ; statistiques calculées en SQL.
+  const [{ items: products, meta }, categories] = await Promise.all([
+    listProducts({ page: parsePage(params.page), q: params.q, category: params.category, destination: params.destination }),
+    loadCategories(session.structureId!),
+  ]);
+  const { stats } = meta;
+  const filtered = Boolean(params.q || params.category || params.destination);
 
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -47,12 +45,6 @@ export default async function ProductsPage() {
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 mb-4 backdrop-blur-sm">
-              <ShieldCheck className="w-4 h-4 text-blue-400" />
-              <span className="text-sm text-blue-400 font-medium lowercase tracking-wide">
-                {t('products.list.access', { role: t(`roles.${session.role}` as TranslationKey) })}
-              </span>
-            </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
               {t('products.list.title')}
             </h1>
@@ -74,7 +66,7 @@ export default async function ProductsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-400 mb-1 uppercase tracking-wider">{t('products.list.statTotal')}</p>
-                <h3 className="text-3xl font-bold text-white tracking-tight">{stats.total}</h3>
+                <h3 className="text-3xl font-bold text-white tracking-tight">{format.number(stats.total)}</h3>
               </div>
               <div className="p-3 bg-blue-500/10 rounded-xl group-hover:scale-110 transition-transform">
                 <Package className="w-6 h-6 text-blue-400" />
@@ -87,7 +79,7 @@ export default async function ProductsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-400 mb-1 uppercase tracking-wider">{t('products.list.statAvailable')}</p>
-                <h3 className="text-3xl font-bold text-green-400 tracking-tight">{stats.available}</h3>
+                <h3 className="text-3xl font-bold text-green-400 tracking-tight">{format.number(stats.available)}</h3>
               </div>
               <div className="p-3 bg-green-500/10 rounded-xl group-hover:scale-110 transition-transform">
                 <CheckCircle className="w-6 h-6 text-green-400" />
@@ -100,7 +92,7 @@ export default async function ProductsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-400 mb-1 uppercase tracking-wider">{t('products.list.statUnavailable')}</p>
-                <h3 className="text-3xl font-bold text-red-400 tracking-tight">{stats.unavailable}</h3>
+                <h3 className="text-3xl font-bold text-red-400 tracking-tight">{format.number(stats.unavailable)}</h3>
               </div>
               <div className="p-3 bg-red-500/10 rounded-xl group-hover:scale-110 transition-transform">
                 <XCircle className="w-6 h-6 text-red-400" />
@@ -113,7 +105,7 @@ export default async function ProductsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-400 mb-1 uppercase tracking-wider">{t('products.list.statCategories')}</p>
-                <h3 className="text-3xl font-bold text-yellow-400 tracking-tight">{stats.categories}</h3>
+                <h3 className="text-3xl font-bold text-yellow-400 tracking-tight">{format.number(stats.categories)}</h3>
               </div>
               <div className="p-3 bg-yellow-500/10 rounded-xl group-hover:scale-110 transition-transform">
                 <Tag className="w-6 h-6 text-yellow-400" />
@@ -138,7 +130,7 @@ export default async function ProductsPage() {
           </CardHeader>
 
           <CardContent className="p-6">
-            {products.length === 0 ? (
+            {stats.total === 0 && !filtered ? (
               <div className="text-center py-24 text-slate-400 relative">
                 <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-slate-700/30 flex items-center justify-center border border-slate-700/50">
                   <Package className="w-12 h-12 opacity-20" />
@@ -155,7 +147,7 @@ export default async function ProductsPage() {
                 </Link>
               </div>
             ) : (
-              <ProductsList products={products} categories={categories} />
+              <ProductsList products={products} meta={meta} categories={categories} />
             )}
           </CardContent>
         </Card>

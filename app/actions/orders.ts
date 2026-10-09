@@ -10,6 +10,8 @@ import { recomputeOrderTotal } from '@/lib/order-totals';
 import { syncOrderWebhook } from '@/lib/api/webhooks';
 import { resolveDelivery } from '@/lib/delivery';
 import { undeliverableProducts } from '@/lib/categories';
+import { buildMeta, emptyPage, pageRange, settlePage, type Paginated } from '@/lib/pagination';
+import type { Order } from '@/lib/supabase';
 
 type ProductAccompanimentMapping = {
   product_id: string;
@@ -981,37 +983,44 @@ export async function getOrder(orderId: string) {
   }
 }
 
-export async function getOrders(
-  structureId: string,
-  status?: string,
-  limit: number = 50
-) {
-  try {
-    const admin = getAdminSupabase();
+export type OrderStatusStat = { count: number; revenue: number };
+export type OrderListStats = { total: OrderStatusStat; byStatus: Record<string, OrderStatusStat> };
 
-    let query = admin
-      .from('orders')
-      .select('*, structures(*), rooms(number), tables(name, floor_name), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))')
-      .eq('structure_id', structureId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
+const ORDER_STATUSES = ['PENDING', 'IN_PROGRESS', 'READY', 'SERVED', 'COMPLETED', 'CANCELLED'] as const;
+const EMPTY_ORDER_STATS: OrderListStats = { total: { count: 0, revenue: 0 }, byStatus: {} };
 
-    if (status) {
-      query = query.eq('status', status);
-    }
+/**
+ * Commandes du point de la session, 20 par page (les plus récentes d'abord), avec en
+ * métadonnées les totaux par statut calculés en SQL sur toutes les commandes.
+ */
+export async function listOrders(options: { page?: number; status?: string | null } = {}): Promise<Paginated<Order, OrderListStats>> {
+  const session = await getSession();
+  const page = Math.max(1, options.page ?? 1);
+  if (!session?.structureId || !['ADMIN', 'CAISSE', 'SERVEUR'].includes(session.role)) return emptyPage(EMPTY_ORDER_STATS, page);
+  const status = ORDER_STATUSES.find((s) => s === options.status) ?? null;
+  const admin = getAdminSupabase();
+  const [from, to] = pageRange(page);
 
-    const { data: orders, error } = await query;
+  let query = admin
+    .from('orders')
+    .select('*, structures(*), rooms(number), tables(name, floor_name), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))', { count: 'exact' })
+    .eq('structure_id', session.structureId)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(from, to);
+  if (status) query = query.eq('status', status);
 
-    if (error) {
-      console.error('[getOrders] Error:', error);
-      return [];
-    }
-
-    return orders || [];
-  } catch (error) {
-    console.error('[getOrders] Exception:', error);
-    return [];
-  }
+  const [{ data, count, error }, statsRes] = await Promise.all([settlePage(query), admin.rpc('order_list_stats', { p_structure_id: session.structureId })]);
+  if (error) console.error('[listOrders] Error:', error);
+  if (statsRes.error) console.error('[listOrders] stats:', statsRes.error);
+  const raw = (statsRes.data ?? EMPTY_ORDER_STATS) as OrderListStats;
+  const stats: OrderListStats = {
+    total: { count: Number(raw.total?.count) || 0, revenue: Number(raw.total?.revenue) || 0 },
+    byStatus: Object.fromEntries(
+      Object.entries(raw.byStatus ?? {}).map(([k, v]) => [k, { count: Number(v.count) || 0, revenue: Number(v.revenue) || 0 }]),
+    ),
+  };
+  return { items: (data ?? []) as Order[], meta: buildMeta(page, count ?? 0, stats) };
 }
 
 export async function getAvailableProducts() {

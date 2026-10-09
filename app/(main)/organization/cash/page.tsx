@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { AlertTriangle, CheckCircle, Receipt, Wallet } from 'lucide-react';
 import { requireRole } from '@/app/actions/auth';
 import { getOwnerShifts } from '@/app/actions/owner';
+import { parsePage } from '@/lib/pagination';
 import { ShiftsHistoryTable } from '@/components/shifts-history-table';
 import { PointSelect } from '@/components/owner/point-select';
 import { cn } from '@/lib/utils';
@@ -42,21 +43,22 @@ function FilterChip({ href, active, children }: { href: string; active: boolean;
 export default async function OwnerCashPage({
   searchParams,
 }: {
-  searchParams: Promise<{ point?: string; status?: string }>;
+  searchParams: Promise<{ point?: string; status?: string; page?: string }>;
 }) {
   await requireRole('ORG_ADMIN');
   const { t, format } = await getT();
   const params = await searchParams;
-  const data = await getOwnerShifts({ pointId: params.point, status: params.status });
+  // 20 sessions par page ; totaux calculés en SQL sur tous les points filtrés.
+  const data = await getOwnerShifts({ pointId: params.point, status: params.status, page: parsePage(params.page) });
   if (!data) redirect('/login');
 
-  const closed = data.shifts.filter((s) => s.status === 'CLOSED');
-  const totalDifference = closed.reduce((sum, s) => sum + (Number(s.difference) || 0), 0);
-  const negativeCount = closed.filter((s) => Number(s.difference) < 0).length;
-  const openCount = data.shifts.filter((s) => s.status === 'OPEN').length;
+  const { stats } = data.meta;
+  const totalDifference = stats.totalDifference;
+  const negativeCount = stats.negative;
+  const openCount = stats.open;
 
   const summary = [
-    { label: t('org.cash.sessions'), value: String(data.shifts.length), icon: Receipt, tone: 'text-slate-50' },
+    { label: t('org.cash.sessions'), value: String(stats.total), icon: Receipt, tone: 'text-slate-50' },
     { label: t('org.cash.openNow'), value: String(openCount), icon: CheckCircle, tone: 'text-slate-50' },
     {
       label: t('org.cash.shortSessions'),
@@ -110,7 +112,7 @@ export default async function OwnerCashPage({
           ))}
         </div>
 
-        <ShiftsHistoryTable shifts={data.shifts} showPoint={data.points.length > 1 && !data.pointId} />
+        <ShiftsHistoryTable shifts={data.shifts} showPoint={data.points.length > 1 && !data.pointId} meta={data.meta} />
       </div>
     </div>
   );

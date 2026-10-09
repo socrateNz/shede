@@ -25,6 +25,11 @@ const promotions = {
     howAfter: 'liés à cette offre. Les réductions sont calculées automatiquement lors du passage en caisse ou de la réservation.',
   },
   list: {
+    search: 'Rechercher une promotion…',
+    allStates: 'Tous les états',
+    stateActive: 'Actives',
+    stateInactive: 'Inactives',
+    noMatch: 'Aucune promotion ne correspond à ces filtres.',
     colPromotion: 'Promotion',
     colMode: 'Mode',
     colValue: 'Valeur / offre',

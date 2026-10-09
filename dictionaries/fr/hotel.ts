@@ -15,6 +15,9 @@ const hotel = {
     Autre: { label: 'Autre', description: 'Configuration spéciale' },
   },
   rooms: {
+    search: 'Rechercher une chambre…',
+    allStatuses: 'Tous les états',
+    noMatch: 'Aucune chambre ne correspond à ces filtres.',
     badge: 'Gestion hôtelière',
     title: 'Chambres',
     subtitle: 'Gérez vos chambres d’hôtel',
@@ -93,6 +96,9 @@ const hotel = {
     CANCELLED: 'Annulée',
   },
   bookings: {
+    search: 'Rechercher par numéro de chambre…',
+    allStatuses: 'Tous les statuts',
+    noMatch: 'Aucune réservation ne correspond à ces filtres.',
     badge: 'Gestion des réservations',
     title: 'Réservations',
     subtitle: 'Gérez les réservations hôtelières et le suivi des clients',

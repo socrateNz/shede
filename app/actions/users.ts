@@ -7,6 +7,9 @@ import { notifyUser } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
 import { buildAccountCreatedMail, buildAccountStatusMail, buildRoleChangedMail, getUserLocale, queueMail } from '@/lib/emails';
 import { getLocale, te } from '@/lib/i18n/server';
+import { buildMeta, emptyPage, pageRange, searchTerm, settlePage, type Paginated } from '@/lib/pagination';
+import type { User } from '@/lib/supabase';
+import { TEAM_ROLES } from '@/lib/roles';
 
 async function getStructureName(structureId: string | undefined) {
   if (!structureId) return null;
@@ -227,22 +230,35 @@ export async function deleteUser(userId: string) {
   }
 }
 
-export async function getUsers(structureId: string) {
-  try {
-    const admin = getAdminSupabase();
+export type UserListStats = { total: number; admins: number; reception: number; staff: number };
+export type UserRow = Omit<User, 'password_hash'>;
 
-    const { data: users, error } = await admin
-      .from('users')
-      .select('*')
-      .eq('structure_id', structureId)
-      .order('created_at', { ascending: false });
+/** Colonnes affichables d'un compte (jamais l'empreinte du mot de passe). */
+const USER_COLUMNS = 'id, structure_id, organization_id, email, first_name, last_name, role, is_active, created_at, updated_at';
 
-    if (error) {
-      return [];
-    }
+/** Équipe du point de la session, 20 par page, recherche nom/e-mail et filtre par rôle ; statistiques en SQL. */
+export async function listUsers(filters: { page?: number; q?: string; role?: string | null } = {}): Promise<Paginated<UserRow, UserListStats>> {
+  const empty: UserListStats = { total: 0, admins: 0, reception: 0, staff: 0 };
+  const session = await getSession();
+  const page = Math.max(1, filters.page ?? 1);
+  if (!session?.structureId || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) return emptyPage(empty, page);
+  const admin = getAdminSupabase();
+  const [from, to] = pageRange(page);
+  const q = searchTerm(filters.q);
 
-    return users || [];
-  } catch (error) {
-    return [];
-  }
+  let query = admin
+    .from('users')
+    .select(USER_COLUMNS, { count: 'exact' })
+    .eq('structure_id', session.structureId)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(from, to);
+  if (filters.role && (TEAM_ROLES as string[]).includes(filters.role)) query = query.eq('role', filters.role);
+  if (q) query = query.or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,email.ilike.%${q}%`);
+
+  const [{ data, count, error }, statsRes] = await Promise.all([settlePage(query), admin.rpc('user_list_stats', { p_structure_id: session.structureId })]);
+  if (error) console.error('[listUsers] Error:', error);
+  const raw = (statsRes.data ?? empty) as UserListStats;
+  const stats: UserListStats = { total: Number(raw.total) || 0, admins: Number(raw.admins) || 0, reception: Number(raw.reception) || 0, staff: Number(raw.staff) || 0 };
+  return { items: (data ?? []) as UserRow[], meta: buildMeta(page, count ?? 0, stats) };
 }

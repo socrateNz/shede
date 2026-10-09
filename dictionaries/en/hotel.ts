@@ -15,6 +15,9 @@ const hotel: typeof fr = {
     Autre: { label: 'Other', description: 'Special configuration' },
   },
   rooms: {
+    search: 'Search for a room…',
+    allStatuses: 'All statuses',
+    noMatch: 'No room matches these filters.',
     badge: 'Hotel management',
     title: 'Rooms',
     subtitle: 'Manage your hotel rooms',
@@ -93,6 +96,9 @@ const hotel: typeof fr = {
     CANCELLED: 'Cancelled',
   },
   bookings: {
+    search: 'Search by room number…',
+    allStatuses: 'All statuses',
+    noMatch: 'No booking matches these filters.',
     badge: 'Booking management',
     title: 'Bookings',
     subtitle: 'Manage hotel bookings and guest follow-up',

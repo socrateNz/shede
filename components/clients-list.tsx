@@ -1,37 +1,25 @@
 'use client';
 
-import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Edit, Trash2, Calendar, Phone, Mail, User } from 'lucide-react';
+import { Calendar, Phone, Mail, User } from 'lucide-react';
+import { PageNav } from './page-nav';
+import { UrlSearch } from './url-filters';
+import type { PageMeta } from '@/lib/pagination';
 import Link from 'next/link';
 import { useT } from '@/lib/i18n/client';
 
-export function ClientsList({ clients }: { clients: any[] }) {
-  const [search, setSearch] = useState('');
+/** Une page de clients, déjà filtrée par le serveur (recherche dans l'URL : ?q=). */
+export function ClientsList({ clients, meta }: { clients: any[]; meta: PageMeta<unknown> }) {
   const { t, format } = useT();
-
-  const filteredClients = clients.filter(client => {
-    const term = search.toLowerCase();
-    const fullName = `${client.first_name} ${client.last_name}`.toLowerCase();
-    return fullName.includes(term) || (client.phone && client.phone.includes(term)) || (client.email && client.email.toLowerCase().includes(term));
-  });
+  const filteredClients = clients;
 
   return (
     <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50">
       <CardHeader className="border-b border-slate-700/50 pb-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <CardTitle className="text-xl font-bold text-white">{t('crm.list.listTitle')}</CardTitle>
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input
-              placeholder={t('crm.list.search')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-slate-900/50 border-slate-600 text-slate-50 placeholder:text-slate-500 focus:border-pink-500 focus:ring-pink-500/20"
-            />
-          </div>
+          <UrlSearch placeholder={t('crm.list.search')} className="w-full sm:w-72" />
         </div>
       </CardHeader>
       <CardContent className="p-0">
@@ -119,6 +107,7 @@ export function ClientsList({ clients }: { clients: any[] }) {
             </tbody>
           </table>
         </div>
+        <PageNav meta={meta} />
       </CardContent>
     </Card>
   );

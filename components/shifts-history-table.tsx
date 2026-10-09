@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { PageNav } from './page-nav';
+import type { PageMeta } from '@/lib/pagination';
 import {
   Table,
   TableBody,
@@ -25,9 +27,11 @@ interface ShiftsHistoryTableProps {
   shifts: any[];
   /** Vue propriétaire : affiche le point de chaque session (`shift.pointName`). */
   showPoint?: boolean;
+  /** Pagination serveur (?page=) : affichée quand elle est fournie. */
+  meta?: PageMeta<unknown>;
 }
 
-export function ShiftsHistoryTable({ shifts, showPoint = false }: ShiftsHistoryTableProps) {
+export function ShiftsHistoryTable({ shifts, showPoint = false, meta }: ShiftsHistoryTableProps) {
   const columnCount = showPoint ? 7 : 6;
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
@@ -141,6 +145,7 @@ export function ShiftsHistoryTable({ shifts, showPoint = false }: ShiftsHistoryT
           </TableBody>
         </Table>
       </div>
+      {meta && <PageNav meta={meta} />}
 
       <Dialog open={!!selectedShiftId} onOpenChange={(open) => !open && setSelectedShiftId(null)}>
         <DialogContent className="max-w-5xl! bg-slate-900 border-slate-800 text-slate-50 overflow-hidden">

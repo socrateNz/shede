@@ -21,6 +21,8 @@ const products = {
     confirmDelete: 'Êtes-vous sûr de vouloir supprimer ce produit ?',
     allDestinations: 'Toutes les destinations',
     allCategories: 'Toutes les catégories',
+    search: 'Rechercher un produit…',
+    noMatch: 'Aucun produit ne correspond à ces filtres.',
     noCategory: 'Sans catégorie',
     notDeliverable: 'Non livrable',
     colName: 'Nom',

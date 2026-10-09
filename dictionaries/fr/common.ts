@@ -74,6 +74,10 @@ const common = {
     previousAria: 'Page précédente',
     next: 'Suivant',
     nextAria: 'Page suivante',
+    label: 'Pagination',
+    range: '{from}–{to} sur {total}',
+    beyond: 'Cette page n’existe pas.',
+    lastPage: 'Aller à la page {page}',
   },
 };
 

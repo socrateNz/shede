@@ -8,13 +8,38 @@ import { Bed, CalendarDays, UtensilsCrossed, X, Edit, MapPin } from 'lucide-reac
 import { ClientInvoiceWrapper } from '@/components/client-invoice-wrapper';
 import { updateClientBooking, cancelClientOrder } from '@/app/actions/client-history';
 import { toast } from 'sonner';
-import { TablePagination } from './table-pagination';
+import { PageNav } from './page-nav';
+import type { PageMeta } from '@/lib/pagination';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useT } from '@/lib/i18n/client';
 import { useDialogs } from '@/components/dialog-provider';
 import type { TranslationKey } from '@/lib/i18n/translate';
 
-export function ClientHistoryList({ bookings, orders }: { bookings: any[], orders: any[] }) {
-  const [activeTab, setActiveTab] = useState<'BOOKINGS' | 'ORDERS'>('BOOKINGS');
+/** Une page de réservations (?bp=) et une page de commandes (?op=), chargées par le serveur. */
+export function ClientHistoryList({
+  bookings,
+  orders,
+  bookingsMeta,
+  ordersMeta,
+}: {
+  bookings: any[];
+  orders: any[];
+  bookingsMeta: PageMeta<unknown>;
+  ordersMeta: PageMeta<unknown>;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTabState] = useState<'BOOKINGS' | 'ORDERS'>(searchParams.get('tab') === 'ORDERS' ? 'ORDERS' : 'BOOKINGS');
+  // L'onglet est gardé dans l'URL pour que la pagination y revienne.
+  const setActiveTab = (tab: 'BOOKINGS' | 'ORDERS') => {
+    setActiveTabState(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === 'ORDERS') params.set('tab', 'ORDERS');
+    else params.delete('tab');
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
   const { t, format } = useT();
   const dialogs = useDialogs();
   const [editingBooking, setEditingBooking] = useState<any>(null);
@@ -22,18 +47,8 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
   const [checkOut, setCheckOut] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const [bookingPage, setBookingPage] = useState(1);
-  const [orderPage, setOrderPage] = useState(1);
-  const itemsPerPage = 10;
-
-  const totalBookingPages = Math.ceil(bookings.length / itemsPerPage);
-  const paginatedBookings = bookings.slice((bookingPage - 1) * itemsPerPage, bookingPage * itemsPerPage);
-
-  const totalOrderPages = Math.ceil(orders.length / itemsPerPage);
-  const paginatedOrders = orders.slice((orderPage - 1) * itemsPerPage, orderPage * itemsPerPage);
-
-  if (bookingPage > totalBookingPages && totalBookingPages > 0) setBookingPage(1);
-  if (orderPage > totalOrderPages && totalOrderPages > 0) setOrderPage(1);
+  const paginatedBookings = bookings;
+  const paginatedOrders = orders;
 
   const handleBookingUpdate = async (e: React.FormEvent, action: 'UPDATE' | 'CANCEL') => {
     e.preventDefault();
@@ -124,11 +139,7 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
                 <p className="text-lg font-medium">{t('client.history.noBookings')}</p>
               </div>
             )}
-            <TablePagination 
-              currentPage={bookingPage}
-              totalPages={totalBookingPages}
-              onPageChange={setBookingPage}
-            />
+            <PageNav meta={bookingsMeta} param="bp" tone="light" />
           </div>
         )}
 
@@ -173,11 +184,7 @@ export function ClientHistoryList({ bookings, orders }: { bookings: any[], order
                 <p className="text-lg font-medium">{t('client.history.noOrders')}</p>
               </div>
             )}
-            <TablePagination 
-              currentPage={orderPage}
-              totalPages={totalOrderPages}
-              onPageChange={setOrderPage}
-            />
+            <PageNav meta={ordersMeta} param="op" tone="light" />
           </div>
         )}
       </div>

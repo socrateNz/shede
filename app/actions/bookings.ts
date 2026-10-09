@@ -2,6 +2,7 @@
 
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
+import { buildMeta, emptyPage, pageRange, searchTerm, settlePage, type Paginated } from '@/lib/pagination';
 import { revalidatePath } from 'next/cache';
 import { notifyUser } from '@/lib/notifications';
 import { getActiveShift, getStructureActiveShift } from './shifts';
@@ -9,47 +10,41 @@ import { assignInvoiceNumber, priceBooking, saveBookingTax } from '@/lib/fiscal'
 import { postSaleSafely } from '@/lib/accounting/posting';
 import { te } from '@/lib/i18n/server';
 
-export async function getBookings(structureId: string) {
+export type BookingStatusStat = { count: number; revenue: number };
+export type BookingListStats = { total: BookingStatusStat; byStatus: Record<string, BookingStatusStat> };
+const BOOKING_STATUSES = ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+
+/**
+ * Réservations des chambres du point de la session, 20 par page (arrivée la plus récente
+ * d'abord), filtre par statut et recherche par numéro de chambre ; statistiques en SQL.
+ */
+export async function listBookings(filters: { page?: number; q?: string; status?: string | null } = {}): Promise<Paginated<any, BookingListStats>> {
+  const empty: BookingListStats = { total: { count: 0, revenue: 0 }, byStatus: {} };
   const session = await getSession();
-  if (!session || !['ADMIN', 'SUPER_ADMIN', 'RECEPTION'].includes(session.role)) {
-    return [];
-  }
+  const page = Math.max(1, filters.page ?? 1);
+  if (!session?.structureId || !['ADMIN', 'SUPER_ADMIN', 'RECEPTION'].includes(session.role)) return emptyPage(empty, page);
+  const admin = getAdminSupabase();
+  const [from, to] = pageRange(page);
+  const q = searchTerm(filters.q);
 
-  try {
-    const admin = getAdminSupabase();
-    const { data: bookings, error } = await admin
-      .from('bookings')
-      .select(`
-        *,
-        rooms!inner(id, number, type, structure_id, price, structures(*)),
-        users!bookings_client_id_fkey(id, first_name, last_name, email)
-      `)
-      .eq('rooms.structure_id', structureId)
-      .order('check_in', { ascending: false });
+  let query = admin
+    .from('bookings')
+    .select('*, rooms!inner(id, number, type, structure_id, price, structures(*)), users:client_id(id, first_name, last_name, email)', { count: 'exact' })
+    .eq('rooms.structure_id', session.structureId)
+    .order('check_in', { ascending: false })
+    .order('id', { ascending: false })
+    .range(from, to);
+  if (filters.status && BOOKING_STATUSES.includes(filters.status)) query = query.eq('status', filters.status);
+  if (q) query = query.ilike('rooms.number', `%${q}%`);
 
-    // Fallback if the explicit foreign key name is wrong
-    if (error && error.message.includes('foreign key')) {
-      const { data: fallbackBookings } = await admin
-        .from('bookings')
-        .select(`
-          *,
-          rooms!inner(id, number, type, structure_id, price, structures(*)),
-          users:client_id(id, first_name, last_name, email)
-        `)
-        .eq('rooms.structure_id', structureId)
-        .order('check_in', { ascending: false });
-      return fallbackBookings || [];
-    }
-
-    if (error) {
-      console.error('Fetch bookings error:', error);
-      return [];
-    }
-
-    return bookings || [];
-  } catch (error) {
-    return [];
-  }
+  const [{ data, count, error }, statsRes] = await Promise.all([settlePage(query), admin.rpc('booking_list_stats', { p_structure_id: session.structureId })]);
+  if (error) console.error('[listBookings] Error:', error);
+  const raw = (statsRes.data ?? empty) as BookingListStats;
+  const stats: BookingListStats = {
+    total: { count: Number(raw.total?.count) || 0, revenue: Number(raw.total?.revenue) || 0 },
+    byStatus: Object.fromEntries(Object.entries(raw.byStatus ?? {}).map(([k, v]) => [k, { count: Number(v.count) || 0, revenue: Number(v.revenue) || 0 }])),
+  };
+  return { items: data ?? [], meta: buildMeta(page, count ?? 0, stats) };
 }
 
 export async function createBooking(

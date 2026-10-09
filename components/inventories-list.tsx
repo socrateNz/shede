@@ -8,6 +8,9 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { startInventory, type InventorySummary } from '@/app/actions/inventory';
+import type { InventoryListStats } from '@/app/actions/inventory';
+import type { Paginated } from '@/lib/pagination';
+import { PageNav } from '@/components/page-nav';
 import { useT } from '@/lib/i18n/client';
 
 const STATUS_STYLES = {
@@ -17,11 +20,14 @@ const STATUS_STYLES = {
 } as const;
 
 /** Liste des inventaires et ouverture d'un nouveau comptage. */
-export function InventoriesList({ inventories }: { inventories: InventorySummary[] | null }) {
+export function InventoriesList({ result }: { result: Paginated<InventorySummary, InventoryListStats> | null }) {
   const { t, format } = useT();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const draft = inventories?.find((i) => i.status === 'DRAFT');
+  const inventories = result?.items ?? null;
+  // Inventaire en cours : connu par les statistiques, même s'il n'est pas sur la page affichée.
+  const draftId = result?.meta.stats.draftId ?? null;
+  const draft = draftId ? { id: draftId } : undefined;
 
   function start() {
     startTransition(async () => {
@@ -106,6 +112,7 @@ export function InventoriesList({ inventories }: { inventories: InventorySummary
               ))}
             </TableBody>
           </Table>
+          {result && <PageNav meta={result.meta} />}
         </div>
       )}
     </div>

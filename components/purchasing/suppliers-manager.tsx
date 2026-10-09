@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Eye, EyeOff, Loader2, MoreVertical, Pencil, Plus, Search } from 'lucide-react';
+import { BookOpen, Eye, EyeOff, Loader2, MoreVertical, Pencil, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,9 +14,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { saveSupplier, setSupplierActive, type PurchasingSupplier } from '@/app/actions/purchasing';
+import type { SupplierListStats } from '@/app/actions/purchasing';
+import type { Paginated } from '@/lib/pagination';
+import { PageNav } from '@/components/page-nav';
+import { UrlSearch } from '@/components/url-filters';
 import { useT } from '@/lib/i18n/client';
 
 const INPUT = 'border-slate-600 bg-slate-900/50 text-slate-50 placeholder:text-slate-500';
@@ -37,20 +40,18 @@ type Form = {
 const EMPTY: Form = { name: '', contactName: '', phone: '', email: '', niu: '', address: '', deliveryDays: [], leadTimeDays: '1', minOrderAmount: '0', chargesVat: true };
 
 /** Fournisseurs (module ACHATS) : liste, création et modification dans un dialogue. */
-export function SuppliersManager({ suppliers, canManage }: { suppliers: PurchasingSupplier[] | null; canManage: boolean }) {
+/** Une page de fournisseurs (20), filtrée par le serveur ; null = module non installé. */
+export function SuppliersManager({ result, canManage }: { result: Paginated<PurchasingSupplier, SupplierListStats> | null; canManage: boolean }) {
+  const suppliers = result?.items ?? null;
   const { t, format } = useT();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<PurchasingSupplier | 'new' | null>(null);
   const [form, setForm] = useState<Form>(EMPTY);
   const list = suppliers ?? [];
   const dayLabel = (d: number) => t(`purchasing.weekdays.d${d as 1 | 2 | 3 | 4 | 5 | 6 | 7}`);
 
-  const visible = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return q ? list.filter((s) => s.name.toLowerCase().includes(q) || s.contact_name?.toLowerCase().includes(q)) : list;
-  }, [list, search]);
+  const visible = list;
 
   function openEdit(supplier: PurchasingSupplier | 'new') {
     setForm(
@@ -66,8 +67,7 @@ export function SuppliersManager({ suppliers, canManage }: { suppliers: Purchasi
             deliveryDays: supplier.delivery_days,
             leadTimeDays: String(supplier.lead_time_days),
             minOrderAmount: String(supplier.min_order_amount),
-            chargesVat: supplier.charges_vat,
-          }
+            chargesVat: supplier.charges_vat }
     );
     setEditing(supplier);
   }
@@ -79,8 +79,7 @@ export function SuppliersManager({ suppliers, canManage }: { suppliers: Purchasi
         id: editing && editing !== 'new' ? editing.id : undefined,
         ...form,
         leadTimeDays: Number(form.leadTimeDays) || 0,
-        minOrderAmount: Number(form.minOrderAmount) || 0,
-      });
+        minOrderAmount: Number(form.minOrderAmount) || 0 });
       if (!result.success) {
         toast.error(result.error);
         return;
@@ -118,10 +117,7 @@ export function SuppliersManager({ suppliers, canManage }: { suppliers: Purchasi
       ) : (
         <div className="overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/40">
           <div className="border-b border-slate-700/50 p-4">
-            <div className="relative max-w-sm">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('purchasing.suppliers.search')} className={`pl-9 ${INPUT}`} />
-            </div>
+            <UrlSearch placeholder={t('purchasing.suppliers.search')} className="max-w-sm" />
           </div>
           {visible.length === 0 ? (
             <p className="py-14 text-center text-sm text-slate-400">{t('purchasing.suppliers.empty')}</p>
@@ -193,6 +189,7 @@ export function SuppliersManager({ suppliers, canManage }: { suppliers: Purchasi
               </TableBody>
             </Table>
           )}
+          {result && <PageNav meta={result.meta} />}
         </div>
       )}
 

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { te } from '@/lib/i18n/server';
+import { buildMeta, emptyPage, pageRange, settlePage, type Paginated } from '@/lib/pagination';
 
 // Inventaires (docs/phase17-inventory.sql), module STOCK : comptage physique sur
 // mobile, puis validation atomique (fonction SQL validate_inventory) qui corrige
@@ -40,21 +41,38 @@ export type InventorySummary = {
 const fullName = (u: any) => (u ? [u.first_name, u.last_name].filter(Boolean).join(' ') || null : null);
 
 /** Inventaires du point, du plus récent au plus ancien. null : migration non exécutée. */
-export async function listInventories(): Promise<InventorySummary[] | null> {
+export type InventoryListStats = { total: number; validated: number; varianceValue: number; draftId: string | null };
+
+/** Inventaires du point, 20 par page (les plus récents d'abord) ; statistiques et inventaire en cours en SQL. null : module non installé. */
+export async function listInventories(filters: { page?: number } = {}): Promise<Paginated<InventorySummary, InventoryListStats> | null> {
+  const empty: InventoryListStats = { total: 0, validated: 0, varianceValue: 0, draftId: null };
+  const page = Math.max(1, filters.page ?? 1);
+  const [from, to] = pageRange(page);
   const session = await requireStock(COUNT_ROLES);
-  if (!session) return [];
-  const { data, error } = await getAdminSupabase()
+  if (!session) return emptyPage(empty, page);
+  const admin = getAdminSupabase();
+  const statsPromise = admin.rpc('inventory_list_stats', { p_structure_id: session.structureId });
+  const { data, count, error } = await settlePage(admin
     .from('inventories')
     .select(
       'id, status, created_at, validated_at, variance_value, counted_lines, ' +
         'starter:users!started_by(first_name, last_name), validator:users!validated_by(first_name, last_name), ' +
-        'inventory_lines(counted_quantity)'
+        'inventory_lines(counted_quantity)',
+      { count: 'exact' },
     )
     .eq('structure_id', session.structureId)
     .order('created_at', { ascending: false })
-    .limit(100);
-  if (error) return notInstalled(error) ? null : [];
-  return (data || []).map((i: any) => {
+    .order('id', { ascending: false })
+    .range(from, to));
+  if (error) return notInstalled(error) ? null : emptyPage(empty, page);
+  const raw = ((await statsPromise).data ?? empty) as InventoryListStats;
+  const stats: InventoryListStats = {
+    total: Number(raw.total) || 0,
+    validated: Number(raw.validated) || 0,
+    varianceValue: Number(raw.varianceValue) || 0,
+    draftId: raw.draftId ?? null,
+  };
+  const items = (data || []).map((i: any) => {
     const lines = (i.inventory_lines || []) as { counted_quantity: number | null }[];
     return {
       id: i.id,
@@ -68,6 +86,7 @@ export async function listInventories(): Promise<InventorySummary[] | null> {
       variance_value: i.variance_value === null ? null : Number(i.variance_value),
     };
   });
+  return { items, meta: buildMeta(page, count ?? 0, stats) };
 }
 
 /**

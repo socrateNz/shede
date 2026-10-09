@@ -2,6 +2,9 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { getJournalEntries } from '@/app/actions/accounting';
+import { exportJournal } from './export';
+import { PageNav } from '@/components/page-nav';
+import { parsePage } from '@/lib/pagination';
 import { FilterBar, SetupNotice } from '@/components/accounting/filter-bar';
 import { ReverseButton } from '@/components/accounting/reverse-button';
 import { OwnerExportButton } from '@/components/owner/owner-export-button';
@@ -14,13 +17,14 @@ import { cn } from '@/lib/utils';
 export default async function JournalPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; point?: string; journal?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; point?: string; journal?: string; page?: string }>;
 }) {
   const params = await searchParams;
-  const data = await getJournalEntries(params);
+  // 20 écritures par page ; l'export Excel recharge toute la période au clic.
+  const data = await getJournalEntries({ ...params, page: parsePage(params.page) });
   if (!data) redirect('/accounting/expenses');
   const { t, format } = await getT();
-  const { scope, period, entries, chart, journal } = data;
+  const { scope, period, entries, chart, journal, meta } = data;
   const pointName = new Map(scope.points.map((p) => [p.id, p.name]));
 
   const hrefFor = (next: string | null) => {
@@ -30,25 +34,12 @@ export default async function JournalPage({
     return `/accounting/journal?${search.toString()}`;
   };
 
-  const exportRows = entries.flatMap((e) =>
-    e.lines.map((l) => ({
-      [t('accounting.common.journal')]: e.journal,
-      [t('accounting.common.number')]: e.number,
-      [t('accounting.common.date')]: e.entry_date,
-      [t('accounting.common.account')]: l.account,
-      [t('accounting.common.label')]: l.label,
-      [t('accounting.common.reference')]: e.reference ?? '',
-      [t('accounting.common.debit')]: l.debit,
-      [t('accounting.common.credit')]: l.credit,
-      ...(scope.points.length ? { [t('org.pointSelect.label')]: pointName.get(e.structure_id) ?? '' } : {}),
-    }))
-  );
 
   return (
     <div className="space-y-6">
       <FilterBar from={period.from} to={period.to} points={scope.points} pointId={scope.pointId}>
         <OwnerExportButton
-          sheets={{ [t('accounting.nav.journal')]: exportRows }}
+          load={exportJournal.bind(null, { from: period.from, to: period.to, point: scope.pointId ?? undefined, journal: journal ?? undefined })}
           filename={t('accounting.journal.exportFile', { from: period.from, to: period.to })}
         />
         {scope.canPost && (
@@ -75,10 +66,10 @@ export default async function JournalPage({
             {j ? `${j} — ${t(`accounting.journals.${j}`)}` : t('accounting.filters.allJournals')}
           </Link>
         ))}
-        <span className="ml-auto text-sm text-slate-400">{t('accounting.journal.count', { count: entries.length })}</span>
+        <span className="ml-auto text-sm text-slate-400">{t('accounting.journal.count', { count: meta.total })}</span>
       </div>
 
-      {entries.length === 0 ? (
+      {meta.total === 0 ? (
         <p className="rounded-xl border border-slate-700/50 bg-slate-800/50 px-4 py-12 text-center text-slate-500">
           {t('accounting.common.empty')}
         </p>
@@ -137,6 +128,7 @@ export default async function JournalPage({
               </details>
             );
           })}
+          <PageNav meta={meta} className="rounded-xl border border-slate-700/50" />
         </div>
       )}
     </div>

@@ -26,6 +26,11 @@ const promotions: typeof fr = {
     howAfter: 'linked to this offer. Discounts are calculated automatically at checkout or when booking.',
   },
   list: {
+    search: 'Search for a promotion…',
+    allStates: 'All states',
+    stateActive: 'Active',
+    stateInactive: 'Inactive',
+    noMatch: 'No promotion matches these filters.',
     colPromotion: 'Promotion',
     colMode: 'Mode',
     colValue: 'Value / offer',

@@ -1,5 +1,6 @@
 import { requireModule } from '@/app/actions/auth';
-import { getStockList } from '@/app/actions/stock';
+import { listStock } from '@/app/actions/stock';
+import { parsePage } from '@/lib/pagination';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Boxes, AlertTriangle, ArrowUpRight, History, Plus, Package, Coffee, Carrot, PieChart } from 'lucide-react';
 import Link from 'next/link';
@@ -7,20 +8,20 @@ import { Button } from '@/components/ui/button';
 import { StockList } from '@/components/stock-list';
 import { getT } from '@/lib/i18n/server';
 
-export default async function StockPage() {
+export default async function StockPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string; type?: string }> }) {
   await requireModule('STOCK');
   const { t } = await getT();
-  const stocks = await getStockList();
-
-  const productCount = stocks.filter(s => s.type === 'product').length;
-  const accompCount = stocks.filter(s => s.type === 'accompaniment').length;
-  const ingredientCount = stocks.filter(s => s.type === 'ingredient').length;
-
-  const productsLow = stocks.filter(s => s.type === 'product' && s.quantity <= s.threshold).length;
-  const accompLow = stocks.filter(s => s.type === 'accompaniment' && s.quantity <= s.threshold).length;
-  // Ingrédients : seulement ceux qui ont un seuil d'alerte
-  const ingredientsLow = stocks.filter(s => s.type === 'ingredient' && s.threshold > 0 && s.quantity <= s.threshold).length;
-  const lowStockCount = productsLow + accompLow + ingredientsLow;
+  const params = await searchParams;
+  // 20 lignes par page ; compteurs et alertes calculés sur tout le catalogue.
+  const { items: stocks, meta } = await listStock({ page: parsePage(params.page), q: params.q, type: params.type });
+  const { stats } = meta;
+  const productCount = stats.byType.product;
+  const accompCount = stats.byType.accompaniment;
+  const ingredientCount = stats.byType.ingredient;
+  const productsLow = stats.lowByType.product;
+  const accompLow = stats.lowByType.accompaniment;
+  const ingredientsLow = stats.lowByType.ingredient;
+  const lowStockCount = stats.low;
 
   return (
     <div className="p-6 space-y-6">
@@ -66,7 +67,7 @@ export default async function StockPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-50">{stocks.length}</div>
+            <div className="text-2xl font-bold text-slate-50">{stats.total}</div>
             <div className="flex items-center gap-3 mt-2 text-xs">
               <div className="flex items-center gap-1 text-blue-400" title={t('stock.page.products')}>
                 <Package className="w-3 h-3" />
@@ -124,7 +125,7 @@ export default async function StockPage() {
         </Card>
       </div>
 
-      <StockList stocks={stocks as any} />
+      <StockList stocks={stocks as any} meta={meta} />
     </div>
   );
 }

@@ -4,24 +4,33 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { requireAuth, requireModule } from './auth';
 import { revalidatePath } from 'next/cache';
 import { te } from '@/lib/i18n/server';
+import { buildMeta, pageRange, searchTerm, settlePage, type Paginated } from '@/lib/pagination';
 
-export async function getClients() {
+export type ClientListStats = { total: number; newThisMonth: number };
+
+/** Fichier clients du point, 20 par page (les plus récents d'abord), recherche nom/téléphone/e-mail ; statistiques en SQL. */
+export async function listClients(filters: { page?: number; q?: string } = {}): Promise<Paginated<any, ClientListStats>> {
   const session = await requireAuth();
   await requireModule('CRM');
-
+  const page = Math.max(1, filters.page ?? 1);
   const admin = getAdminSupabase();
-  const { data, error } = await admin
+  const [from, to] = pageRange(page);
+  const q = searchTerm(filters.q);
+
+  let query = admin
     .from('clients')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('structure_id', session.structureId!)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(from, to);
+  if (q) query = query.or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`);
 
-  if (error) {
-    console.error('Error fetching clients:', error);
-    return [];
-  }
-
-  return data;
+  const [{ data, count, error }, statsRes] = await Promise.all([settlePage(query), admin.rpc('client_list_stats', { p_structure_id: session.structureId! })]);
+  if (error) console.error('Error fetching clients:', error);
+  const raw = (statsRes.data ?? {}) as Partial<ClientListStats>;
+  const stats: ClientListStats = { total: Number(raw.total) || 0, newThisMonth: Number(raw.newThisMonth) || 0 };
+  return { items: data ?? [], meta: buildMeta(page, count ?? 0, stats) };
 }
 
 export async function getClientById(id: string) {

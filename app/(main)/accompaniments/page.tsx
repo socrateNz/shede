@@ -3,7 +3,10 @@
 import { useT } from '@/lib/i18n/client';
 import { useDialogs } from '@/components/dialog-provider';
 
-import { getAccompaniments, createAccompaniment, updateAccompaniment, deleteAccompaniment } from '@/app/actions/accompaniments';
+import { listAccompaniments, createAccompaniment, updateAccompaniment, deleteAccompaniment, type AccompanimentListStats } from '@/app/actions/accompaniments';
+import { useSearchParams } from 'next/navigation';
+import { PageNav } from '@/components/page-nav';
+import { buildMeta, parsePage, type PageMeta } from '@/lib/pagination';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,7 +27,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { TablePagination } from '@/components/table-pagination';
 
 export default function AccompanimentsPage() {
   const [items, setItems] = useState<any[]>([]);
@@ -34,18 +36,10 @@ export default function AccompanimentsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: '', price: 0, is_available: true });
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
-  const totalPages = Math.ceil(items.length / itemsPerPage);
-  const paginatedItems = items.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  if (currentPage > totalPages && totalPages > 0) {
-    setCurrentPage(1);
-  }
+  // Pagination serveur : 20 accompagnements par page (?page=), statistiques en SQL.
+  const page = parsePage(useSearchParams().get('page'));
+  const [meta, setMeta] = useState<PageMeta<AccompanimentListStats>>(buildMeta(1, 0, { total: 0, available: 0, totalPrice: 0 }));
+  const paginatedItems = items;
 
   const [state, formAction, isPending] = useActionState(createAccompaniment, {
     success: false,
@@ -54,14 +48,16 @@ export default function AccompanimentsPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    const data = await getAccompaniments();
-    setItems(data);
+    const result = await listAccompaniments({ page });
+    setItems(result.items);
+    setMeta(result.meta);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
-  }, [state.success]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.success, page]);
 
   const handleEditInit = (item: any) => {
     setEditingId(item.id);
@@ -86,8 +82,8 @@ export default function AccompanimentsPage() {
     else fetchData();
   };
 
-  const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
-  const availableCount = items.filter(item => item.is_available).length;
+  const totalPrice = meta.stats.totalPrice;
+  const availableCount = meta.stats.available;
 
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -113,7 +109,7 @@ export default function AccompanimentsPage() {
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-white">{items.length}</div>
+                <div className="text-2xl font-bold text-white">{meta.stats.total}</div>
                 <div className="text-sm text-slate-400">{t('products.accompaniments.statTotal')}</div>
               </div>
               <div className="p-3 bg-blue-500/10 rounded-xl">
@@ -366,11 +362,7 @@ export default function AccompanimentsPage() {
                   </Table>
                 </div>
               )}
-              <TablePagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
+              <PageNav meta={meta} />
             </CardContent>
           </Card>
         </div>

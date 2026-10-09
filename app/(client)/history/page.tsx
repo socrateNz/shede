@@ -4,8 +4,9 @@ import { redirect } from 'next/navigation';
 import { ClientHistoryList } from '@/components/client-history-list';
 import { CalendarDays, Clock } from 'lucide-react';
 import { getT } from '@/lib/i18n/server';
+import { buildMeta, pageRange, parsePage, settlePage } from '@/lib/pagination';
 
-export default async function HistoryPage() {
+export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ bp?: string; op?: string }> }) {
   const session = await getSession();
   if (!session) {
     redirect('/login');
@@ -14,19 +15,32 @@ export default async function HistoryPage() {
   const supabase = getAdminSupabase();
   const { t } = await getT();
 
-  const { data: bookings } = await supabase
-    .from('bookings')
-    .select('*, rooms(*, structures(*))')
-    .eq('client_id', session.userId)
-    .order('created_at', { ascending: false });
+  // 20 réservations et 20 commandes par page, chacune avec sa pagination ; totaux comptés par la base.
+  const params = await searchParams;
+  const bookingPage = parsePage(params.bp);
+  const orderPage = parsePage(params.op);
+  const [bFrom, bTo] = pageRange(bookingPage);
+  const [oFrom, oTo] = pageRange(orderPage);
+  const [{ data: bookings, count: bookingCount }, { data: orders, count: orderCount }] = await Promise.all([
+    settlePage(supabase
+      .from('bookings')
+      .select('*, rooms(*, structures(*))', { count: 'exact' })
+      .eq('client_id', session.userId)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(bFrom, bTo)),
+    settlePage(supabase
+      .from('orders')
+      .select('*, structures(*), rooms(number), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))', { count: 'exact' })
+      .or(`client_id.eq.${session.userId},user_id.eq.${session.userId}`)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(oFrom, oTo)),
+  ]);
+  const bookingsMeta = buildMeta(bookingPage, bookingCount ?? 0, undefined);
+  const ordersMeta = buildMeta(orderPage, orderCount ?? 0, undefined);
 
-  const { data: orders } = await supabase
-    .from('orders')
-    .select('*, structures(*), rooms(number), order_items(*, products(name)), order_accompaniments(*, accompaniments(name))')
-    .or(`client_id.eq.${session.userId},user_id.eq.${session.userId}`)
-    .order('created_at', { ascending: false });
-
-  const totalItems = (bookings?.length || 0) + (orders?.length || 0);
+  const totalItems = bookingsMeta.total + ordersMeta.total;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
@@ -64,14 +78,14 @@ export default async function HistoryPage() {
               <CalendarDays className="w-4 h-4" />
               <span className="text-xs font-medium">{t('client.history.bookings')}</span>
             </div>
-            <div className="text-2xl font-bold text-slate-800">{bookings?.length || 0}</div>
+            <div className="text-2xl font-bold text-slate-800">{bookingsMeta.total}</div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
             <div className="flex items-center gap-2 text-emerald-600 mb-1">
               <Clock className="w-4 h-4" />
               <span className="text-xs font-medium">{t('client.history.orders')}</span>
             </div>
-            <div className="text-2xl font-bold text-slate-800">{orders?.length || 0}</div>
+            <div className="text-2xl font-bold text-slate-800">{ordersMeta.total}</div>
           </div>
         </div>
 
@@ -84,10 +98,7 @@ export default async function HistoryPage() {
             </h2>
           </div>
           <div className="p-6">
-            <ClientHistoryList
-              bookings={bookings || []}
-              orders={orders || []}
-            />
+            <ClientHistoryList bookings={bookings || []} orders={orders || []} bookingsMeta={bookingsMeta} ordersMeta={ordersMeta} />
           </div>
         </div>
       </div>

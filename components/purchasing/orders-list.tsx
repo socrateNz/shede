@@ -4,7 +4,10 @@ import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { PurchaseOrderSummary } from '@/app/actions/purchasing';
+import type { PurchaseOrderListStats, PurchaseOrderSummary } from '@/app/actions/purchasing';
+import type { Paginated } from '@/lib/pagination';
+import { PageNav } from '@/components/page-nav';
+import { UrlSearch, UrlSelect } from '@/components/url-filters';
 import { useT } from '@/lib/i18n/client';
 
 export const ORDER_STATUS_STYLES = {
@@ -15,9 +18,12 @@ export const ORDER_STATUS_STYLES = {
   CANCELLED: 'bg-red-500/10 text-red-300',
 } as const;
 
-/** Liste des bons de commande. */
-export function PurchaseOrdersList({ orders, canManage }: { orders: PurchaseOrderSummary[] | null; canManage: boolean }) {
+/** Liste des bons de commande : une page de 20, filtrée par le serveur ; null = module non installé. */
+export function PurchaseOrdersList({ result, canManage }: { result: Paginated<PurchaseOrderSummary, PurchaseOrderListStats> | null; canManage: boolean }) {
   const { t, format } = useT();
+  const orders = result?.items ?? null;
+  const stats = result?.meta.stats;
+  const statuses = Object.keys(ORDER_STATUS_STYLES) as (keyof typeof ORDER_STATUS_STYLES)[];
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -37,7 +43,32 @@ export function PurchaseOrdersList({ orders, canManage }: { orders: PurchaseOrde
       {orders === null ? (
         <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-300">{t('purchasing.notInstalled')}</p>
       ) : (
+        <>
+        {stats && (
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
+              <div className="text-xs text-slate-400">{t('purchasing.orders.statTotal')}</div>
+              <div className="text-xl font-bold text-white">{format.number(stats.total.count)}</div>
+              <div className="text-xs tabular-nums text-cyan-300">{format.money(stats.total.amount)}</div>
+            </div>
+            {statuses.map((st) => (
+              <div key={st} className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
+                <div className="text-xs text-slate-400">{t(`purchasing.orders.status.${st}`)}</div>
+                <div className="text-xl font-bold text-white">{format.number(stats.byStatus[st]?.count ?? 0)}</div>
+                <div className="text-xs tabular-nums text-slate-400">{format.money(stats.byStatus[st]?.amount ?? 0)}</div>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/40">
+          <div className="flex flex-wrap items-center gap-2 border-b border-slate-700/50 p-3">
+            <UrlSearch placeholder={t('purchasing.orders.search')} className="min-w-48 flex-1" />
+            <UrlSelect
+              param="status"
+              label={t('purchasing.orders.allStatuses')}
+              options={[{ value: '', label: t('purchasing.orders.allStatuses') }, ...statuses.map((st) => ({ value: st, label: t(`purchasing.orders.status.${st}`) }))]}
+            />
+          </div>
           {orders.length === 0 ? (
             <p className="py-14 text-center text-sm text-slate-400">{t('purchasing.orders.empty')}</p>
           ) : (
@@ -76,7 +107,9 @@ export function PurchaseOrdersList({ orders, canManage }: { orders: PurchaseOrde
               </TableBody>
             </Table>
           )}
+          {result && <PageNav meta={result.meta} />}
         </div>
+        </>
       )}
     </div>
   );

@@ -22,6 +22,8 @@ const products: typeof fr = {
     confirmDelete: 'Are you sure you want to delete this product?',
     allDestinations: 'All destinations',
     allCategories: 'All categories',
+    search: 'Search for a product…',
+    noMatch: 'No product matches these filters.',
     noCategory: 'No category',
     notDeliverable: 'Not deliverable',
     colName: 'Name',

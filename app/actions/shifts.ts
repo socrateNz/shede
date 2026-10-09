@@ -2,6 +2,7 @@
 
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
+import { buildMeta, emptyPage, pageRange, settlePage, type Paginated } from '@/lib/pagination';
 import { revalidatePath } from 'next/cache';
 import { te } from '@/lib/i18n/server';
 
@@ -250,23 +251,29 @@ export async function getShiftReport(shiftId: string) {
   };
 }
 
-export async function getAllShifts(structureId: string) {
+export type ShiftListStats = { total: number; negative: number; open: number };
+
+/** Sessions de caisse du point de la session, 20 par page (les plus récentes d'abord) ; statistiques en SQL. */
+export async function listShifts(filters: { page?: number; status?: string | null } = {}): Promise<Paginated<any, ShiftListStats>> {
+  const empty: ShiftListStats = { total: 0, negative: 0, open: 0 };
   const session = await getSession();
-  if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
-    return [];
-  }
-
+  const page = Math.max(1, filters.page ?? 1);
+  if (!session?.structureId || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) return emptyPage(empty, page);
   const admin = getAdminSupabase();
-  const { data, error } = await admin
+  const [from, to] = pageRange(page);
+
+  let query = admin
     .from('shifts')
-    .select('*, users(first_name, last_name)')
-    .eq('structure_id', structureId)
-    .order('created_at', { ascending: false });
+    .select('*, users(first_name, last_name)', { count: 'exact' })
+    .eq('structure_id', session.structureId)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(from, to);
+  if (filters.status === 'OPEN' || filters.status === 'CLOSED') query = query.eq('status', filters.status);
 
-  if (error) {
-    console.error('Error fetching all shifts:', error);
-    return [];
-  }
-
-  return data || [];
+  const [{ data, count, error }, statsRes] = await Promise.all([settlePage(query), admin.rpc('shift_list_stats', { p_structure_id: session.structureId })]);
+  if (error) console.error('Error fetching all shifts:', error);
+  const raw = (statsRes.data ?? empty) as ShiftListStats;
+  const stats: ShiftListStats = { total: Number(raw.total) || 0, negative: Number(raw.negative) || 0, open: Number(raw.open) || 0 };
+  return { items: data ?? [], meta: buildMeta(page, count ?? 0, stats) };
 }

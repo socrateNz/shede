@@ -7,6 +7,8 @@ import { redirect } from 'next/navigation';
 import { te } from '@/lib/i18n/server';
 import { emitMenuUpdated } from '@/lib/api/webhooks';
 import { categoryIdsByProduct, loadCategories, setProductCategories } from '@/lib/categories';
+import { buildMeta, emptyPage, pageRange, searchTerm, settlePage, type Paginated } from '@/lib/pagination';
+import type { Product } from '@/lib/supabase';
 
 export async function getProducts() {
   const session = await getSession();
@@ -39,6 +41,59 @@ export async function getProducts() {
   }
 }
 
+
+export type ProductListStats = { total: number; available: number; unavailable: number; categories: number };
+export type ProductListFilters = { page?: number; q?: string; category?: string | null; destination?: string | null };
+
+/**
+ * Produits du point, 20 par page (ordre alphabétique), filtrés côté serveur
+ * (recherche, catégorie avec ses sous-catégories, destination) ; statistiques en SQL.
+ */
+export async function listProducts(filters: ProductListFilters = {}): Promise<Paginated<Product, ProductListStats>> {
+  const empty: ProductListStats = { total: 0, available: 0, unavailable: 0, categories: 0 };
+  const session = await getSession();
+  const page = Math.max(1, filters.page ?? 1);
+  if (!session?.structureId || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) return emptyPage(empty, page);
+  const admin = getAdminSupabase();
+  const categories = await loadCategories(session.structureId);
+  const [from, to] = pageRange(page);
+  const q = searchTerm(filters.q);
+
+  // Catégorie : le produit doit être lié à elle ou à l'une de ses sous-catégories.
+  const category = filters.category && (filters.category === 'NONE' || categories.some((c) => c.id === filters.category)) ? filters.category : null;
+  const categoryIds = category && category !== 'NONE' ? [category, ...categories.filter((c) => c.parent_id === category).map((c) => c.id)] : [];
+  const select = category === 'NONE' ? '*, product_category_links!left(category_id)' : category ? '*, product_category_links!inner(category_id)' : '*';
+
+  let query = admin
+    .from('products')
+    .select(select, { count: 'exact' })
+    .eq('structure_id', session.structureId)
+    .eq('is_deleted', false)
+    .order('name', { ascending: true })
+    .order('id', { ascending: true })
+    .range(from, to);
+  if (category === 'NONE') query = query.is('product_category_links', null);
+  else if (category) query = query.in('product_category_links.category_id', categoryIds);
+  if (filters.destination === 'CUISINE' || filters.destination === 'BAR') query = query.eq('destination', filters.destination);
+  if (q) query = query.ilike('name', `%${q}%`);
+
+  const [{ data, count, error }, statsRes] = await Promise.all([settlePage(query), admin.rpc('product_list_stats', { p_structure_id: session.structureId })]);
+  if (error) console.error('[listProducts] Error:', error);
+  const rows = ((data ?? []) as any[]).map(({ product_category_links: _links, ...p }) => p);
+  const links = await categoryIdsByProduct(rows.map((p) => p.id as string));
+  const items = rows.map((p) => {
+    const ids = new Set(links.get(p.id) ?? []);
+    return { ...p, categories: categories.filter((c) => ids.has(c.id)) } as Product;
+  });
+  const raw = (statsRes.data ?? empty) as ProductListStats;
+  const stats: ProductListStats = {
+    total: Number(raw.total) || 0,
+    available: Number(raw.available) || 0,
+    unavailable: Number(raw.unavailable) || 0,
+    categories: Number(raw.categories) || 0,
+  };
+  return { items, meta: buildMeta(page, count ?? 0, stats) };
+}
 
 type ProductAccompanimentFormItem =
   | {

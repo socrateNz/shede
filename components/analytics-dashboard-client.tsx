@@ -39,7 +39,7 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
       try {
         const newData = await fetchClientAnalyticsData(range);
         if (mounted && newData) {
-          setData(newData);
+          if (newData) setData(newData);
         }
       } catch(e) {
         console.error(e);

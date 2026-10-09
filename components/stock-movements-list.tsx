@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import { useT } from '@/lib/i18n/client';
-import { TablePagination } from './table-pagination';
+import { PageNav } from './page-nav';
+import type { PageMeta } from '@/lib/pagination';
 import { ArrowUpRight, ArrowDownLeft, Settings2, ShoppingCart, User, Package, Coffee, Carrot } from 'lucide-react';
 
 interface Movement {
@@ -18,7 +18,9 @@ interface Movement {
 }
 
 interface StockMovementsListProps {
+  /** Une page de mouvements, déjà filtrée par le serveur. */
   movements: Movement[];
+  meta: PageMeta<unknown>;
 }
 
 function cn(...classes: any[]) {
@@ -27,20 +29,9 @@ function cn(...classes: any[]) {
 
 const REASON_KEYS = { manual_adjustment: 1, purchase: 1, loss: 1, return: 1, inventory: 1, sale: 1, initial_stock: 1 } as const;
 
-export function StockMovementsList({ movements }: StockMovementsListProps) {
-  const [currentPage, setCurrentPage] = useState(1);
+export function StockMovementsList({ movements, meta }: StockMovementsListProps) {
   const { t, format: fmt } = useT();
-  const itemsPerPage = 10;
-
-  const totalPages = Math.ceil(movements.length / itemsPerPage);
-  const paginatedMovements = movements.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  if (currentPage > totalPages && totalPages > 0) {
-    setCurrentPage(1);
-  }
+  const paginatedMovements = movements;
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleString(fmt.intl, {
@@ -151,11 +142,7 @@ export function StockMovementsList({ movements }: StockMovementsListProps) {
           </tbody>
         </table>
       </div>
-      <TablePagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+      <PageNav meta={meta} />
     </div>
   );
 }

@@ -52,10 +52,10 @@ async function getDashboardStats(structureId: string, role: string, userId: stri
     const { count: ordersCount } = await admin.from('orders').select('*', { count: 'exact', head: true }).eq('structure_id', structureId);
     const { count: productsCount } = await admin.from('products').select('*', { count: 'exact', head: true }).eq('structure_id', structureId).eq('is_deleted', false);
     const { count: usersCount } = await admin.from('users').select('*', { count: 'exact', head: true }).eq('structure_id', structureId);
-    const { data: completedOrders } = await admin.from('orders').select('total').eq('structure_id', structureId).eq('status', 'COMPLETED');
-    const { data: paidBookings } = await admin.from('bookings').select('total_amount, rooms!inner(structure_id)').eq('rooms.structure_id', structureId).or('status.eq.COMPLETED,is_paid.eq.true');
-    const orderRevenue = (completedOrders || []).reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-    const hotelRevenue = (paidBookings || []).reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
+    // Chiffre d'affaires depuis l'ouverture : somme calculée en SQL (pas de liste de commandes chargée).
+    const { data: summary } = await admin.rpc('analytics_summary', { p_structure_id: structureId, p_since: null });
+    const orderRevenue = Number((summary as any)?.orderRevenue) || 0;
+    const hotelRevenue = Number((summary as any)?.hotelRevenue) || 0;
     return {
       type: role,
       data: { ordersCount: ordersCount || 0, productsCount: productsCount || 0, usersCount: usersCount || 0, totalRevenue: orderRevenue + hotelRevenue },
@@ -170,7 +170,7 @@ export default async function DashboardPage() {
   // Données enrichies pour ADMIN / MANAGER / COMPTABLE
   let enrichedData = null;
   if (['ADMIN', 'MANAGER', 'COMPTABLE'].includes(role) && session.structureId) {
-    enrichedData = await getDashboardEnrichedData(session.structureId, currency);
+    enrichedData = await getDashboardEnrichedData(currency);
   }
 
   // ─── KPI cards par rôle ───

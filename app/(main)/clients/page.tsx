@@ -1,5 +1,6 @@
 import { requireRole } from '@/app/actions/auth';
-import { getClients } from '@/app/actions/clients';
+import { listClients } from '@/app/actions/clients';
+import { parsePage } from '@/lib/pagination';
 import { Button } from '@/components/ui/button';
 import { Plus, Users } from 'lucide-react';
 import Link from 'next/link';
@@ -11,18 +12,14 @@ export async function generateMetadata() {
   return { title: t('crm.meta.listTitle'), description: t('crm.meta.listDescription') };
 }
 
-export default async function ClientsPage() {
+export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string }> }) {
   await requireRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CAISSE');
   const { t } = await getT();
-  const clients = await getClients();
-
-  const totalClients = clients.length;
-  // Clients créés ce mois-ci
-  const now = new Date();
-  const newClientsThisMonth = clients.filter(c => {
-    const created = new Date(c.created_at);
-    return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
-  }).length;
+  const params = await searchParams;
+  // 20 clients par page ; total et nouveaux du mois calculés en SQL.
+  const { items: clients, meta } = await listClients({ page: parsePage(params.page), q: params.q });
+  const totalClients = meta.stats.total;
+  const newClientsThisMonth = meta.stats.newThisMonth;
 
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -77,7 +74,7 @@ export default async function ClientsPage() {
         </div>
 
         {/* Liste */}
-        <ClientsList clients={clients} />
+        <ClientsList clients={clients} meta={meta} />
       </div>
     </div>
   );

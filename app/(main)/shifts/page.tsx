@@ -1,15 +1,19 @@
 import { requireRole } from '@/app/actions/auth';
-import { getAllShifts } from '@/app/actions/shifts';
+import { listShifts } from '@/app/actions/shifts';
+import { parsePage } from '@/lib/pagination';
 import { ShiftsHistoryTable } from '@/components/shifts-history-table';
 import { History, BarChart3, Receipt } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { getT } from '@/lib/i18n/server';
 
-export default async function ShiftsHistoryPage() {
+export default async function ShiftsHistoryPage({ searchParams }: { searchParams: Promise<{ page?: string; status?: string }> }) {
   const session = await requireRole('ADMIN', 'SUPER_ADMIN');
   const { t } = await getT();
-  const shifts = await getAllShifts(session.structureId!);
+  const params = await searchParams;
+  // 20 sessions par page ; compteurs calculés en SQL.
+  const { items: shifts, meta } = await listShifts({ page: parsePage(params.page), status: params.status });
+  const { stats } = meta;
 
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -47,7 +51,7 @@ export default async function ShiftsHistoryPage() {
                 </div>
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900/50 px-2 py-1 rounded">{t('analytics.shifts.volume')}</span>
              </div>
-             <p className="text-3xl font-black text-white">{shifts.length}</p>
+             <p className="text-3xl font-black text-white">{stats.total}</p>
              <p className="text-sm text-slate-500">{t('analytics.shifts.recorded')}</p>
           </div>
 
@@ -59,7 +63,7 @@ export default async function ShiftsHistoryPage() {
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900/50 px-2 py-1 rounded">{t('analytics.shifts.audit')}</span>
              </div>
              <p className="text-3xl font-black text-red-400">
-               {shifts.filter(s => Number(s.difference) < 0).length}
+               {stats.negative}
              </p>
              <p className="text-sm text-slate-500">{t('analytics.shifts.negative')}</p>
           </div>
@@ -72,14 +76,14 @@ export default async function ShiftsHistoryPage() {
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900/50 px-2 py-1 rounded">{t('analytics.shifts.operational')}</span>
              </div>
              <p className="text-3xl font-black text-green-400">
-                {shifts.filter(s => s.status === 'OPEN').length}
+                {stats.open}
              </p>
              <p className="text-sm text-slate-500">{t('analytics.shifts.open')}</p>
           </div>
         </div>
 
         {/* Main Content */}
-        <ShiftsHistoryTable shifts={shifts} />
+        <ShiftsHistoryTable shifts={shifts} meta={meta} />
 
         {/* Footer */}
         <div className="mt-8 p-4 rounded-lg bg-blue-500/5 border border-blue-500/10 flex items-center gap-3 text-sm text-blue-300/80">

@@ -3,6 +3,7 @@
 import { getSession } from '@/lib/auth';
 import { sendWebPush, getVapidPublicKey } from '@/lib/push';
 import { getAdminSupabase } from '@/lib/supabase';
+import { buildMeta, emptyPage, pageRange, settlePage, type Paginated } from '@/lib/pagination';
 import { getT, te } from '@/lib/i18n/server';
 import { notifyUser } from '@/lib/notifications';
 
@@ -179,6 +180,34 @@ export async function getMyNotifications(limit: number = 50) {
   } catch (error) {
     return [];
   }
+}
+
+export type NotificationListStats = { total: number; unread: number };
+
+/** Notifications de l'utilisateur connecté, 20 par page (les plus récentes d'abord), avec total et non lues. */
+export async function listNotifications(filters: { page?: number } = {}): Promise<Paginated<any, NotificationListStats>> {
+  const empty: NotificationListStats = { total: 0, unread: 0 };
+  const session = await getSession();
+  const page = Math.max(1, filters.page ?? 1);
+  if (!session) return emptyPage(empty, page);
+  const admin = getAdminSupabase();
+  const [from, to] = pageRange(page);
+  const mine = () => {
+    let q = admin.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', session.userId);
+    return session.structureId ? q.eq('structure_id', session.structureId) : q.is('structure_id', null);
+  };
+  let list = admin
+    .from('notifications')
+    .select('id, title, body, url, is_read, created_at', { count: 'exact' })
+    .eq('user_id', session.userId)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(from, to);
+  list = session.structureId ? list.eq('structure_id', session.structureId) : list.is('structure_id', null);
+
+  const [{ data, count }, unread] = await Promise.all([settlePage(list), mine().eq('is_read', false)]);
+  const total = count ?? 0;
+  return { items: data ?? [], meta: buildMeta(page, total, { total, unread: unread.count ?? 0 }) };
 }
 
 export async function getUnreadNotificationsCount() {

@@ -25,6 +25,7 @@ const stock: typeof fr = {
     today: 'Today',
   },
   list: {
+    search: 'Search for an item…',
     filterAll: 'All',
     filterProducts: 'Products',
     filterAccompaniments: 'Side dishes',
@@ -81,6 +82,11 @@ const stock: typeof fr = {
     initial_stock: 'Opening stock',
   },
   movements: {
+    statTotal: 'Movements',
+    statIn: 'Stock in',
+    statOut: 'Stock out',
+    statAdjustment: 'Adjustments',
+    allDirections: 'All directions',
     title: 'Movement history',
     subtitle: 'Track every stock change made in your outlet.',
     back: 'Back to inventory',

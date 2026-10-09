@@ -1,5 +1,8 @@
 import { requireRole } from '@/app/actions/auth';
-import { getBookings, updateBookingStatus, markBookingAsPaid } from '@/app/actions/bookings';
+import { listBookings, updateBookingStatus, markBookingAsPaid } from '@/app/actions/bookings';
+import { parsePage } from '@/lib/pagination';
+import { PageNav } from '@/components/page-nav';
+import { UrlSearch, UrlSelect } from '@/components/url-filters';
 import { getSession } from '@/lib/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,32 +46,7 @@ const statusColors: Record<string, { bg: string; text: string; icon: any }> = {
 };
 
 
-async function getBookingStats(bookings: any[]) {
-  const total = bookings.length;
-  const totalRev = bookings.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
-  
-  const pendingCount = bookings.filter((b: any) => b.status === 'PENDING').length;
-  const pendingRev = bookings.filter((b: any) => b.status === 'PENDING').reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
-  
-  const confirmedCount = bookings.filter((b: any) => b.status === 'CONFIRMED').length;
-  const confirmedRev = bookings.filter((b: any) => b.status === 'CONFIRMED').reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
-  
-  const inProgressCount = bookings.filter((b: any) => b.status === 'IN_PROGRESS').length;
-  const inProgressRev = bookings.filter((b: any) => b.status === 'IN_PROGRESS').reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
-  
-  const completedCount = bookings.filter((b: any) => b.status === 'COMPLETED').length;
-  const completedRev = bookings.filter((b: any) => b.status === 'COMPLETED').reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
-
-  return {
-    total: { count: total, revenue: totalRev },
-    pending: { count: pendingCount, revenue: pendingRev },
-    confirmed: { count: confirmedCount, revenue: confirmedRev },
-    inProgress: { count: inProgressCount, revenue: inProgressRev },
-    completed: { count: completedCount, revenue: completedRev }
-  };
-}
-
-export default async function BookingsPage() {
+export default async function BookingsPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string; status?: string }> }) {
   const session = await requireRole('ADMIN', 'RECEPTION');
   const { t, format } = await getT();
   const statusLabel = (status: string) =>
@@ -80,8 +58,17 @@ export default async function BookingsPage() {
   const at = (value: string) => t('hotel.bookingDetails.at', { date: format.date(value), time: format.time(value) });
 
   if (!session?.structureId) return null;
-  const bookings = await getBookings(session.structureId);
-  const stats = await getBookingStats(bookings);
+  const params = await searchParams;
+  // 20 réservations par page ; totaux par statut calculés en SQL.
+  const { items: bookings, meta } = await listBookings({ page: parsePage(params.page), q: params.q, status: params.status });
+  const byStatus = (status: string) => meta.stats.byStatus[status] ?? { count: 0, revenue: 0 };
+  const stats = {
+    total: meta.stats.total,
+    pending: byStatus('PENDING'),
+    confirmed: byStatus('CONFIRMED'),
+    inProgress: byStatus('IN_PROGRESS'),
+    completed: byStatus('COMPLETED'),
+  };
 
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -113,27 +100,27 @@ export default async function BookingsPage() {
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300">
             <div className="text-sm text-slate-400 mb-1">{t('hotel.bookings.statTotal')}</div>
             <div className="text-2xl font-bold text-white">{stats.total.count}</div>
-            <div className="text-xs font-semibold text-blue-400 mt-1">{stats.total.revenue.toLocaleString()} FCFA</div>
+            <div className="text-xs font-semibold text-blue-400 mt-1">{format.money(stats.total.revenue)}</div>
           </div>
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300">
             <div className="text-sm text-slate-400 mb-1">{t('hotel.bookings.statPending')}</div>
             <div className="text-2xl font-bold text-yellow-400">{stats.pending.count}</div>
-            <div className="text-xs font-semibold text-yellow-500/80 mt-1">{stats.pending.revenue.toLocaleString()} FCFA</div>
+            <div className="text-xs font-semibold text-yellow-500/80 mt-1">{format.money(stats.pending.revenue)}</div>
           </div>
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300">
             <div className="text-sm text-slate-400 mb-1">{t('hotel.bookings.statConfirmed')}</div>
             <div className="text-2xl font-bold text-blue-400">{stats.confirmed.count}</div>
-            <div className="text-xs font-semibold text-blue-500/80 mt-1">{stats.confirmed.revenue.toLocaleString()} FCFA</div>
+            <div className="text-xs font-semibold text-blue-500/80 mt-1">{format.money(stats.confirmed.revenue)}</div>
           </div>
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300">
             <div className="text-sm text-slate-400 mb-1">{t('hotel.bookings.statInProgress')}</div>
             <div className="text-2xl font-bold text-purple-400">{stats.inProgress.count}</div>
-            <div className="text-xs font-semibold text-purple-500/80 mt-1">{stats.inProgress.revenue.toLocaleString()} FCFA</div>
+            <div className="text-xs font-semibold text-purple-500/80 mt-1">{format.money(stats.inProgress.revenue)}</div>
           </div>
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300">
             <div className="text-sm text-slate-400 mb-1">{t('hotel.bookings.statPaid')}</div>
             <div className="text-2xl font-bold text-green-400">{stats.completed.count}</div>
-            <div className="text-xs font-semibold text-green-500 mt-1">{stats.completed.revenue.toLocaleString()} FCFA</div>
+            <div className="text-xs font-semibold text-green-500 mt-1">{format.money(stats.completed.revenue)}</div>
           </div>
         </div>
 
@@ -146,7 +133,7 @@ export default async function BookingsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {bookings.length === 0 ? (
+            {stats.total.count === 0 ? (
               <div className="text-center py-16 text-slate-400">
                 <CalendarDays className="w-16 h-16 mx-auto mb-4 opacity-30" />
                 <p className="text-lg">{t('hotel.bookings.emptyTitle')}</p>
@@ -154,6 +141,17 @@ export default async function BookingsPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
+                <div className="flex flex-wrap items-center gap-2 border-b border-slate-700/50 p-3">
+                  <UrlSearch placeholder={t('hotel.bookings.search')} className="min-w-48 flex-1" />
+                  <UrlSelect
+                    param="status"
+                    label={t('hotel.bookings.allStatuses')}
+                    options={[
+                      { value: '', label: t('hotel.bookings.allStatuses') },
+                      ...Object.keys(statusColors).map((s) => ({ value: s, label: statusLabel(s) })),
+                    ]}
+                  />
+                </div>
                 <Table>
                   <TableHeader>
                     <TableRow className="border-slate-700 hover:bg-transparent">
@@ -168,6 +166,11 @@ export default async function BookingsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
+                    {bookings.length === 0 && (
+                      <TableRow className="border-slate-700 hover:bg-transparent">
+                        <TableCell colSpan={8} className="py-10 text-center text-slate-400">{t('hotel.bookings.noMatch')}</TableCell>
+                      </TableRow>
+                    )}
                     {bookings.map((booking: any) => {
                       const StatusIcon = statusColors[booking.status]?.icon || Clock
                       const numberOfNights = Math.ceil((new Date(booking.check_out).getTime() - new Date(booking.check_in).getTime()) / (1000 * 60 * 60 * 24))
@@ -507,6 +510,7 @@ export default async function BookingsPage() {
                     })}
                   </TableBody>
                 </Table>
+                <PageNav meta={meta} />
               </div>
             )}
           </CardContent>

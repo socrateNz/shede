@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   Tag, 
   Calendar, 
@@ -32,7 +32,10 @@ import { useDialogs } from '@/components/dialog-provider';
 import { toast } from 'sonner';
 import { PromotionDetailDialog } from './promotion-detail-dialog';
 import { PromotionEditDialog } from './promotion-edit-dialog';
-import { TablePagination } from './table-pagination';
+import { PageNav } from './page-nav';
+import { UrlSearch, UrlSelect } from './url-filters';
+import type { PageMeta } from '@/lib/pagination';
+import { useRouter } from 'next/navigation';
 
 interface Promotion {
   id: string;
@@ -55,29 +58,22 @@ interface Promotion {
 }
 
 interface PromotionsListProps {
+  /** Une page de promotions, déjà filtrée par le serveur. */
   promotions: Promotion[];
+  meta: PageMeta<unknown>;
   products: { id: string, name: string }[];
 }
 
-export function PromotionsList({ promotions: initialPromotions, products }: PromotionsListProps) {
+export function PromotionsList({ promotions: initialPromotions, meta, products }: PromotionsListProps) {
+  const router = useRouter();
   const [promotions, setPromotions] = useState(initialPromotions);
+  // Nouvelle page ou nouveaux filtres : on repart des données du serveur.
+  useEffect(() => setPromotions(initialPromotions), [initialPromotions]);
   const [selectedPromo, setSelectedPromo] = useState<Promotion | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const { t, format } = useT();
   const dialogs = useDialogs();
-  const itemsPerPage = 10;
-
-  const totalPages = Math.ceil(promotions.length / itemsPerPage);
-  const paginatedPromotions = promotions.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  if (currentPage > totalPages && totalPages > 0) {
-    setCurrentPage(1);
-  }
 
   const handleToggle = async (id: string, currentStatus: boolean) => {
     const result = await togglePromotionStatus(id, !currentStatus);
@@ -94,6 +90,7 @@ export function PromotionsList({ promotions: initialPromotions, products }: Prom
     if (result.success) {
       setPromotions(prev => prev.filter(p => p.id !== id));
       toast.success(t('promotions.list.deleted'));
+      router.refresh();
     } else {
       toast.error(result.error || t('promotions.list.deleteError'));
     }
@@ -108,6 +105,18 @@ export function PromotionsList({ promotions: initialPromotions, products }: Prom
 
   return (
     <div className="overflow-x-auto">
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-700/50 p-3">
+        <UrlSearch placeholder={t('promotions.list.search')} className="min-w-48 flex-1" />
+        <UrlSelect
+          param="state"
+          label={t('promotions.list.allStates')}
+          options={[
+            { value: '', label: t('promotions.list.allStates') },
+            { value: 'active', label: t('promotions.list.stateActive') },
+            { value: 'inactive', label: t('promotions.list.stateInactive') },
+          ]}
+        />
+      </div>
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="border-b border-slate-700/50">
@@ -120,7 +129,12 @@ export function PromotionsList({ promotions: initialPromotions, products }: Prom
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-700/30">
-          {paginatedPromotions.map((promo) => (
+          {promotions.length === 0 && (
+            <tr>
+              <td colSpan={6} className="px-4 py-10 text-center text-slate-400">{t('promotions.list.noMatch')}</td>
+            </tr>
+          )}
+          {promotions.map((promo) => (
             <tr key={promo.id} className="group hover:bg-slate-700/20 transition-colors">
               <td className="px-4 py-4">
                 <div className="flex items-center gap-3">
@@ -231,11 +245,7 @@ export function PromotionsList({ promotions: initialPromotions, products }: Prom
         </tbody>
       </table>
 
-      <TablePagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+      <PageNav meta={meta} />
 
       {/* Dialogs */}
       <PromotionDetailDialog 
