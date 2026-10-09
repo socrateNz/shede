@@ -157,6 +157,11 @@ const waiter = {
     enable: 'Activer',
     enabled: 'Alertes activées sur ce téléphone.',
     denied: 'Alertes bloquées : autorisez les notifications dans les réglages du navigateur.',
+    disabled: 'Alertes coupées sur ce téléphone.',
+    turnOn: 'Activer les notifications',
+    turnOff: 'Couper les notifications',
+    unsupported: 'Notifications indisponibles ici : l’application doit être ouverte en https. Sur iPhone, ajoutez-la d’abord à l’écran d’accueil.',
+    failed: 'Impossible d’activer les notifications. Réessayez.',
   },
   offline: {
     banner: 'Hors ligne · {count} commande(s) en attente sur ce téléphone',

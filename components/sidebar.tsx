@@ -74,7 +74,7 @@ interface SidebarProps {
 export function Sidebar({ session, structure, mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const { t } = useT();
-  const [counts, setCounts] = useState({ orders: 0, stock: 0, bookings: 0, notifications: 0 });
+  const [counts, setCounts] = useState({ orders: 0, unpaidOrders: 0, stock: 0, bookings: 0, notifications: 0 });
 
   const role = session.role;
   const isOrgAdmin = role === 'ORG_ADMIN';
@@ -113,6 +113,11 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
     exact?: boolean;
     badge?: number;
     badgeColor?: string;
+    badgeTitle?: string;
+    /** Second compteur (ex. commandes à encaisser), affiché à côté du premier. */
+    extraBadge?: number;
+    extraBadgeColor?: string;
+    extraBadgeTitle?: string;
   };
 
   const superAdminItems: NavItem[] = [
@@ -147,6 +152,10 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       module: 'POS',
       badge: counts.orders,
       badgeColor: 'bg-red-500',
+      badgeTitle: t('nav.ordersPendingBadge', { count: counts.orders }),
+      extraBadge: counts.unpaidOrders,
+      extraBadgeColor: 'bg-amber-500',
+      extraBadgeTitle: t('nav.ordersUnpaidBadge', { count: counts.unpaidOrders }),
     },
     { group: 'sales', name: t('nav.waiterMode'), href: '/serveur', icon: Smartphone, roles: ['ADMIN', 'MANAGER', 'CAISSE', 'SERVEUR'], module: 'POS' },
     {
@@ -290,8 +299,20 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
                   >
                     <Icon className={cn('w-5 h-5 shrink-0', !isActive && 'group-hover:text-slate-200')} />
                     <span className="font-medium flex-1 truncate">{item.name}</span>
+                    {(item.extraBadge ?? 0) > 0 && (
+                      <span
+                        title={item.extraBadgeTitle}
+                        aria-label={item.extraBadgeTitle}
+                        className={cn(
+                          'inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-bold leading-none text-white rounded-full min-w-5 h-5',
+                          item.extraBadgeColor || 'bg-amber-500'
+                        )}
+                      >
+                        {(item.extraBadge ?? 0) > 99 ? '99+' : item.extraBadge}
+                      </span>
+                    )}
                     {(item.badge ?? 0) > 0 && (
-                      <span className={cn(
+                      <span title={item.badgeTitle} aria-label={item.badgeTitle} className={cn(
                         'inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-bold leading-none text-white rounded-full min-w-5 h-5',
                         item.badgeColor || 'bg-red-500',
                         !isActive && 'animate-pulse'

@@ -158,6 +158,11 @@ const waiter: typeof fr = {
     enable: 'Enable',
     enabled: 'Alerts enabled on this phone.',
     denied: 'Alerts blocked: allow notifications in your browser settings.',
+    disabled: 'Alerts turned off on this phone.',
+    turnOn: 'Turn on notifications',
+    turnOff: 'Turn off notifications',
+    unsupported: 'Notifications are not available here: the app must be opened over https. On iPhone, add it to the home screen first.',
+    failed: 'Could not turn on notifications. Please try again.',
   },
   offline: {
     banner: 'Offline · {count} order(s) waiting on this phone',

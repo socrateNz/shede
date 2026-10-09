@@ -15,6 +15,8 @@ const orders = {
     API: 'Marketplace',
   },
   list: {
+    awaitingPayment: 'En attente de paiement',
+    awaitingPaymentHint: 'Commande pas encore encaissée : ouvrir pour encaisser',
     badge: 'Gestion des commandes',
     title: 'Commandes',
     subtitle: 'Gérez les commandes de votre établissement',

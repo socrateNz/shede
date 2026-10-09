@@ -16,6 +16,8 @@ const orders: typeof fr = {
     API: 'Marketplace',
   },
   list: {
+    awaitingPayment: 'Awaiting payment',
+    awaitingPaymentHint: 'Order not paid yet: open it to take payment',
     badge: 'Order management',
     title: 'Orders',
     subtitle: 'Manage your outlet’s orders',

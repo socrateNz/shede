@@ -46,6 +46,8 @@ const shell: typeof fr = {
     orders: 'Orders',
     floorPlan: 'Floor plan',
     waiterMode: 'Waiter mode',
+    ordersPendingBadge: '{count} new order(s) waiting',
+    ordersUnpaidBadge: '{count} order(s) awaiting payment',
     kitchen: 'Kitchen (KDS)',
     bar: 'Bar',
     products: 'Products',

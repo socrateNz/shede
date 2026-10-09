@@ -45,6 +45,8 @@ const shell = {
     orders: 'Commandes',
     floorPlan: 'Plan de salle',
     waiterMode: 'Mode serveur',
+    ordersPendingBadge: '{count} nouvelle(s) commande(s) en attente',
+    ordersUnpaidBadge: '{count} commande(s) en attente de paiement',
     kitchen: 'Cuisine (KDS)',
     bar: 'Bar',
     products: 'Produits',

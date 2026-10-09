@@ -5,7 +5,7 @@ import { getAdminSupabase } from '@/lib/supabase';
 
 export async function getSidebarCounts() {
   const session = await getSession();
-  if (!session) return { orders: 0, stock: 0, bookings: 0, notifications: 0 };
+  if (!session) return { orders: 0, unpaidOrders: 0, stock: 0, bookings: 0, notifications: 0 };
 
   try {
     const admin = getAdminSupabase();
@@ -18,6 +18,13 @@ export async function getSidebarCounts() {
       .select('*', { count: 'exact', head: true })
       .eq('structure_id', structureId)
       .eq('status', 'PENDING');
+
+    // 1b. Commandes pas encore encaissées (le paiement les passe en COMPLETED)
+    const { count: unpaidCount } = await admin
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('structure_id', structureId)
+      .not('status', 'in', '(COMPLETED,CANCELLED)');
 
     // 2. Unread Notifications
     const { count: notificationsCount } = await admin
@@ -68,12 +75,13 @@ export async function getSidebarCounts() {
 
     return {
       orders: ordersCount || 0,
+      unpaidOrders: unpaidCount || 0,
       notifications: notificationsCount || 0,
       bookings: bookingsCount || 0,
       stock: stockCount || 0,
     };
   } catch (error) {
     console.error('Error fetching sidebar counts:', error);
-    return { orders: 0, stock: 0, bookings: 0, notifications: 0 };
+    return { orders: 0, unpaidOrders: 0, stock: 0, bookings: 0, notifications: 0 };
   }
 }

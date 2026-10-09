@@ -2,7 +2,7 @@
 
 import { Order } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Eye, ChevronDown, CheckCircle, XCircle, Clock, Package, Coffee, CreditCard, Ban, Smartphone, QrCode, CreditCard as CardIcon, Printer, Tag } from 'lucide-react';
+import { Eye, ChevronDown, CheckCircle, XCircle, Clock, Package, Coffee, CreditCard, Ban, Smartphone, QrCode, CreditCard as CardIcon, Printer, Tag, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { PrintOrderButton } from './print-order-button';
 import {
@@ -48,6 +48,9 @@ const sourceStyles: Record<OrderSource, { icon: any; color: string }> = {
   QR_CODE: { icon: QrCode, color: 'text-purple-400 bg-purple-500/10' },
   CAISSE: { icon: CardIcon, color: 'text-blue-400 bg-blue-500/10' },
 };
+
+// Toute commande encore active n'est pas encaissée (le paiement la passe en COMPLETED).
+const isAwaitingPayment = (status: string) => !['COMPLETED', 'CANCELLED'].includes(status);
 
 const getValidNextStatuses = (currentStatus: string) => {
   switch (currentStatus) {
@@ -159,55 +162,67 @@ export function OrdersList({
                     </div>
                   </TableCell>
                   <TableCell>
-                    {canManageStatus ? (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={isStatusDisabled}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusColor.bg} ${statusColor.text} ${!isStatusDisabled ? 'hover:' + statusColor.bg + ' cursor-pointer' : 'opacity-80 cursor-not-allowed'}`}
+                    <div className="flex flex-col items-start gap-1.5">
+                      {canManageStatus ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={isStatusDisabled}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusColor.bg} ${statusColor.text} ${!isStatusDisabled ? 'hover:' + statusColor.bg + ' cursor-pointer' : 'opacity-80 cursor-not-allowed'}`}
+                            >
+                              {updatingOrderId === order.id ? (
+                                <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <>
+                                  <StatusIcon className="w-3 h-3" />
+                                  {statusColor.label}
+                                  {validNextStatuses.length > 0 && <ChevronDown className="w-3 h-3 ml-1 opacity-70" />}
+                                </>
+                              )}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="start"
+                            className="w-48 bg-slate-800 border-slate-700 text-slate-200"
                           >
-                            {updatingOrderId === order.id ? (
-                              <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <>
-                                <StatusIcon className="w-3 h-3" />
-                                {statusColor.label}
-                                {validNextStatuses.length > 0 && <ChevronDown className="w-3 h-3 ml-1 opacity-70" />}
-                              </>
-                            )}
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="start"
-                          className="w-48 bg-slate-800 border-slate-700 text-slate-200"
+                            {statusOptions
+                              .filter(option => validNextStatuses.includes(option.value))
+                              .map((option) => {
+                                const OptionIcon = option.icon;
+                                return (
+                                  <DropdownMenuItem
+                                    key={option.value}
+                                    onClick={() => onStatusChange?.(order.id, option.value)}
+                                    className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700 gap-2"
+                                  >
+                                    <OptionIcon className={`w-4 h-4 ${option.color}`} />
+                                    <span>{option.label}</span>
+                                  </DropdownMenuItem>
+                                );
+                              })}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusColor.bg} ${statusColor.text}`}
                         >
-                          {statusOptions
-                            .filter(option => validNextStatuses.includes(option.value))
-                            .map((option) => {
-                              const OptionIcon = option.icon;
-                              return (
-                                <DropdownMenuItem
-                                  key={option.value}
-                                  onClick={() => onStatusChange?.(order.id, option.value)}
-                                  className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700 gap-2"
-                                >
-                                  <OptionIcon className={`w-4 h-4 ${option.color}`} />
-                                  <span>{option.label}</span>
-                                </DropdownMenuItem>
-                              );
-                            })}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    ) : (
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusColor.bg} ${statusColor.text}`}
-                      >
-                        <StatusIcon className="w-3 h-3" />
-                        {statusColor.label}
-                      </span>
-                    )}
+                          <StatusIcon className="w-3 h-3" />
+                          {statusColor.label}
+                        </span>
+                      )}
+                      {isAwaitingPayment(order.status) && (
+                        <Link
+                          href={`/orders/${order.id}`}
+                          title={t('orders.list.awaitingPaymentHint')}
+                          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-400 transition-colors hover:bg-amber-500/20"
+                        >
+                          <Wallet className="h-3 w-3" aria-hidden />
+                          {t('orders.list.awaitingPayment')}
+                        </Link>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-slate-400 text-sm">
                     {format.time(order.created_at)}

@@ -67,6 +67,14 @@ const notify: typeof fr = {
     title: 'Order ready',
     body: 'Table {table}: the order is ready to serve.',
   },
+  waiterOrder: {
+    title: 'Order to collect',
+    body: '{table} · order taken by {waiter} ({amount}), awaiting payment.',
+  },
+  orderServed: {
+    title: 'Table served, payment due',
+    body: '{table} was served by {waiter}: {amount} to collect.',
+  },
 };
 
 export default notify;

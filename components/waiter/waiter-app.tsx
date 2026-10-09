@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Bell, ChevronLeft, ClipboardList, CloudOff, LayoutGrid, LayoutDashboard, Loader2, LogOut, Minus, Plus, RotateCw, Search, Send, Trash2, X } from 'lucide-react';
+import { Bell, BellOff, BellRing, ChevronLeft, ClipboardList, CloudOff, LayoutGrid, LayoutDashboard, Loader2, LogOut, Minus, Plus, RotateCw, Search, Send, Trash2, X } from 'lucide-react';
 import {
   fireHeldItems,
   getWaiterFloor,
@@ -17,9 +17,10 @@ import {
 } from '@/app/actions/waiter';
 import { waiterLogout } from '@/app/actions/waiter-devices';
 import { FloorLegend, FloorList, FloorPlan, tableState } from '@/components/waiter/floor-plan';
-import { enableWaiterPush, registerWaiterWorker, releaseWaiterDevice } from '@/components/waiter/push';
+import { disableWaiterPush, enableWaiterPush, registerWaiterWorker, releaseWaiterDevice, type AlertsState } from '@/components/waiter/push';
 import { loadQueue, loadResolved, saveQueue, saveResolved, type QueuedOrder } from '@/components/waiter/offline-queue';
 import { useDialogs } from '@/components/dialog-provider';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import type { WaiterOrderInput } from '@/app/actions/waiter';
 import { useT } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
@@ -399,18 +400,35 @@ export function WaiterApp({
   const floorTables = floor.tables.filter((tb) => tb.floorId === currentFloorId);
   const listTables = floorTables.filter((tb) => filter === 'all' || tb.groups.some((g) => g.mine));
   // Alertes « commande prête » : abonnement silencieux si déjà autorisé, sinon bouton d'activation.
-  const [alerts, setAlerts] = useState<NotificationPermission | 'unsupported' | null>(null);
+  const [alerts, setAlerts] = useState<AlertsState | null>(null);
+  const [alertsBusy, setAlertsBusy] = useState(false);
   useEffect(() => {
     registerWaiterWorker();
-    enableWaiterPush(false)
+    enableWaiterPush(me.id, false)
       .then(setAlerts)
-      .catch(() => setAlerts('unsupported'));
-  }, []);
-  const askAlerts = async () => {
-    const result = await enableWaiterPush(true).catch(() => 'unsupported' as const);
-    setAlerts(result);
-    if (result === 'granted') toast.success(t('waiter.alerts.enabled'));
-    else if (result === 'denied') toast.error(t('waiter.alerts.denied'));
+      .catch(() => setAlerts('default'));
+  }, [me.id]);
+  const toggleAlerts = async () => {
+    if (alertsBusy) return;
+    if (alerts === 'unsupported') return void toast.message(t('waiter.alerts.unsupported'), { duration: 8000 });
+    if (alerts === 'denied') return void toast.error(t('waiter.alerts.denied'), { duration: 8000 });
+    setAlertsBusy(true);
+    try {
+      if (alerts === 'granted') {
+        setAlerts(await disableWaiterPush(me.id));
+        toast.message(t('waiter.alerts.disabled'));
+      } else {
+        const result = await enableWaiterPush(me.id, true);
+        setAlerts(result);
+        if (result === 'granted') toast.success(t('waiter.alerts.enabled'));
+        else if (result === 'denied') toast.error(t('waiter.alerts.denied'), { duration: 8000 });
+        else if (result === 'unsupported') toast.message(t('waiter.alerts.unsupported'), { duration: 8000 });
+      }
+    } catch {
+      toast.error(t('waiter.alerts.failed'));
+    } finally {
+      setAlertsBusy(false);
+    }
   };
 
   // Changement de serveur : le téléphone cesse de recevoir les alertes du serveur sortant.
@@ -427,31 +445,56 @@ export function WaiterApp({
       {screen === 'floor' && (
         <>
           <header className="flex items-center justify-between border-b border-[#e7e5df] bg-white px-5 pb-3 pt-5">
-            <div>
-              <p className="text-[13px] font-semibold text-[#5b5e66]">{t('waiter.floor.hello', { name: me.name })}</p>
-              <h1 className="text-[22px] font-extrabold">{t('waiter.floor.title')}</h1>
+            <div className="min-w-0">
+              <p className="truncate text-[13px] font-semibold text-[#5b5e66]">{t('waiter.floor.hello', { name: me.name })}</p>
+              <h1 className="truncate text-[22px] font-extrabold">{t('waiter.floor.title')}</h1>
             </div>
-            {pinSession ? (
-              <form action={logout}>
-                <button
-                  type="submit"
-                  aria-label={t('waiter.pin.switch')}
-                  title={t('waiter.pin.switch')}
-                  className="flex h-12 items-center gap-2 rounded-full bg-[#ede9fe] pl-1.5 pr-3 text-sm font-bold text-[#4c1d95]"
-                >
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-base font-extrabold">{me.initials}</span>
-                  <LogOut className="h-4 w-4" aria-hidden />
-                </button>
-              </form>
-            ) : (
-              <Link
-                href="/dashboard"
-                aria-label={t('waiter.nav.backOffice')}
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ede9fe] text-base font-extrabold text-[#4c1d95]"
+            <div className="flex shrink-0 items-center gap-2">
+              <LanguageSwitcher tone="waiter" />
+              <button
+                type="button"
+                onClick={toggleAlerts}
+                disabled={alerts === null || alertsBusy}
+                aria-pressed={alerts === 'granted'}
+                aria-label={alerts === 'granted' ? t('waiter.alerts.turnOff') : t('waiter.alerts.turnOn')}
+                title={alerts === 'granted' ? t('waiter.alerts.turnOff') : t('waiter.alerts.turnOn')}
+                className={cn(
+                  'relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full border transition-colors disabled:opacity-60',
+                  alerts === 'granted' ? 'border-[#4c1d95] bg-[#4c1d95] text-white' : 'border-[#e7e5df] bg-white text-[#5b5e66]'
+                )}
               >
-                {me.initials}
-              </Link>
-            )}
+                {alertsBusy ? (
+                  <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+                ) : alerts === 'granted' ? (
+                  <BellRing className="h-5 w-5" aria-hidden />
+                ) : alerts === 'denied' || alerts === 'unsupported' ? (
+                  <BellOff className="h-5 w-5" aria-hidden />
+                ) : (
+                  <Bell className="h-5 w-5" aria-hidden />
+                )}
+              </button>
+              {pinSession ? (
+                <form action={logout}>
+                  <button
+                    type="submit"
+                    aria-label={t('waiter.pin.switch')}
+                    title={t('waiter.pin.switch')}
+                    className="flex h-12 items-center gap-2 rounded-full bg-[#ede9fe] pl-1.5 pr-3 text-sm font-bold text-[#4c1d95]"
+                  >
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-base font-extrabold">{me.initials}</span>
+                    <LogOut className="h-4 w-4" aria-hidden />
+                  </button>
+                </form>
+              ) : (
+                <Link
+                  href="/dashboard"
+                  aria-label={t('waiter.nav.backOffice')}
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ede9fe] text-base font-extrabold text-[#4c1d95]"
+                >
+                  {me.initials}
+                </Link>
+              )}
+            </div>
           </header>
 
           {(!online || queue.length > 0) && (
@@ -471,7 +514,7 @@ export function WaiterApp({
             <div className="mx-4 mt-3 flex items-center gap-3 rounded-2xl bg-[#ede9fe] px-4 py-3 text-sm font-semibold text-[#4c1d95]">
               <Bell className="h-5 w-5 shrink-0" aria-hidden />
               <span className="flex-1">{t('waiter.alerts.prompt')}</span>
-              <button type="button" onClick={askAlerts} className="h-10 rounded-xl bg-[#4c1d95] px-3 font-bold text-white">
+              <button type="button" onClick={toggleAlerts} disabled={alertsBusy} className="h-10 rounded-xl bg-[#4c1d95] px-3 font-bold text-white">
                 {t('waiter.alerts.enable')}
               </button>
             </div>

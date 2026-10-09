@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ChevronLeft, Delete, Loader2 } from 'lucide-react';
 import { loginWithPin } from '@/app/actions/waiter-devices';
 import { useT } from '@/lib/i18n/client';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import { cn } from '@/lib/utils';
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'] as const;
@@ -57,10 +58,11 @@ export function PinLogin({
     <main className="mx-auto flex min-h-[100dvh] max-w-md flex-col gap-7 bg-[#f6f5f2] px-6 pb-8 pt-12">
       <div className="flex items-center gap-3">
         <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#6d28d9] text-xl font-extrabold text-white">S</span>
-        <div>
-          <p className="text-lg font-extrabold">{pointName || 'Shede'}</p>
+        <div className="min-w-0">
+          <p className="truncate text-lg font-extrabold">{pointName || 'Shede'}</p>
           <p className="text-sm text-[#5b5e66]">{deviceName}</p>
         </div>
+        <LanguageSwitcher tone="waiter" className="ml-auto" />
       </div>
 
       {!waiter ? (

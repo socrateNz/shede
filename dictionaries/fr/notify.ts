@@ -66,6 +66,14 @@ const notify = {
     title: 'Commande prête',
     body: 'Table {table} : la commande est prête à servir.',
   },
+  waiterOrder: {
+    title: 'Commande à encaisser',
+    body: '{table} · commande prise par {waiter} ({amount}), en attente de paiement.',
+  },
+  orderServed: {
+    title: 'Table servie, à encaisser',
+    body: '{table} a été servie par {waiter} : {amount} à encaisser.',
+  },
 };
 
 export default notify;

@@ -437,15 +437,7 @@ export async function submitWaiterOrder(input: WaiterOrderInput): Promise<Submit
     await admin.from('order_submissions').update({ order_id: orderId }).eq('ref', input.ref);
 
     if (createdOrderId) {
-      await notifyStructureStaff({
-        structureId: session.structureId,
-        message: ({ t }) => ({
-          title: t('notify.newOrder.title'),
-          body: t('notify.newOrder.body', { ref: orderId.slice(0, 8) }),
-        }),
-        url: `/orders/${orderId}`,
-        roles: ['ADMIN', 'CAISSE'],
-      });
+      await notifyCashiers(orderId, session.structureId, 'waiterOrder');
     }
     return { success: true, orderId };
   } catch (error) {
@@ -551,5 +543,28 @@ export async function markOrderServed(orderId: string): Promise<{ success: boole
     .select('id')
     .maybeSingle();
   if (!data) return { success: false, error: await te('errors.orderNotFound') };
+  await notifyCashiers(orderId, session.structureId, 'orderServed');
   return { success: true };
+}
+
+/** Prévient la caisse (caissiers et responsables du point) qu'une commande de serveur attend son paiement. */
+async function notifyCashiers(orderId: string, structureId: string, kind: 'waiterOrder' | 'orderServed') {
+  const { data: order } = await getAdminSupabase()
+    .from('orders')
+    .select('total, table_number, tables(name, floor_name), users!user_id(first_name, last_name)')
+    .eq('id', orderId)
+    .maybeSingle();
+  if (!order) return;
+  const tbl = order.tables as { name?: string; floor_name?: string | null } | null;
+  const table = tbl?.name ? [tbl.name, tbl.floor_name].filter(Boolean).join(' · ') : String(order.table_number ?? '—');
+  const waiter = fullName(order.users as { first_name?: string | null; last_name?: string | null } | null) || '—';
+  await notifyStructureStaff({
+    structureId,
+    message: ({ t, format }) => ({
+      title: t(`notify.${kind}.title`),
+      body: t(`notify.${kind}.body`, { table, waiter, amount: format.money(Number(order.total) || 0) }),
+    }),
+    url: `/orders/${orderId}`,
+    roles: ['ADMIN', 'CAISSE'],
+  });
 }
