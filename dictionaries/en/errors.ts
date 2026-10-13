@@ -31,6 +31,8 @@ const errors: typeof fr = {
   addAtLeastOneProduct: 'Add at least one product.',
   productsValidationFailed: 'The products could not be checked.',
   productsUnavailable: 'One or more products are invalid or unavailable.',
+  outOfStock: '{name} is out of stock.',
+  notEnoughStock: 'Not enough stock for {name}: {count} available.',
   productsNotDeliverable: 'These products cannot be delivered: {names}.',
   accompanimentsValidationFailed: 'The side dishes could not be checked.',
   accompanimentMappingsFailed: 'The products’ side dishes could not be checked.',

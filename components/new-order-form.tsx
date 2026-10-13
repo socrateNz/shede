@@ -20,6 +20,8 @@ interface OrderProduct {
   category: string | null;
   categoryIds?: string[];
   isDeliverable?: boolean;
+  /** Unités encore commandables ; null/absent = pas suivi en stock. */
+  stock?: number | null;
 }
 
 type AccompanimentOption = {
@@ -27,6 +29,7 @@ type AccompanimentOption = {
   name: string;
   unitPrice: number;
   quantityMultiplier: number;
+  stock?: number | null;
 };
 
 type SelectedAccompaniment = {
@@ -155,8 +158,11 @@ export function NewOrderForm({
   };
 
   const addItemDirect = (productId: string) => {
+    const stock = productsById.get(productId)?.stock;
+    if (stock === 0) return; // rupture : ne peut pas être commandé
     setItems((prev) => {
       const existing = prev.find((item) => item.productId === productId);
+      if (stock != null && (existing?.quantity ?? 0) >= stock) return prev; // pas plus que le stock restant
       if (existing) {
         return prev.map((item) =>
           item.productId === productId
@@ -423,13 +429,32 @@ export function NewOrderForm({
             />
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-slate-600">
-              {visibleProducts.map((product) => (
-                <div 
+              {visibleProducts.map((product) => {
+                const out = product.stock === 0;
+                const inCart = items.find((i) => i.productId === product.id)?.quantity ?? 0;
+                const maxed = !out && product.stock != null && inCart >= product.stock;
+                return (
+                <button
+                  type="button"
                   key={product.id}
                   onClick={() => addItemDirect(product.id)}
-                  className="cursor-pointer border border-slate-700 rounded-xl overflow-hidden hover:border-blue-500 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-all bg-slate-900 group"
+                  disabled={out || maxed}
+                  aria-label={out ? `${product.name} — ${t('common.stock.outLong')}` : undefined}
+                  title={out ? t('common.stock.outLong') : maxed ? t('common.stock.maxReached', { count: product.stock! }) : undefined}
+                  className={`text-left border rounded-xl overflow-hidden transition-all bg-slate-900 group ${
+                    out
+                      ? 'cursor-not-allowed border-slate-800 opacity-50 grayscale'
+                      : maxed
+                        ? 'cursor-not-allowed border-amber-500/40'
+                        : 'cursor-pointer border-slate-700 hover:border-blue-500 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]'
+                  }`}
                 >
                   <div className="h-28 relative bg-slate-800/50">
+                    {out && (
+                      <span className="absolute left-2 top-2 z-10 rounded-md bg-red-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white shadow">
+                        {t('common.stock.out')}
+                      </span>
+                    )}
                     {product.image_url ? (
                       <img 
                         src={product.image_url} 
@@ -455,9 +480,15 @@ export function NewOrderForm({
                         {t('orders.create.notDeliverable')}
                       </p>
                     )}
+                    {!out && product.stock != null && product.stock <= 5 && (
+                      <p className="mt-1 text-[10px] font-semibold text-amber-400">
+                        {maxed ? t('common.stock.maxReached', { count: product.stock }) : t('common.stock.left', { count: product.stock })}
+                      </p>
+                    )}
                   </div>
-                </div>
-              ))}
+                </button>
+                );
+              })}
             </div>
           </div>
 
@@ -486,18 +517,25 @@ export function NewOrderForm({
                           {possibleAccs.map((acc) => {
                             const selected = item.accompaniments.find((a) => a.accompanimentId === acc.accompanimentId);
                             const included = Boolean(selected);
+                            const accOut = !included && acc.stock != null && acc.stock < item.quantity * acc.quantityMultiplier;
 
                             return (
                               <div key={acc.accompanimentId} className="flex items-center justify-between gap-3">
-                                <label className="flex items-center gap-2 text-sm text-slate-200">
+                                <label className={`flex items-center gap-2 text-sm ${accOut ? 'cursor-not-allowed text-slate-500' : 'text-slate-200'}`}>
                                   <input
                                     type="checkbox"
                                     checked={included}
+                                    disabled={accOut}
                                     onChange={(e) => toggleAccompanimentIncluded(item.productId, acc.accompanimentId, e.target.checked)}
                                   />
-                                  <span>
+                                  <span className={accOut ? 'line-through' : undefined}>
                                     {acc.name} ({format.money(acc.unitPrice)}) x {acc.quantityMultiplier}
                                   </span>
+                                  {accOut && (
+                                    <span className="rounded bg-red-600/90 px-1.5 py-0.5 text-[10px] font-bold uppercase text-white no-underline">
+                                      {acc.stock === 0 ? t('common.stock.out') : t('common.stock.left', { count: acc.stock! })}
+                                    </span>
+                                  )}
                                 </label>
 
                                 <label

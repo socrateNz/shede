@@ -1,5 +1,6 @@
 'use server';
 
+import { getStockAvailability, stockErrorAccompaniment, stockErrorFor } from '@/lib/stock-availability';
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { notifyStructureStaff, notifyUser } from '@/lib/notifications';
@@ -215,6 +216,13 @@ export async function createOrderWithItems(
     if (validProducts.size !== uniqueProductIds.length) {
       return { success: false, error: await te('errors.productsUnavailable') };
     }
+
+    // Rupture de stock (stock restant après les commandes en cours)
+    const stockError = await stockErrorFor(
+      session.structureId as string,
+      consolidatedItems.map((i) => ({ productId: i.productId, quantity: i.quantity, accompanimentIds: i.accompaniments.map((a) => a.accompanimentId) }))
+    );
+    if (stockError) return { success: false, error: stockError };
 
     let verifiedPromo = null;
     if (promoCode) {
@@ -520,6 +528,9 @@ export async function addOrderItem(
     }
     unitPrice = Number(product.price) || 0;
 
+    const stockError = await stockErrorFor(session.structureId as string, [{ productId, quantity }]);
+    if (stockError) return { success: false, error: stockError };
+
     const totalPrice = quantity * unitPrice;
 
     const { data: item, error } = await admin
@@ -626,6 +637,8 @@ export async function getOrderAccompanimentChoices(orderId: string) {
     });
   });
 
+  const availability = await getStockAvailability(session.structureId as string, [], accompanimentIds);
+
   const parents = parentItemsList.map((parent) => {
     const parentMappings = mappingsList.filter((m) => m.product_id === parent.product_id);
 
@@ -645,6 +658,7 @@ export async function getOrderAccompanimentChoices(orderId: string) {
           defaultPriceIncluded: true,
           existingOrderItemId: existing?.choiceId ?? null,
           existingIsPriceCounted: existing?.isPriceCounted ?? null,
+          stock: availability.accompaniments.get(m.accompaniment_id) ?? null,
         };
       })
       .filter(Boolean);
@@ -720,6 +734,19 @@ export async function addOrderAccompaniment(
   const unitPrice = Number(acc.price);
   const quantityMultiplier = Number(mapping.quantity || 1);
   const quantity = parentItem.quantity * quantityMultiplier;
+
+  // Le plat est déjà compté dans la commande : seul l'accompagnement ajouté est contrôlé
+  const { data: alreadyChosen } = await admin
+    .from('order_accompaniments')
+    .select('id')
+    .eq('order_id', orderId)
+    .eq('parent_order_item_id', parentOrderItemId)
+    .eq('accompaniment_id', accompanimentProductId)
+    .maybeSingle();
+  if (!alreadyChosen) {
+    const stockError = await stockErrorAccompaniment(session.structureId as string, accompanimentProductId, quantity);
+    if (stockError) return { success: false, error: stockError };
+  }
   const totalPrice = unitPrice * quantity;
 
   // Upsert order_accompaniments row for this choice.
@@ -1059,7 +1086,10 @@ export async function getAvailableProducts() {
       .eq('is_deleted', false)
       .order('name', { ascending: true });
 
-    return data || [];
+    // Stock restant (après les commandes en cours) : null = pas suivi
+    const products = data || [];
+    const availability = await getStockAvailability(session.structureId as string, products.map((p) => p.id as string));
+    return products.map((p) => ({ ...p, stock: availability.products.get(p.id as string) ?? null }));
   } catch (error) {
     return [];
   }

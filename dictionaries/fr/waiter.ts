@@ -52,6 +52,9 @@ const waiter = {
     viewCart: 'Voir la commande',
     kitchen: 'Cuisine',
     bar: 'Bar',
+    outOfStock: 'Rupture',
+    outOfStockLabel: '{name} — en rupture de stock',
+    left: 'Plus que {count}',
   },
   accompaniments: {
     title: '{name} · accompagnements',

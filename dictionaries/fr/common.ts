@@ -69,6 +69,12 @@ const common = {
     MOBILE: 'Mobile Money',
     AUTRE: 'Autre',
   },
+  stock: {
+    out: 'Rupture',
+    outLong: 'En rupture de stock',
+    left: 'Plus que {count}',
+    maxReached: 'Stock atteint : {count} disponible(s)',
+  },
   pagination: {
     previous: 'Précédent',
     previousAria: 'Page précédente',

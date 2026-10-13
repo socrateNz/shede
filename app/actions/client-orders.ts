@@ -1,5 +1,6 @@
 'use server';
 
+import { stockErrorFor } from '@/lib/stock-availability';
 import { getAdminSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { notifyStructureStaff } from '@/lib/notifications';
@@ -82,6 +83,17 @@ export async function createClientOrder(
       );
       if (invalid) return { success: false, error: await te('errors.accompanimentsUnavailable') };
     }
+
+    // Rupture de stock (stock restant après les commandes en cours)
+    const stockError = await stockErrorFor(
+      structureId,
+      items.map((i) => ({
+        productId: i.productId,
+        quantity: Number(i.quantity),
+        accompanimentIds: (i.selectedAccompaniments ?? []).map((a: any) => String(a?.accompaniment_id ?? '')).filter(Boolean),
+      })),
+    );
+    if (stockError) return { success: false, error: stockError };
 
     let verifiedPromo = null;
     if (options?.promoCode) {

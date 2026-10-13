@@ -64,6 +64,7 @@ export default function ProductList({
   }
 
   const handleProductClick = (product: any) => {
+    if (product.stock === 0) return; // rupture : ne peut pas être commandé
     const hasAccompaniments = product.product_accompaniments && product.product_accompaniments.length > 0;
 
     if (hasAccompaniments) {
@@ -158,11 +159,17 @@ export default function ProductList({
             : product.price;
 
           const hasImage = !!product.image_url;
+          const out = product.stock === 0;
 
           return (
             <div
               key={product.id}
-              className="group relative bg-white rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-slate-100 overflow-hidden hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:border-blue-100 transition-all duration-500 transform hover:-translate-y-1 flex flex-col h-full"
+              aria-disabled={out || undefined}
+              className={`group relative rounded-3xl border overflow-hidden flex flex-col h-full transition-all duration-500 ${
+                out
+                  ? 'bg-slate-100 border-slate-200 grayscale opacity-70'
+                  : 'bg-white border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:border-blue-100 transform hover:-translate-y-1'
+              }`}
               style={{ animationDelay: `${idx * 50}ms` }}
             >
               {/* Product Image Header */}
@@ -182,8 +189,14 @@ export default function ProductList({
                 {/* Overlay gradient for text readability if badges exist */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
 
+                {out && (
+                  <div className="absolute top-3 left-3 z-10 rounded-full bg-slate-900/85 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-white shadow-lg">
+                    {t('common.stock.outLong')}
+                  </div>
+                )}
+
                 {/* Promo Badge */}
-                {promo && (
+                {promo && !out && (
                   <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs font-black tracking-wide px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1">
                     <Flame className="w-3.5 h-3.5" />
                     {promo.type === 'PERCENTAGE' ? `-${promo.value}%` : `-${format.money(promo.value)}`}
@@ -215,6 +228,9 @@ export default function ProductList({
                 {product.is_deliverable === false && (
                   <p className="mt-2 text-xs font-semibold text-amber-600">{t('client.products.notDeliverable')}</p>
                 )}
+                {!out && product.stock != null && product.stock <= 5 && (
+                  <p className="mt-2 text-xs font-bold text-amber-600">{t('common.stock.left', { count: product.stock })}</p>
+                )}
 
                 <div className="mt-auto pt-5 flex items-end justify-between">
                   <div>
@@ -229,8 +245,9 @@ export default function ProductList({
                   </div>
                   <button
                     onClick={() => handleProductClick(product)}
-                    aria-label={t('client.products.addAria', { name: product.name })}
-                    className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-blue-600 hover:scale-110 active:scale-95 transition-all duration-300 shadow-md hover:shadow-blue-200"
+                    disabled={out}
+                    aria-label={out ? `${product.name} — ${t('common.stock.outLong')}` : t('client.products.addAria', { name: product.name })}
+                    className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-blue-600 hover:scale-110 active:scale-95 transition-all duration-300 shadow-md hover:shadow-blue-200 disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none disabled:hover:scale-100 disabled:cursor-not-allowed"
                   >
                     <Plus className="w-5 h-5" />
                   </button>
@@ -284,14 +301,20 @@ export default function ProductList({
                 {selectedProduct.product_accompaniments?.map((pa: any) => {
                   const acc = pa.accompaniments;
                   if (!acc) return null;
-                  const maxQuantity = pa.quantity || 1;
+                  const accLeft: number | null = pa.stock ?? null;
+                  const maxQuantity = Math.min(pa.quantity || 1, accLeft ?? Infinity);
                   const currentQty = accompanimentSelections[acc.id] || 0;
+                  const accOut = accLeft !== null && accLeft <= 0;
 
                   return (
-                    <div key={acc.id} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-100 hover:border-blue-200 hover:shadow-md transition-all shadow-sm">
+                    <div key={acc.id} className={`flex items-center justify-between p-4 rounded-2xl border transition-all shadow-sm ${accOut ? 'bg-slate-100 border-slate-200 opacity-70' : 'bg-white border-slate-100 hover:border-blue-200 hover:shadow-md'}`}>
                       <div>
-                        <p className="font-bold text-slate-800">{acc.name}</p>
-                        <p className="text-sm font-black text-blue-600 mt-0.5">+{format.money(acc.price)}</p>
+                        <p className={`font-bold ${accOut ? 'text-slate-500 line-through' : 'text-slate-800'}`}>{acc.name}</p>
+                        {accOut ? (
+                          <p className="text-xs font-black uppercase tracking-wide text-slate-500 mt-0.5">{t('common.stock.outLong')}</p>
+                        ) : (
+                          <p className="text-sm font-black text-blue-600 mt-0.5">+{format.money(acc.price)}</p>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
                         <button

@@ -32,6 +32,8 @@ const errors = {
   addAtLeastOneProduct: 'Ajoutez au moins un produit.',
   productsValidationFailed: 'Les produits n’ont pas pu être vérifiés.',
   productsUnavailable: 'Un ou plusieurs produits sont invalides ou indisponibles.',
+  outOfStock: '{name} est en rupture de stock.',
+  notEnoughStock: 'Stock insuffisant pour {name} : {count} disponible(s).',
   productsNotDeliverable: 'Ces produits ne peuvent pas être livrés : {names}.',
   accompanimentsValidationFailed: 'Les accompagnements n’ont pas pu être vérifiés.',
   accompanimentMappingsFailed: 'Les accompagnements des produits n’ont pas pu être vérifiés.',

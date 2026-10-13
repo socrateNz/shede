@@ -7,6 +7,7 @@ import { PromoBanner } from '@/components/promo-banner';
 import { Building2, MapPin, Phone, Bed, UtensilsCrossed, ArrowRight, ArrowLeft } from 'lucide-react';
 import { getT } from '@/lib/i18n/server';
 import { categoriesForProducts } from '@/lib/categories';
+import { getStockAvailability } from '@/lib/stock-availability';
 
 export default async function StructurePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -33,7 +34,18 @@ export default async function StructurePage({ params }: { params: Promise<{ id: 
 
   const promotions = await getActivePromotionsForClient(id);
   const { categories, byProduct } = await categoriesForProducts(id, (products || []).map((p) => p.id as string));
-  const menu = (products || []).map((p) => ({ ...p, categoryIds: (byProduct.get(p.id) ?? []).map((c) => c.id) }));
+  // Stock restant (après les commandes en cours) : null = pas suivi, 0 = rupture
+  const accIds = [...new Set((products || []).flatMap((p: any) => (p.product_accompaniments || []).map((pa: any) => pa.accompaniments?.id).filter(Boolean)))] as string[];
+  const availability = await getStockAvailability(id, (products || []).map((p) => p.id as string), accIds);
+  const menu = (products || []).map((p) => ({
+    ...p,
+    categoryIds: (byProduct.get(p.id) ?? []).map((c) => c.id),
+    stock: availability.products.get(p.id) ?? null,
+    product_accompaniments: (p.product_accompaniments || []).map((pa: any) => ({
+      ...pa,
+      stock: pa.accompaniments ? availability.accompaniments.get(pa.accompaniments.id) ?? null : null,
+    })),
+  }));
 
   const isHotel = structure.modules?.includes('HOTEL') || structure.type === 'HOTEL' || structure.type === 'MIXTE';
   const isRestaurant = structure.modules?.includes('RESTAURANT') || structure.type === 'RESTAURANT' || structure.type === 'MIXTE';

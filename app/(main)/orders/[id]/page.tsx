@@ -76,6 +76,8 @@ type AccompanimentChoice = {
   defaultPriceIncluded: boolean;
   existingOrderItemId: string | null;
   existingIsPriceCounted: boolean | null;
+  /** Unités encore disponibles ; null = pas suivi en stock. */
+  stock?: number | null;
 };
 
 type ParentAccompanimentChoices = {
@@ -499,11 +501,15 @@ export default function OrderDetailPage() {
                     className="w-full bg-slate-900/50 border border-slate-600 text-slate-50 rounded-lg px-3 py-2 text-sm focus:border-blue-500"
                   >
                     <option value="">{t('orders.detail.selectProduct')}</option>
-                    {products.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.name} - {format.money(product.price)}
-                      </option>
-                    ))}
+                    {products.map((product) => {
+                      const stock = (product as Product & { stock?: number | null }).stock;
+                      return (
+                        <option key={product.id} value={product.id} disabled={stock === 0}>
+                          {product.name} - {format.money(product.price)}
+                          {stock === 0 ? ` — ${t('common.stock.out')}` : stock != null && stock <= 5 ? ` — ${t('common.stock.left', { count: stock })}` : ''}
+                        </option>
+                      );
+                    })}
                   </select>
                   <Input
                     type="number"
@@ -585,18 +591,25 @@ export default function OrderDetailPage() {
                                 const included = Boolean(choice.existingOrderItemId);
                                 const computedQty = parent.quantity * choice.quantityMultiplier;
                                 const lineTotal = choice.unitPrice * computedQty;
+                                const accOut = !included && choice.stock != null && choice.stock < computedQty;
 
                                 return (
                                   <div key={choice.accompanimentProductId} className="flex flex-wrap items-center justify-between gap-3">
                                     <div className="flex-1 min-w-[150px]">
-                                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                                      <label className={`flex items-center gap-2 select-none ${accOut ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
                                         <input
                                           type="checkbox"
                                           checked={included}
+                                          disabled={accOut}
                                           onChange={(e) => handleToggleAccompanimentIncluded(parent.id, choice, e.target.checked)}
                                           className="w-4 h-4 rounded border-slate-600 text-purple-500 focus:ring-purple-500"
                                         />
-                                        <span className="text-slate-200 text-sm">{choice.name}</span>
+                                        <span className={`text-sm ${accOut ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{choice.name}</span>
+                                        {accOut && (
+                                          <span className="rounded bg-red-600/90 px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">
+                                            {choice.stock === 0 ? t('common.stock.out') : t('common.stock.left', { count: choice.stock! })}
+                                          </span>
+                                        )}
                                       </label>
                                       <p className="text-slate-500 text-xs mt-0.5">
                                         {computedQty} x {format.money(choice.unitPrice)} = {format.money(lineTotal)}

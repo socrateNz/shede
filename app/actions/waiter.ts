@@ -6,6 +6,7 @@ import { te } from '@/lib/i18n/server';
 import { recomputeOrderTotal } from '@/lib/order-totals';
 import { getStructureActiveShift } from '@/lib/shifts-server';
 import { notifyStructureStaff } from '@/lib/notifications';
+import { availabilityRecord, getStockAvailability, stockErrorFor } from '@/lib/stock-availability';
 import { categoryIdsByProduct, loadCategories } from '@/lib/categories';
 import { addDays, localToday } from '@/lib/forecast';
 import { fetchAll } from '@/lib/pagination';
@@ -146,7 +147,9 @@ export type WaiterMenu = {
     price: number;
     station: 'CUISINE' | 'BAR';
     categoryIds: string[];
-    accompaniments: { id: string; name: string; price: number; quantity: number }[];
+    accompaniments: { id: string; name: string; price: number; quantity: number; stock: number | null }[];
+    /** Unités encore commandables (stock moins les commandes en cours) ; null = pas suivi. */
+    stock: number | null;
   }[];
   /** Les plus vendus sur 30 jours (ordre décroissant). */
   favorites: string[];
@@ -200,9 +203,13 @@ export async function getWaiterMenu(): Promise<WaiterMenu | null> {
     const a = m.accompaniments;
     if (!a || !a.is_available || a.is_deleted) continue;
     const list = accByProduct.get(m.product_id) ?? [];
-    list.push({ id: a.id, name: a.name, price: Number(a.price) || 0, quantity: Number(m.quantity) || 1 });
+    list.push({ id: a.id, name: a.name, price: Number(a.price) || 0, quantity: Number(m.quantity) || 1, stock: null });
     accByProduct.set(m.product_id, list);
   }
+
+  const accIds = [...new Set([...accByProduct.values()].flat().map((a) => a.id))];
+  const availability = await getStockAvailability(session.structureId, ids, accIds);
+  for (const list of accByProduct.values()) for (const a of list) a.stock = availability.accompaniments.get(a.id) ?? null;
 
   const sold = new Map<string, number>();
   for (const r of sales) sold.set(r.product_id, (sold.get(r.product_id) ?? 0) + (Number(r.quantity) || 0));
@@ -221,9 +228,21 @@ export async function getWaiterMenu(): Promise<WaiterMenu | null> {
       station: p.destination === 'BAR' ? 'BAR' : 'CUISINE',
       categoryIds: links.get(p.id) ?? [],
       accompaniments: accByProduct.get(p.id) ?? [],
+      stock: availability.products.get(p.id) ?? null,
     })),
     favorites,
   };
+}
+
+export type WaiterStock = { products: Record<string, number | null>; accompaniments: Record<string, number | null> };
+
+/** Stock restant de la carte, relu régulièrement : un plat qui vient de partir passe en rupture. */
+export async function getWaiterStock(productIds: string[], accompanimentIds: string[]): Promise<WaiterStock | null> {
+  const session = await requireWaiter();
+  if (!session) return null;
+  const valid = (ids: unknown) => (Array.isArray(ids) ? ids.map(String).filter((id) => UUID.test(id)).slice(0, 2000) : []);
+  const availability = await getStockAvailability(session.structureId, valid(productIds), valid(accompanimentIds));
+  return { products: availabilityRecord(availability.products), accompaniments: availabilityRecord(availability.accompaniments) };
 }
 
 // ── Envoi d'une commande ─────────────────────────────────
@@ -296,6 +315,13 @@ export async function submitWaiterOrder(input: WaiterOrderInput): Promise<Submit
     .in('id', productIds);
   const productById = new Map((products || []).map((p: any) => [p.id as string, p]));
   if (productById.size !== productIds.length) return { success: false, error: await te('errors.productsUnavailable') };
+
+  // Rupture de stock : plats en attente (envoi en deux temps) compris, ils seront servis aussi
+  const stockError = await stockErrorFor(
+    session.structureId,
+    lines.map((l) => ({ productId: l.productId, quantity: l.quantity, accompanimentIds: l.accompaniments })),
+  );
+  if (stockError) return { success: false, error: stockError };
 
   // Accompagnements : rattachés au produit, du point, disponibles ; prix et quantité de la base
   const accIds = [...new Set(lines.flatMap((l) => l.accompaniments))];

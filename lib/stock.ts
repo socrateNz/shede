@@ -181,7 +181,7 @@ export async function deductOrderStock(orderId: string, userId?: string | null) 
   }
 }
 
-type RecipeRow = {
+export type RecipeRow = {
   product_id: string | null;
   accompaniment_id: string | null;
   ingredient_id: string;
@@ -194,7 +194,7 @@ type RecipeRow = {
 const roundQuantity = (value: number) => Math.round(value * 10_000) / 10_000;
 
 /** Lignes de recette des produits et accompagnements ; vide si la migration phase 16 n'est pas exécutée. */
-async function loadRecipeLines(productIds: string[], accompanimentIds: string[]) {
+export async function loadRecipeLines(productIds: string[], accompanimentIds: string[]) {
   const byProduct = new Map<string, RecipeRow[]>();
   const byAccompaniment = new Map<string, RecipeRow[]>();
   if (!productIds.length && !accompanimentIds.length) return { byProduct, byAccompaniment };

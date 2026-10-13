@@ -8,6 +8,7 @@ import { getStructureActiveShift } from '@/lib/shifts-server';
 import { getActiveDeliveryZones } from '@/lib/delivery';
 import { categoriesForProducts } from '@/lib/categories';
 import { getT } from '@/lib/i18n/server';
+import { getStockAvailability } from '@/lib/stock-availability';
 import { AlertTriangle } from 'lucide-react';
 
 export default async function NewOrderPage() {
@@ -47,6 +48,7 @@ export default async function NewOrderPage() {
       name: string;
       unitPrice: number;
       quantityMultiplier: number;
+      stock?: number | null;
     }>
   > = {};
 
@@ -93,6 +95,17 @@ export default async function NewOrderPage() {
         quantityMultiplier: Number(m.quantity || 1),
       });
     }
+  }
+
+  // Stock restant (après les commandes en cours) : les articles en rupture sont grisés
+  const availability = await getStockAvailability(
+    session.structureId!,
+    products.map((p) => p.id),
+    [...new Set(Object.values(accompanimentsByProductId).flat().map((a) => a.accompanimentId))]
+  );
+  const productsWithStock = products.map((p) => ({ ...p, stock: availability.products.get(p.id) ?? null }));
+  for (const list of Object.values(accompanimentsByProductId)) {
+    for (const acc of list) acc.stock = availability.accompaniments.get(acc.accompanimentId) ?? null;
   }
 
   const { data: rooms } = await admin
@@ -142,7 +155,7 @@ export default async function NewOrderPage() {
         </div>
       ) : (
         <NewOrderForm
-          products={products}
+          products={productsWithStock}
           categories={categories.map((c) => ({ id: c.id, name: c.name, parent_id: c.parent_id }))}
           accompanimentsByProductId={accompanimentsByProductId}
           rooms={rooms || []}

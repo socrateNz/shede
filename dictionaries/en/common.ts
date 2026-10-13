@@ -70,6 +70,12 @@ const common: typeof fr = {
     MOBILE: 'Mobile Money',
     AUTRE: 'Other',
   },
+  stock: {
+    out: 'Out of stock',
+    outLong: 'Out of stock',
+    left: 'Only {count} left',
+    maxReached: 'Stock limit: {count} available',
+  },
   pagination: {
     previous: 'Previous',
     previousAria: 'Previous page',

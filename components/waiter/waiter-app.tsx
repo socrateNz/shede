@@ -14,6 +14,7 @@ import {
   type WaiterFloorPlan,
   type WaiterOrder,
   type WaiterTable,
+  getWaiterStock,
 } from '@/app/actions/waiter';
 import { waiterLogout } from '@/app/actions/waiter-devices';
 import { FloorLegend, FloorList, FloorPlan, tableState } from '@/components/waiter/floor-plan';
@@ -96,12 +97,32 @@ export function WaiterApp({
   const knownReady = useRef(new Set(initialOrders.filter((o) => o.status === 'READY').map((o) => o.id)));
 
   const productById = useMemo(() => new Map(menu.products.map((p) => [p.id, p])), [menu.products]);
+
+  // Stock restant (null = pas suivi) : relu avec le plan de salle, un plat épuisé passe en rupture
+  const [stock, setStock] = useState(() => ({
+    products: Object.fromEntries(menu.products.map((p) => [p.id, p.stock])) as Record<string, number | null>,
+    accompaniments: Object.fromEntries(menu.products.flatMap((p) => p.accompaniments.map((a) => [a.id, a.stock]))) as Record<string, number | null>,
+  }));
+  const productStock = (id: string) => stock.products[id] ?? null;
+  const accStock = (id: string) => stock.accompaniments[id] ?? null;
+  const tracked = useMemo(
+    () => ({
+      products: menu.products.filter((p) => p.stock !== null).map((p) => p.id),
+      accompaniments: [...new Set(menu.products.flatMap((p) => p.accompaniments.filter((a) => a.stock !== null).map((a) => a.id)))],
+    }),
+    [menu.products],
+  );
   const tableById = useMemo(() => new Map(floor.tables.map((tb) => [tb.id, tb])), [floor.tables]);
 
   // ── Rafraîchissement (plan de salle et suivi) + alerte « commande prête » ──
   const refresh = useCallback(async () => {
     try {
-      const [f, o] = await Promise.all([getWaiterFloor(), getWaiterOrders()]);
+      const [f, o, st] = await Promise.all([
+        getWaiterFloor(),
+        getWaiterOrders(),
+        tracked.products.length || tracked.accompaniments.length ? getWaiterStock(tracked.products, tracked.accompaniments) : null,
+      ]);
+      if (st) setStock((prev) => ({ products: { ...prev.products, ...st.products }, accompaniments: { ...prev.accompaniments, ...st.accompaniments } }));
       if (f) setFloor(f);
       if (o) {
         for (const order of o) {
@@ -116,7 +137,7 @@ export function WaiterApp({
     } catch {
       // Réseau coupé : on garde les dernières données, nouvel essai au prochain tour.
     }
-  }, [t]);
+  }, [t, tracked]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -643,12 +664,25 @@ export function WaiterApp({
             <div className="flex flex-col gap-2">
               {visibleProducts.map((p) => {
                 const qty = qtyByProduct.get(p.id) ?? 0;
+                const left = productStock(p.id);
+                const out = left === 0;
+                const maxed = left !== null && qty >= left;
                 return (
-                  <div key={p.id} className="flex min-h-16 items-center gap-3 rounded-2xl bg-white py-2.5 pl-3.5 pr-2.5 shadow-[0_1px_2px_rgba(23,24,28,.06)]">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-bold leading-tight">{p.name}</p>
+                  <div
+                    key={p.id}
+                    className={cn(
+                      'flex min-h-16 items-center gap-3 rounded-2xl py-2.5 pl-3.5 pr-2.5',
+                      out ? 'bg-[#f1efe9]' : 'bg-white shadow-[0_1px_2px_rgba(23,24,28,.06)]',
+                    )}
+                  >
+                    <div className={cn('min-w-0 flex-1', out && 'opacity-55')}>
+                      <p className="flex flex-wrap items-center gap-2 font-bold leading-tight">
+                        <span className={out ? 'text-[#5b5e66] line-through decoration-2' : undefined}>{p.name}</span>
+                        {out && <span className="rounded-md bg-[#b42318] px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-white no-underline">{t('waiter.order.outOfStock')}</span>}
+                      </p>
                       <p className="text-sm text-[#5b5e66]">
                         {format.money(p.price)} · {t(p.station === 'BAR' ? 'waiter.order.bar' : 'waiter.order.kitchen')}
+                        {!out && left !== null && left <= 5 && <span className="font-bold text-[#a15c00]"> · {t('waiter.order.left', { count: Math.max(0, left - qty) })}</span>}
                       </p>
                     </div>
                     {qty > 0 && (
@@ -666,10 +700,11 @@ export function WaiterApp({
                     )}
                     <button
                       type="button"
+                      disabled={out || maxed}
                       onClick={() => (p.accompaniments.length ? setAccSheet({ productId: p.id, selected: [] }) : addLine(p.id))}
-                      aria-label={t('waiter.order.add', { name: p.name })}
-                      className="flex h-[52px] w-[52px] items-center justify-center rounded-[14px] text-white"
-                      style={{ background: ACCENT }}
+                      aria-label={out ? t('waiter.order.outOfStockLabel', { name: p.name }) : t('waiter.order.add', { name: p.name })}
+                      className="flex h-[52px] w-[52px] items-center justify-center rounded-[14px] text-white disabled:bg-[#d6d3cc] disabled:text-[#8a8d94]"
+                      style={out || maxed ? undefined : { background: ACCENT }}
                     >
                       <Plus className="h-6 w-6" aria-hidden />
                     </button>
@@ -738,7 +773,13 @@ export function WaiterApp({
                       <Minus className="h-5 w-5" aria-hidden />
                     </button>
                     <span className="min-w-6 text-center text-lg font-extrabold">{l.qty}</span>
-                    <button type="button" onClick={() => setLine(l.key, { qty: Math.min(99, l.qty + 1) })} aria-label={t('waiter.order.add', { name: p.name })} className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f1efe9]">
+                    <button
+                      type="button"
+                      disabled={productStock(p.id) !== null && (qtyByProduct.get(p.id) ?? 0) >= (productStock(p.id) ?? 0)}
+                      onClick={() => setLine(l.key, { qty: Math.min(99, l.qty + 1) })}
+                      aria-label={t('waiter.order.add', { name: p.name })}
+                      className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f1efe9] disabled:opacity-40"
+                    >
                       <Plus className="h-5 w-5" aria-hidden />
                     </button>
                   </div>
@@ -1139,16 +1180,27 @@ export function WaiterApp({
                 <div className="flex flex-col gap-2 overflow-y-auto">
                   {p.accompaniments.map((a) => {
                     const on = accSheet.selected.includes(a.id);
+                    const aLeft = accStock(a.id);
+                    const aOut = !on && aLeft !== null && aLeft < a.quantity;
                     return (
                       <button
                         key={a.id}
                         type="button"
                         aria-pressed={on}
+                        disabled={aOut}
+                        aria-label={aOut ? t('waiter.order.outOfStockLabel', { name: a.name }) : undefined}
                         onClick={() => setAccSheet({ ...accSheet, selected: on ? accSheet.selected.filter((x) => x !== a.id) : [...accSheet.selected, a.id] })}
-                        className={cn('flex min-h-14 items-center justify-between rounded-2xl border-2 px-4 text-left font-bold', on ? 'bg-[#f5f3ff]' : 'border-[#e7e5df]')}
+                        className={cn(
+                          'flex min-h-14 items-center justify-between rounded-2xl border-2 px-4 text-left font-bold',
+                          on ? 'bg-[#f5f3ff]' : 'border-[#e7e5df]',
+                          aOut && 'cursor-not-allowed bg-[#f1efe9] text-[#8a8d94]',
+                        )}
                         style={on ? { borderColor: ACCENT } : undefined}
                       >
-                        <span>{a.quantity > 1 ? `${a.quantity} × ${a.name}` : a.name}</span>
+                        <span className="flex items-center gap-2">
+                          <span className={aOut ? 'line-through' : undefined}>{a.quantity > 1 ? `${a.quantity} × ${a.name}` : a.name}</span>
+                          {aOut && <span className="rounded-md bg-[#b42318] px-2 py-0.5 text-[11px] font-extrabold uppercase text-white">{t('waiter.order.outOfStock')}</span>}
+                        </span>
                         <span className="text-sm font-semibold text-[#5b5e66]">{a.price > 0 ? `+ ${format.money(a.price * a.quantity)}` : ''}</span>
                       </button>
                     );

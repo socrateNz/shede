@@ -53,6 +53,9 @@ const waiter: typeof fr = {
     viewCart: 'View order',
     kitchen: 'Kitchen',
     bar: 'Bar',
+    outOfStock: 'Out of stock',
+    outOfStockLabel: '{name} — out of stock',
+    left: 'Only {count} left',
   },
   accompaniments: {
     title: '{name} · sides',
