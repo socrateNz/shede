@@ -51,10 +51,17 @@ describe('disponibilité en stock', () => {
     expect(unitsFor(unit, new Map([['product:coca', -2]]))).toBe(0);
   });
 
-  it("un article sans ligne de stock n'est pas suivi (null = illimité)", () => {
-    expect(unitsFor(perUnit('product', 'coca', recipes), new Map())).toBeNull();
-    // Recette dont un seul ingrédient est suivi : seul celui-ci compte
-    expect(unitsFor(perUnit('product', 'poulet', recipes), new Map([['ingredient:ing-plantain', 4]]))).toBe(4);
+  it('un article sans ligne de stock est à 0, comme sur la page Stock : rupture', () => {
+    expect(unitsFor(perUnit('product', 'coca', recipes), new Map())).toBe(0);
+    // Recette dont un ingrédient n'a jamais été mis en stock : le plat ne peut pas être fait
+    expect(unitsFor(perUnit('product', 'poulet', recipes), new Map([['ingredient:ing-plantain', 4]]))).toBe(0);
+  });
+
+  it('ancien format de recette : la boisson consomme les produits qui la composent', () => {
+    const withLegacy = { ...recipes, legacy: new Map([['cocktail', [{ productId: 'rhum', quantity: 2 }]]]) };
+    const unit = perUnit('product', 'cocktail', withLegacy);
+    expect([...unit]).toEqual([['product:rhum', 2]]);
+    expect(unitsFor(unit, new Map([['product:rhum', 5]]))).toBe(2);
   });
 
   it('les commandes en cours sont déduites avant de calculer ce qui reste', () => {

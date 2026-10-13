@@ -7,10 +7,11 @@ import { te } from '@/lib/i18n/server';
 //
 // Le stock ne sort qu'à l'encaissement : ce qui reste vraiment, c'est le stock moins ce que
 // les commandes en cours (pas encore payées ni annulées) vont consommer.
-// Un plat avec fiche recette dépend de ses ingrédients ; sinon il est suivi lui-même.
-// Un article sans ligne de stock n'est pas suivi : il reste toujours commandable.
+// Un plat avec fiche recette dépend de ses ingrédients (ou, ancien format, des produits qui
+// le composent) ; sinon il est suivi lui-même — comme à la sortie de stock (lib/stock.ts).
+// Comme sur la page Stock, un article sans ligne de stock est à 0 : il est en rupture.
 
-/** Nombre d'unités encore commandables ; null = pas suivi en stock (illimité). */
+/** Nombre d'unités encore commandables ; null = point sans le module Stock (illimité). */
 export type Available = number | null;
 
 export type StockAvailability = {
@@ -25,7 +26,10 @@ export type StockLine = {
 };
 
 type Key = string; // 'product:<id>' | 'accompaniment:<id>' | 'ingredient:<id>'
-type Recipes = Awaited<ReturnType<typeof loadRecipeLines>>;
+type Recipes = Awaited<ReturnType<typeof loadRecipeLines>> & {
+  /** Ancien format product_recipes : produit → produits qui le composent (quantité par unité). */
+  legacy?: Map<string, { productId: string; quantity: number }[]>;
+};
 
 const OPEN_STATUSES = ['PENDING', 'IN_PROGRESS', 'READY', 'SERVED'];
 
@@ -33,6 +37,11 @@ const OPEN_STATUSES = ['PENDING', 'IN_PROGRESS', 'READY', 'SERVED'];
 export function perUnit(kind: 'product' | 'accompaniment', id: string, recipes: Recipes): Map<Key, number> {
   const lines: RecipeRow[] = (kind === 'product' ? recipes.byProduct : recipes.byAccompaniment).get(id) ?? [];
   const needs = new Map<Key, number>();
+  const legacy = kind === 'product' && !lines.length ? recipes.legacy?.get(id) ?? [] : [];
+  if (legacy.length) {
+    for (const l of legacy) needs.set(`product:${l.productId}`, (needs.get(`product:${l.productId}`) ?? 0) + l.quantity);
+    return needs;
+  }
   if (!lines.length) {
     needs.set(`${kind}:${id}`, 1);
     return needs;
@@ -53,7 +62,7 @@ async function hasStockModule(structureId: string) {
   return Boolean((data?.modules as string[] | null)?.includes('STOCK'));
 }
 
-/** Quantités en stock des articles suivis (une ligne `stocks` existe). */
+/** Quantités en stock (les articles sans ligne `stocks` sont absents : 0). */
 async function loadStock(structureId: string, keys: Key[]) {
   const stock = new Map<Key, number>();
   const ids = { product: [] as string[], accompaniment: [] as string[], ingredient: [] as string[] };
@@ -101,7 +110,8 @@ async function remainingStock(structureId: string, productIds: string[], accompa
   const reserved = await loadReserved(structureId);
   const allProducts = [...new Set([...productIds, ...reserved.products.keys()])];
   const allAccompaniments = [...new Set([...accompanimentIds, ...reserved.accompaniments.keys()])];
-  const recipes = await loadRecipeLines(allProducts, allAccompaniments);
+  const recipes: Recipes = await loadRecipeLines(allProducts, allAccompaniments);
+  recipes.legacy = await loadLegacyRecipes(allProducts.filter((id) => !recipes.byProduct.has(id)));
 
   const reservedNeeds = new Map<Key, number>();
   for (const [id, q] of reserved.products) addNeeds(reservedNeeds, perUnit('product', id, recipes), q);
@@ -113,19 +123,33 @@ async function remainingStock(structureId: string, productIds: string[], accompa
 
   const stock = await loadStock(structureId, [...wantedKeys]);
   const remaining = new Map<Key, number>();
-  for (const [key, quantity] of stock) remaining.set(key, quantity - (reservedNeeds.get(key) ?? 0));
+  for (const key of wantedKeys) remaining.set(key, (stock.get(key) ?? 0) - (reservedNeeds.get(key) ?? 0));
   return { remaining, recipes };
 }
 
-/** Unités commandables d'un article : la ressource suivie la plus limitante. */
-export function unitsFor(unit: Map<Key, number>, remaining: Map<Key, number>): Available {
-  let units: number | null = null;
-  for (const [key, need] of unit) {
-    if (!remaining.has(key) || need <= 0) continue; // pas suivi
-    const possible = Math.max(0, Math.floor((remaining.get(key)! + 1e-9) / need));
-    units = units === null ? possible : Math.min(units, possible);
+/** Ancien format de recette (product_recipes), encore utilisé à la sortie de stock. */
+async function loadLegacyRecipes(productIds: string[]) {
+  const legacy = new Map<string, { productId: string; quantity: number }[]>();
+  if (!productIds.length) return legacy;
+  const { data, error } = await getAdminSupabase().from('product_recipes').select('product_id, ingredient_id, quantity').in('product_id', productIds);
+  if (error) return legacy;
+  for (const row of data || []) {
+    const list = legacy.get(row.product_id as string) ?? [];
+    list.push({ productId: row.ingredient_id as string, quantity: Number(row.quantity) || 0 });
+    legacy.set(row.product_id as string, list);
   }
-  return units;
+  return legacy;
+}
+
+/** Unités commandables d'un article : la ressource la plus limitante (absente du stock = 0). */
+export function unitsFor(unit: Map<Key, number>, remaining: Map<Key, number>): Available {
+  let units = Infinity;
+  for (const [key, need] of unit) {
+    if (need <= 0) continue;
+    const possible = Math.max(0, Math.floor(((remaining.get(key) ?? 0) + 1e-9) / need));
+    units = Math.min(units, possible);
+  }
+  return Number.isFinite(units) ? units : null; // recette sans quantité : rien ne la limite
 }
 
 /** Disponibilité des produits et accompagnements d'un point (vide sans le module Stock). */
@@ -176,8 +200,7 @@ export async function findStockShortage(structureId: string, lines: StockLine[])
       for (const acc of line.accompaniments ?? []) add('accompaniment', acc.accompanimentId, acc.quantity);
     }
     for (const [key, need] of needed) {
-      if (!remaining.has(key)) continue;
-      if (need > remaining.get(key)! + 1e-9) {
+      if (need > (remaining.get(key) ?? 0) + 1e-9) {
         const item = owner.get(key)!;
         return { kind: item.kind, id: item.id, available: unitsFor(item.unit, remaining) ?? 0 };
       }
