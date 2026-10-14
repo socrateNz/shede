@@ -158,6 +158,7 @@ type TicketLogo = { dataUrl: string; width: number; height: number };
 
 const LOGO_MAX_WIDTH = 24; // mm
 const LOGO_MAX_HEIGHT = 22; // mm
+const LOGO_TIMEOUT_MS = 4000;
 
 /**
  * Logo prêt pour le ticket : fond blanc (les PNG transparents s'impriment en noir sinon),
@@ -165,14 +166,23 @@ const LOGO_MAX_HEIGHT = 22; // mm
  */
 async function loadTicketLogo(url: string | null | undefined): Promise<TicketLogo | null> {
   if (!url || typeof window === 'undefined') return null;
+  // 4 s au plus : un hébergeur de logo lent ne doit jamais bloquer l'impression du ticket
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), LOGO_TIMEOUT_MS);
+  let objectUrl: string | null = null;
   try {
+    // fetch CORS sans cache : une copie déjà chargée par un <img> sans CORS (ticket thermique)
+    // serait refusée par le canvas ; on lit l'image en blob puis on la décode localement.
+    const response = await fetch(url, { mode: 'cors', cache: 'no-store', signal: controller.signal });
+    if (!response.ok) return null;
+    objectUrl = URL.createObjectURL(await response.blob());
     const img = new Image();
-    img.crossOrigin = 'anonymous';
     img.decoding = 'async';
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve();
       img.onerror = () => reject(new Error('logo'));
-      img.src = url;
+      controller.signal.addEventListener('abort', () => reject(new Error('timeout')));
+      img.src = objectUrl!;
     });
     if (!img.naturalWidth || !img.naturalHeight) return null;
     // Rendu à ~8 px/mm (≈ 200 dpi), largement suffisant pour une imprimante thermique
@@ -188,7 +198,10 @@ async function loadTicketLogo(url: string | null | undefined): Promise<TicketLog
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     return { dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height };
   } catch {
-    return null; // logo inaccessible : le ticket sort quand même, sans logo
+    return null; // logo inaccessible ou trop lent : le ticket sort quand même, avec les initiales
+  } finally {
+    clearTimeout(timer);
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
   }
 }
 
@@ -377,9 +390,13 @@ export const generateOrderReceipt = async (
     for (const item of order.order_items ?? []) {
       if (!(item.total_price > 0 || item.unit_price > 0)) continue;
       // Lot promotionnel (X achetés, Y offerts) : unités payées puis unités offertes
+      // Lot « X achetés, Y offerts » seulement si le montant correspond à des unités entières ;
+      // sinon (ligne remisée, ex. marketplace) on affiche le montant réel de la ligne.
       const expectedTotal = item.quantity * item.unit_price;
-      if (expectedTotal > item.total_price && item.total_price > 0) {
-        const paidUnits = Math.floor(item.total_price / item.unit_price);
+      const paidUnits = item.unit_price > 0 ? Math.round(item.total_price / item.unit_price) : 0;
+      const isFreeUnitsBundle =
+        expectedTotal > item.total_price && item.total_price > 0 && paidUnits > 0 && paidUnits < item.quantity && paidUnits * item.unit_price === item.total_price;
+      if (isFreeUnitsBundle) {
         w.row(`${paidUnits} x ${item.products.name}`, money(paidUnits * item.unit_price));
         w.row(`${item.quantity - paidUnits} x ${t('documents.receipt.promo', { name: item.products.name })}`, t('documents.receipt.free'));
       } else if (item.total_price === 0 && item.quantity > 0) {

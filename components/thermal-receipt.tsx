@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import { Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,7 +13,17 @@ import {
 import { useT } from '@/lib/i18n/client';
 
 export function ThermalReceiptPrintButton({ order }: { order: any }) {
+  const ticketRef = useRef<HTMLDivElement>(null);
+  const pageStyleRef = useRef<HTMLStyleElement>(null);
+
+  // Page d'impression = taille exacte du ticket : 80 mm × hauteur mesurée (en mm), sans marges.
+  // (« size: 80mm auto » n'est pas valide en CSS : le navigateur l'ignorait et imprimait en A4.)
   const handlePrint = () => {
+    const height = ticketRef.current?.getBoundingClientRect().height ?? 0;
+    const heightMm = Math.max(Math.ceil((height * 25.4) / 96) + 2, 60);
+    if (pageStyleRef.current) {
+      pageStyleRef.current.textContent = `@media print { @page { size: 80mm ${heightMm}mm; margin: 0; } }`;
+    }
     window.print();
   };
 
@@ -36,8 +47,13 @@ export function ThermalReceiptPrintButton({ order }: { order: any }) {
         {t('documents.receipt.thermalButton')}
       </Button>
 
-      {/* Composant caché pour l'impression thermique */}
-      <div className="hidden print:block print:absolute print:inset-0 print:bg-white print:text-black print:text-xs print:font-mono p-[4mm]" style={{ width: '80mm', boxSizing: 'border-box' }}>
+      {/* Ticket pour l'impression thermique : rendu hors de l'écran (pour pouvoir le mesurer), visible seulement à l'impression */}
+      <div
+        ref={ticketRef}
+        aria-hidden
+        className="thermal-ticket pointer-events-none fixed left-[-10000px] top-0 bg-white text-black text-xs font-mono p-[4mm]"
+        style={{ width: '80mm', boxSizing: 'border-box' }}
+      >
         <div className="text-center mb-4">
           {/* En-tête : logo à gauche (initiales sans logo), nom et coordonnées à droite */}
           <div className="flex items-start gap-[3mm] text-left">
@@ -176,24 +192,21 @@ export function ThermalReceiptPrintButton({ order }: { order: any }) {
       </div>
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          /* Ticket thermique : page de 80 mm, hauteur selon le contenu, sans marges */
-          @page {
-            size: 80mm auto;
-            margin: 0;
-          }
           body * {
             visibility: hidden;
           }
-          .print\\:block, .print\\:block * {
+          .thermal-ticket, .thermal-ticket * {
             visibility: visible;
           }
-          .print\\:block {
-            position: absolute;
-            left: 0;
-            top: 0;
+          .thermal-ticket {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
           }
         }
       `}} />
+      {/* Taille de la page, écrite au moment d'imprimer */}
+      <style ref={pageStyleRef} />
     </>
   );
 }
