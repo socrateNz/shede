@@ -6,7 +6,8 @@ import {
   documentCurrency,
   formatDocumentAmount,
   saleTaxSummary,
-  structureIdentityLines,
+  initialsOf,
+  ticketDetails,
 } from '@/lib/documents';
 import { useT } from '@/lib/i18n/client';
 
@@ -36,12 +37,34 @@ export function ThermalReceiptPrintButton({ order }: { order: any }) {
       </Button>
 
       {/* Composant caché pour l'impression thermique */}
-      <div className="hidden print:block print:absolute print:inset-0 print:bg-white print:text-black print:text-xs print:font-mono p-4" style={{ width: '80mm' }}>
+      <div className="hidden print:block print:absolute print:inset-0 print:bg-white print:text-black print:text-xs print:font-mono p-[4mm]" style={{ width: '80mm', boxSizing: 'border-box' }}>
         <div className="text-center mb-4">
-          <h1 className="text-xl font-bold uppercase">{structure?.name || 'SHEDE ERP'}</h1>
-          {structureIdentityLines(structure, t).map((line) => (
-            <p key={line} className="text-[10px]">{line}</p>
-          ))}
+          {/* En-tête : logo à gauche (initiales sans logo), nom et coordonnées à droite */}
+          <div className="flex items-start gap-[3mm] text-left">
+            {structure?.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={structure.logo_url}
+                alt=""
+                className="block shrink-0 object-contain"
+                style={{ maxWidth: '24mm', maxHeight: '22mm', filter: 'grayscale(1) contrast(1.15)' }}
+              />
+            ) : (
+              <div className="flex shrink-0 items-center justify-center rounded-md border-2 border-black text-lg font-bold" style={{ width: '16mm', height: '16mm' }}>
+                {initialsOf(structure?.name || 'Shede')}
+              </div>
+            )}
+            <div className="min-w-0 flex-1 text-right">
+              <h1 className="text-sm font-bold uppercase leading-tight">{structure?.name || 'SHEDE ERP'}</h1>
+              <div className="mt-0.5 space-y-px">
+                {ticketDetails(structure, t).map((line) => (
+                  <p key={line} className="text-[9px] leading-snug">{line}</p>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="mt-2 border-t-2 border-black" />
+          <div className="mt-[2px] border-t border-black" />
           <p className="text-xs mt-2 font-bold">
             {isPaid && order.invoice_number ? t('documents.receipt.invoiceNumber', { number: order.invoice_number }) : t('documents.receipt.ticket')}
           </p>
@@ -153,6 +176,11 @@ export function ThermalReceiptPrintButton({ order }: { order: any }) {
       </div>
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
+          /* Ticket thermique : page de 80 mm, hauteur selon le contenu, sans marges */
+          @page {
+            size: 80mm auto;
+            margin: 0;
+          }
           body * {
             visibility: hidden;
           }

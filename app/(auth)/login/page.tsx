@@ -4,6 +4,7 @@ import { login } from '@/app/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { useActionState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -109,8 +110,7 @@ function LoginForm() {
                     {t('auth.login.forgotPassword')}
                   </Link>
                 </div>
-                <Input
-                  type="password"
+                <PasswordInput
                   name="password"
                   placeholder="••••••••"
                   className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all"

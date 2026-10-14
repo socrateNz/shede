@@ -2,7 +2,8 @@ import {
   documentCurrency,
   formatDocumentAmount,
   saleTaxSummary,
-  structureIdentityLines,
+  initialsOf,
+  ticketDetails,
   type DocumentStructure,
 } from '@/lib/documents';
 import type { Translator } from '@/lib/i18n/translate';
@@ -22,44 +23,203 @@ function rateLabel(i18n: DocumentI18n, rate: number) {
   return pdfText(`${i18n.format.number(rate, { maximumFractionDigits: 2 })} %`);
 }
 
-/**
- * En-tête commun : nom de l'établissement, puis adresse, contact et
- * NIU / RCCM. Renvoie l'ordonnée disponible sous l'en-tête.
- */
-function drawStructureHeader(doc: JsPdf, i18n: DocumentI18n, structure: DocumentStructure | null | undefined, fallbackName: string) {
-  const name = structure?.name || fallbackName;
-  doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(41, 128, 185);
-  doc.text(name.toUpperCase(), 105, 20, { align: 'center' });
+// ── Tickets 80 mm ─────────────────────────────────────────
+// Même format que le ticket de caisse thermique : 80 mm de large, hauteur selon le contenu,
+// police à chasse fixe, séparateurs en pointillés. Imprimable tel quel sur une imprimante
+// thermique 80 mm (zone utile ≈ 72 mm).
 
-  doc.setFontSize(8.5);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(90);
-  let y = 26;
-  for (const line of structureIdentityLines(structure, i18n.t)) {
-    doc.text(line, 105, y, { align: 'center' });
-    y += 4.5;
+const TICKET_WIDTH = 80;
+const TICKET_MARGIN = 4;
+const TICKET_RIGHT = TICKET_WIDTH - TICKET_MARGIN;
+const TICKET_CONTENT = TICKET_WIDTH - TICKET_MARGIN * 2;
+const PT_TO_MM = 0.3528;
+
+type TextOptions = { size?: number; bold?: boolean };
+
+/** Écriture ligne à ligne sur un ticket ; `y` avance au fil du contenu. */
+class TicketWriter {
+  y = TICKET_MARGIN + 2;
+
+  constructor(private doc: JsPdf) {}
+
+  private font({ size = 8, bold = false }: TextOptions) {
+    this.doc.setFont('courier', bold ? 'bold' : 'normal');
+    this.doc.setFontSize(size);
+    this.doc.setTextColor(0);
+    return size * PT_TO_MM * 1.25; // hauteur de ligne (mm)
   }
-  return y + 2;
+
+  private lines(text: string, width: number) {
+    return this.doc.splitTextToSize(pdfText(text), width) as string[];
+  }
+
+  center(text: string, options: TextOptions = {}) {
+    const height = this.font(options);
+    for (const line of this.lines(text, TICKET_CONTENT)) {
+      this.y += height;
+      this.doc.text(line, TICKET_WIDTH / 2, this.y, { align: 'center' });
+    }
+  }
+
+  left(text: string, options: TextOptions & { indent?: number } = {}) {
+    const height = this.font(options);
+    const indent = options.indent ?? 0;
+    for (const line of this.lines(text, TICKET_CONTENT - indent)) {
+      this.y += height;
+      this.doc.text(line, TICKET_MARGIN + indent, this.y);
+    }
+  }
+
+  /** Libellé à gauche (renvoyé à la ligne si besoin), montant aligné à droite sur la 1re ligne. */
+  row(label: string, value: string, options: TextOptions & { indent?: number } = {}) {
+    const height = this.font(options);
+    const indent = options.indent ?? 0;
+    const valueText = pdfText(value);
+    const valueWidth = value ? this.doc.getTextWidth(valueText) + 2 : 0;
+    const lines = this.lines(label, TICKET_CONTENT - indent - valueWidth);
+    lines.forEach((line, i) => {
+      this.y += height;
+      this.doc.text(line, TICKET_MARGIN + indent, this.y);
+      if (i === 0 && value) this.doc.text(valueText, TICKET_RIGHT, this.y, { align: 'right' });
+    });
+  }
+
+  gap(mm = 1.5) {
+    this.y += mm;
+  }
+
+  /**
+   * En-tête en deux colonnes : logo à gauche (ou initiales dans un carré), nom et
+   * coordonnées à droite, justifiés à droite. La hauteur suit la plus haute des deux.
+   */
+  headerColumns(logo: TicketLogo | null, initials: string, name: string, details: string[]) {
+    const top = this.y + 1;
+    let left: number;
+    if (logo) {
+      const ratio = Math.min(LOGO_MAX_WIDTH / logo.width, LOGO_MAX_HEIGHT / logo.height);
+      const width = logo.width * ratio;
+      const height = logo.height * ratio;
+      this.doc.addImage(logo.dataUrl, 'PNG', TICKET_MARGIN, top, width, height);
+      left = TICKET_MARGIN + width;
+      this.logoBottom = top + height;
+    } else {
+      const size = 16;
+      this.doc.setDrawColor(0);
+      this.doc.setLineWidth(0.5);
+      this.doc.roundedRect(TICKET_MARGIN, top, size, size, 2, 2);
+      this.font({ size: initials.length > 2 ? 11 : 14, bold: true });
+      this.doc.text(initials, TICKET_MARGIN + size / 2, top + size / 2, { align: 'center', baseline: 'middle' });
+      left = TICKET_MARGIN + size;
+      this.logoBottom = top + size;
+    }
+
+    // Colonne de droite, justifiée à droite
+    const width = TICKET_RIGHT - (left + 3);
+    let y = top;
+    const write = (text: string, options: TextOptions) => {
+      const height = this.font(options);
+      for (const line of this.lines(text, width)) {
+        y += height;
+        this.doc.text(line, TICKET_RIGHT, y, { align: 'right' });
+      }
+    };
+    write(name, { size: 10, bold: true });
+    y += 0.8;
+    for (const detail of details) write(detail, { size: 6.5 });
+    this.y = Math.max(y, this.logoBottom) + 0.5;
+  }
+
+  private logoBottom = 0;
+
+  /** Double trait : sépare l'en-tête de l'établissement du contenu du ticket. */
+  doubleRule() {
+    this.y += 2.5;
+    this.doc.setDrawColor(0);
+    this.doc.setLineDashPattern([], 0);
+    this.doc.setLineWidth(0.5);
+    this.doc.line(TICKET_MARGIN, this.y, TICKET_RIGHT, this.y);
+    this.doc.setLineWidth(0.2);
+    this.doc.line(TICKET_MARGIN, this.y + 0.9, TICKET_RIGHT, this.y + 0.9);
+    this.y += 1.5;
+  }
+
+  separator(style: 'dashed' | 'solid' = 'dashed') {
+    this.y += 2;
+    this.doc.setDrawColor(0);
+    this.doc.setLineWidth(style === 'solid' ? 0.3 : 0.2);
+    if (style === 'dashed') this.doc.setLineDashPattern([0.8, 0.8], 0);
+    this.doc.line(TICKET_MARGIN, this.y, TICKET_RIGHT, this.y);
+    this.doc.setLineDashPattern([], 0);
+    this.y += 0.5;
+  }
 }
 
-/** Récapitulatif aligné à droite ; renvoie l'ordonnée suivante. */
-function drawSummaryLine(
-  doc: JsPdf,
-  label: string,
-  value: string,
-  y: number,
-  options: { bold?: boolean; size?: number; color?: [number, number, number] } = {}
+type TicketLogo = { dataUrl: string; width: number; height: number };
+
+const LOGO_MAX_WIDTH = 24; // mm
+const LOGO_MAX_HEIGHT = 22; // mm
+
+/**
+ * Logo prêt pour le ticket : fond blanc (les PNG transparents s'impriment en noir sinon),
+ * niveaux de gris (imprimante thermique), PNG. null si absent ou impossible à charger.
+ */
+async function loadTicketLogo(url: string | null | undefined): Promise<TicketLogo | null> {
+  if (!url || typeof window === 'undefined') return null;
+  try {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.decoding = 'async';
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error('logo'));
+      img.src = url;
+    });
+    if (!img.naturalWidth || !img.naturalHeight) return null;
+    // Rendu à ~8 px/mm (≈ 200 dpi), largement suffisant pour une imprimante thermique
+    const scale = Math.min((LOGO_MAX_WIDTH * 8) / img.naturalWidth, (LOGO_MAX_HEIGHT * 8) / img.naturalHeight, 1);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.filter = 'grayscale(1) contrast(1.15)';
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return { dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height };
+  } catch {
+    return null; // logo inaccessible : le ticket sort quand même, sans logo
+  }
+}
+
+/**
+ * En-tête : logo à gauche (initiales s'il n'y en a pas), nom, adresse, contact et
+ * NIU / RCCM à droite, puis un double trait avant le contenu du ticket.
+ */
+function ticketHeader(
+  w: TicketWriter,
+  i18n: DocumentI18n,
+  structure: DocumentStructure | null | undefined,
+  fallbackName: string,
+  logo: TicketLogo | null
 ) {
-  const labelX = 120;
-  const valueX = 195;
-  doc.setFontSize(options.size ?? 10);
-  doc.setFont('helvetica', options.bold ? 'bold' : 'normal');
-  doc.setTextColor(...(options.color ?? [40, 44, 52]));
-  doc.text(label, labelX, y);
-  doc.text(value, valueX, y, { align: 'right' });
-  return y + 7;
+  const name = structure?.name || fallbackName;
+  w.headerColumns(logo, initialsOf(name), name.toUpperCase(), ticketDetails(structure, i18n.t));
+  w.doubleRule();
+}
+
+/**
+ * Dessine le ticket deux fois : une première passe mesure la hauteur, la seconde
+ * l'écrit sur une page de 80 mm × hauteur exacte, puis le PDF est téléchargé.
+ */
+async function saveTicket(draw: (w: TicketWriter) => void, filename: string) {
+  const { default: jsPDF } = await import('jspdf');
+  const measure = new TicketWriter(new jsPDF({ unit: 'mm', format: [TICKET_WIDTH, 3000] }));
+  draw(measure);
+  const height = Math.max(Math.ceil(measure.y + TICKET_MARGIN + 2), 60);
+  const doc = new jsPDF({ unit: 'mm', format: [TICKET_WIDTH, height], orientation: 'portrait' });
+  draw(new TicketWriter(doc));
+  doc.save(filename);
 }
 
 export const generateBookingReceipt = async (
@@ -83,92 +243,51 @@ export const generateBookingReceipt = async (
   i18n: DocumentI18n
 ) => {
   const { t, format } = i18n;
-  const { default: jsPDF } = await import('jspdf');
-  const { default: autoTable } = await import('jspdf-autotable');
-
-  const doc = new jsPDF();
   const structure = booking.rooms?.structures;
   const currency = documentCurrency(structure);
   const money = (value: number | null | undefined) => formatDocumentAmount(value, currency, format.intl);
   const roomLabel = booking.rooms?.number ?? booking.rooms?.name ?? '';
-
-  const headerBottom = drawStructureHeader(doc, i18n, structure, 'Shede');
-
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(40, 44, 52);
-  doc.text(
-    booking.invoice_number
-      ? t('documents.receipt.invoiceTitle', { number: booking.invoice_number })
-      : t('documents.booking.title'),
-    105,
-    headerBottom + 4,
-    { align: 'center' }
-  );
-
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(t('documents.booking.reference', { ref: booking.id.toUpperCase().slice(0, 8) }), 15, headerBottom + 16);
-  doc.text(pdfText(t('documents.booking.date', { date: format.dateTime(new Date()) })), 15, headerBottom + 21);
-
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text(t('documents.booking.client'), 15, headerBottom + 32);
-  doc.setFont('helvetica', 'normal');
-  doc.text(booking.guest_name || t('documents.booking.walkIn'), 40, headerBottom + 32);
-
-  autoTable(doc, {
-    startY: headerBottom + 40,
-    head: [[
-      t('documents.booking.designation'),
-      t('documents.booking.period'),
-      t('documents.booking.unitPrice'),
-      t('documents.receipt.lineTotal', { currency }),
-    ]],
-    body: [
-      [
-        t('documents.booking.room', { number: roomLabel }),
-        pdfText(t('documents.booking.dates', { from: format.date(booking.check_in), to: format.date(booking.check_out) })),
-        money(booking.rooms?.price || 0),
-        money(booking.total_amount || 0),
-      ],
-    ],
-    theme: 'grid',
-    headStyles: { fillColor: [40, 44, 52], fontSize: 10 },
-    columnStyles: {
-      0: { cellWidth: 45 },
-      1: { cellWidth: 65 },
-      2: { cellWidth: 35, halign: 'right' },
-      3: { cellWidth: 35, halign: 'right' },
-    },
-  });
-
-  let y = (doc as any).lastAutoTable.finalY + 10;
   const taxSummary = saleTaxSummary(booking);
-  if (taxSummary) {
-    y = drawSummaryLine(doc, `${t('documents.receipt.net')} :`, money(taxSummary.net), y);
-    y = drawSummaryLine(doc, `${t('documents.receipt.vat', { rate: rateLabel(i18n, taxSummary.rate) })} :`, money(taxSummary.tax), y);
-  }
-  y = drawSummaryLine(
-    doc,
-    `${booking.is_paid ? t('documents.receipt.totalPaid') : t('documents.receipt.totalDue')} :`,
-    money(booking.total_amount || 0),
-    y + 3,
-    { bold: true, size: 13 }
-  );
+  const issuedAt = format.dateTime(new Date());
+  const logo = await loadTicketLogo(structure?.logo_url);
 
-  // Signature / Stamp
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(40, 44, 52);
-  doc.text(t('documents.booking.stamp'), 15, y + 20);
+  await saveTicket((w) => {
+    ticketHeader(w, i18n, structure, 'Shede', logo);
+    w.gap(0.5);
+    w.center(
+      booking.invoice_number ? t('documents.receipt.invoiceTitle', { number: booking.invoice_number }) : t('documents.booking.title'),
+      { size: 9, bold: true }
+    );
+    w.center(t('documents.booking.reference', { ref: booking.id.toUpperCase().slice(0, 8) }));
+    w.center(t('documents.booking.date', { date: issuedAt }));
+    w.center(t('documents.receipt.status', { status: booking.is_paid ? t('documents.receipt.paid') : t('documents.receipt.unpaid') }), { bold: true });
 
-  // Footer
-  doc.setFontSize(8);
-  doc.setTextColor(150);
-  doc.text(t('documents.booking.thanks'), 105, 285, { align: 'center' });
+    w.separator();
+    w.row(t('documents.booking.client'), booking.guest_name || t('documents.booking.walkIn'));
 
-  doc.save(`receipt_${booking.invoice_number ?? booking.id.slice(0, 8)}.pdf`);
+    w.separator();
+    w.row(t('documents.booking.room', { number: roomLabel }), money(booking.total_amount || 0), { bold: true });
+    w.left(t('documents.booking.dates', { from: format.date(booking.check_in), to: format.date(booking.check_out) }), { size: 7, indent: 2 });
+    w.left(`${t('documents.booking.unitPrice')} : ${money(booking.rooms?.price || 0)}`, { size: 7, indent: 2 });
+
+    w.separator();
+    if (taxSummary) {
+      w.row(`${t('documents.receipt.net')} :`, money(taxSummary.net));
+      w.row(`${t('documents.receipt.vat', { rate: rateLabel(i18n, taxSummary.rate) })} :`, money(taxSummary.tax));
+    }
+    w.separator('solid');
+    w.row(`${booking.is_paid ? t('documents.receipt.totalPaid') : t('documents.receipt.totalDue')} :`, money(booking.total_amount || 0), {
+      size: 10,
+      bold: true,
+    });
+
+    w.gap(6);
+    w.left(t('documents.booking.stamp'), { size: 7 });
+    w.gap(10);
+    w.separator();
+    w.center(t('documents.booking.thanks'));
+    w.center(t('documents.receipt.generatedBy'), { size: 6.5 });
+  }, `receipt_${booking.invoice_number ?? booking.id.slice(0, 8)}.pdf`);
 };
 
 export const generateOrderReceipt = async (
@@ -187,9 +306,11 @@ export const generateOrderReceipt = async (
     delivery_district?: string | null;
     delivery_city?: string | null;
     delivery_landmark?: string | null;
+    phone?: string | null;
     invoice_number?: string | null;
     paid_at?: string | null;
     table_number?: number | null;
+    tables?: { name?: string | null } | null;
     rooms?: { number: string } | null;
     created_at: string;
     structures?: DocumentStructure | null;
@@ -212,183 +333,86 @@ export const generateOrderReceipt = async (
   i18n: DocumentI18n
 ) => {
   const { t, format } = i18n;
-  const { default: jsPDF } = await import('jspdf');
-  const { default: autoTable } = await import('jspdf-autotable');
-
-  const doc = new jsPDF();
-  const date = pdfText(format.dateTime(order.paid_at || order.created_at));
+  const date = format.dateTime(order.paid_at || order.created_at);
   const structureName = order.structures?.name || 'SHEDE SYSTEM';
   const currency = documentCurrency(order.structures);
-  const formatPrice = (num: number | null | undefined) => formatDocumentAmount(num, currency, format.intl);
+  const money = (num: number | null | undefined) => formatDocumentAmount(num, currency, format.intl);
   const isPaid = order.status === 'COMPLETED';
-
-  const headerBottom = drawStructureHeader(doc, i18n, order.structures, 'SHEDE SYSTEM');
-
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(40, 44, 52);
-  doc.text(
-    isPaid && order.invoice_number
-      ? t('documents.receipt.invoiceTitle', { number: order.invoice_number })
-      : t('documents.receipt.orderReceipt'),
-    105,
-    headerBottom + 4,
-    { align: 'center' }
-  );
-
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100);
-  doc.text(t('documents.receipt.orderRef', { number: order.id.split('-')[0].toUpperCase() }), 15, headerBottom + 16);
-  doc.text(t('documents.receipt.issuedAt', { date }), 15, headerBottom + 21);
-
-  if (isPaid) {
-    doc.setTextColor(39, 174, 96);
-  } else {
-    doc.setTextColor(231, 76, 60);
-  }
-  doc.setFont('helvetica', 'bold');
-  doc.text(
-    t('documents.receipt.status', { status: isPaid ? t('documents.receipt.paid') : t('documents.receipt.unpaid') }),
-    15,
-    headerBottom + 26
-  );
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100);
-
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(40, 44, 52);
-  const source = order.consumption_type === 'DELIVERY'
-    ? t('documents.receipt.delivery', { address: [order.delivery_district, order.delivery_city].filter(Boolean).join(', ') })
-    : order.rooms?.number
-      ? t('documents.receipt.refRoom', { room: order.rooms.number })
-      : order.table_number
-        ? t('documents.receipt.refTable', { table: order.table_number })
-        : t('documents.receipt.refTakeaway');
-  doc.text(source, 15, headerBottom + 36);
-  if (order.consumption_type === 'DELIVERY' && order.delivery_landmark) {
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text(t('documents.receipt.landmark', { landmark: order.delivery_landmark }).slice(0, 110), 15, headerBottom + 41);
-  }
-
-  // Table Data Processing
-  const bodyRows: any[] = [];
-
-  order.order_items?.filter(it => it.total_price > 0 || it.unit_price > 0).forEach(item => {
-    // Detect if this line has bundled free items
-    const expectedTotal = item.quantity * item.unit_price;
-    const isBogoDetected = expectedTotal > item.total_price && item.total_price > 0;
-
-    if (isBogoDetected) {
-      const paidUnits = Math.floor(item.total_price / item.unit_price);
-      const freeUnits = item.quantity - paidUnits;
-
-      bodyRows.push([
-        item.products.name,
-        `${paidUnits}`,
-        formatPrice(item.unit_price),
-        formatPrice(paidUnits * item.unit_price)
-      ]);
-
-      bodyRows.push([
-        t('documents.receipt.promo', { name: item.products.name }),
-        `${freeUnits}`,
-        t('documents.receipt.free'),
-        formatPrice(0)
-      ]);
-    } else if (item.total_price === 0 && item.quantity > 0) {
-      bodyRows.push([
-        t('documents.receipt.offered', { name: item.products.name }),
-        `${item.quantity}`,
-        formatPrice(0),
-        formatPrice(0)
-      ]);
-    } else {
-      bodyRows.push([
-        item.products.name,
-        `${item.quantity}`,
-        formatPrice(item.unit_price),
-        formatPrice(item.total_price)
-      ]);
-    }
-
-    // Add Accompaniments if any
-    if (order.order_accompaniments && Array.isArray(order.order_accompaniments)) {
-      const itemAccs = order.order_accompaniments.filter(acc => acc.parent_order_item_id === item.id);
-      itemAccs.forEach(acc => {
-        const accName = acc.accompaniments?.name || t('documents.receipt.accompaniment');
-        bodyRows.push([
-          `  + ${accName}`,
-          `${acc.quantity}`,
-          formatPrice(acc.unit_price_snapshot || 0),
-          formatPrice(acc.total_price_snapshot || 0)
-        ]);
-      });
-    }
-  });
-
-  autoTable(doc, {
-    startY: headerBottom + 48,
-    head: [[
-      t('documents.receipt.description'),
-      t('documents.receipt.qty'),
-      t('documents.receipt.unitPrice', { currency }),
-      t('documents.receipt.lineTotal', { currency }),
-    ]],
-    body: bodyRows,
-    theme: 'grid',
-    headStyles: { fillColor: [41, 128, 185], fontSize: 9, cellPadding: 2 },
-    bodyStyles: { fontSize: 8.5, cellPadding: 2 },
-    columnStyles: {
-      0: { cellWidth: 75 },
-      1: { cellWidth: 15, halign: 'center' },
-      2: { cellWidth: 45, halign: 'right' },
-      3: { cellWidth: 45, halign: 'right' }
-    }
-  });
-
-  // Récapitulatif
-  const label = (text: string) => `${text} :`;
-  let y = (doc as any).lastAutoTable.finalY + 10;
-  y = drawSummaryLine(doc, label(t('documents.receipt.subtotal')), formatPrice(order.subtotal), y);
-
-  if (order.discount_amount > 0) {
-    y = drawSummaryLine(doc, label(t('documents.receipt.discount')), `- ${formatPrice(order.discount_amount)}`, y, { color: [231, 76, 60] });
-  }
-  if (Number(order.takeaway_fee) > 0) {
-    y = drawSummaryLine(doc, label(t('documents.receipt.packaging')), formatPrice(order.takeaway_fee), y);
-  }
-  if (Number(order.delivery_fee) > 0) {
-    y = drawSummaryLine(doc, label(t('documents.receipt.delivery_fee')), formatPrice(order.delivery_fee), y);
-  }
-
   const taxSummary = saleTaxSummary(order);
-  if (taxSummary) {
-    y = drawSummaryLine(doc, label(t('documents.receipt.net')), formatPrice(taxSummary.net), y);
-    y = drawSummaryLine(doc, label(t('documents.receipt.vat', { rate: rateLabel(i18n, taxSummary.rate) })), formatPrice(taxSummary.tax), y);
-    y = drawSummaryLine(doc, label(t('documents.receipt.gross')), formatPrice(taxSummary.totalWithTax), y);
-  }
-  if (Number(order.tip_amount) > 0) {
-    y = drawSummaryLine(doc, label(t('documents.receipt.tip')), formatPrice(order.tip_amount), y);
-  }
+  const table = order.tables?.name || (order.table_number ? String(order.table_number) : null);
+  const place =
+    order.consumption_type === 'DELIVERY'
+      ? t('documents.receipt.delivery', { address: [order.delivery_district, order.delivery_city].filter(Boolean).join(', ') })
+      : order.rooms?.number
+        ? t('documents.receipt.room', { room: order.rooms.number })
+        : table
+          ? /^\d+$/.test(table)
+            ? t('documents.receipt.table', { table })
+            : table // nom saisi à la création (« Table 3 », « Terrasse 2 »…)
+          : t('documents.receipt.takeaway');
 
-  doc.setLineWidth(0.5);
-  doc.line(115, y - 2, 195, y - 2);
-  drawSummaryLine(doc, label(isPaid ? t('documents.receipt.totalPaid') : t('documents.receipt.totalDue')), formatPrice(order.total), y + 6, {
-    bold: true,
-    size: 13,
-  });
+  const logo = await loadTicketLogo(order.structures?.logo_url);
 
-  // Footer
-  doc.setFontSize(8);
-  doc.setTextColor(150);
-  doc.text(t('documents.receipt.officialReceipt'), 105, doc.internal.pageSize.height - 10, { align: 'center' });
+  await saveTicket((w) => {
+    ticketHeader(w, i18n, order.structures, 'SHEDE SYSTEM', logo);
+    w.gap(0.5);
+    w.center(
+      isPaid && order.invoice_number ? t('documents.receipt.invoiceTitle', { number: order.invoice_number }) : t('documents.receipt.orderReceipt'),
+      { size: 9, bold: true }
+    );
+    w.center(t('documents.receipt.orderNumber', { number: order.id.split('-')[0].toUpperCase() }));
+    w.center(date);
+    w.center(t('documents.receipt.status', { status: isPaid ? t('documents.receipt.paid') : t('documents.receipt.unpaid') }), { bold: true });
 
-  // Download
-  const reference = order.invoice_number ?? order.id.split('-')[0].toUpperCase();
-  doc.save(`receipt_${structureName.replace(/\s+/g, '_').toLowerCase()}_${reference}.pdf`);
+    w.separator();
+    w.left(place, { bold: true });
+    if (order.consumption_type === 'DELIVERY') {
+      if (order.delivery_landmark) w.left(t('documents.receipt.landmark', { landmark: order.delivery_landmark }), { size: 7 });
+      if (order.phone) w.left(t('documents.receipt.phoneLine', { phone: order.phone }), { size: 7 });
+    }
+
+    w.separator();
+    w.row(`${t('documents.receipt.qty')}  ${t('documents.receipt.item')}`, t('documents.receipt.price'), { size: 7 });
+    w.gap(0.5);
+    for (const item of order.order_items ?? []) {
+      if (!(item.total_price > 0 || item.unit_price > 0)) continue;
+      // Lot promotionnel (X achetés, Y offerts) : unités payées puis unités offertes
+      const expectedTotal = item.quantity * item.unit_price;
+      if (expectedTotal > item.total_price && item.total_price > 0) {
+        const paidUnits = Math.floor(item.total_price / item.unit_price);
+        w.row(`${paidUnits} x ${item.products.name}`, money(paidUnits * item.unit_price));
+        w.row(`${item.quantity - paidUnits} x ${t('documents.receipt.promo', { name: item.products.name })}`, t('documents.receipt.free'));
+      } else if (item.total_price === 0 && item.quantity > 0) {
+        w.row(`${item.quantity} x ${t('documents.receipt.offered', { name: item.products.name })}`, money(0));
+      } else {
+        w.row(`${item.quantity} x ${item.products.name}`, money(item.total_price));
+        if (item.quantity > 1) w.left(`@ ${money(item.unit_price)}`, { size: 7, indent: 4 });
+      }
+      for (const acc of (order.order_accompaniments ?? []).filter((a) => a.parent_order_item_id === item.id)) {
+        const accName = acc.accompaniments?.name || t('documents.receipt.accompaniment');
+        w.row(`+ ${acc.quantity} x ${accName}`, acc.total_price_snapshot > 0 ? money(acc.total_price_snapshot) : '', { size: 7, indent: 2 });
+      }
+    }
+
+    w.separator();
+    w.row(`${t('documents.receipt.subtotal')} :`, money(order.subtotal));
+    if (order.discount_amount > 0) w.row(`${t('documents.receipt.discount')} :`, `- ${money(order.discount_amount)}`);
+    if (Number(order.takeaway_fee) > 0) w.row(`${t('documents.receipt.packaging')} :`, money(order.takeaway_fee));
+    if (Number(order.delivery_fee) > 0) w.row(`${t('documents.receipt.delivery_fee')} :`, money(order.delivery_fee));
+    if (taxSummary) {
+      w.row(`${t('documents.receipt.net')} :`, money(taxSummary.net));
+      w.row(`${t('documents.receipt.vat', { rate: rateLabel(i18n, taxSummary.rate) })} :`, money(taxSummary.tax));
+      w.row(`${t('documents.receipt.gross')} :`, money(taxSummary.totalWithTax));
+    }
+    if (Number(order.tip_amount) > 0) w.row(`${t('documents.receipt.tip')} :`, money(order.tip_amount));
+
+    w.separator('solid');
+    w.row(`${isPaid ? t('documents.receipt.totalPaid') : t('documents.receipt.totalDue')} :`, money(order.total), { size: 10, bold: true });
+
+    w.separator();
+    w.center(t('documents.receipt.thanks'));
+    w.center(t('documents.receipt.generatedBy'), { size: 6.5 });
+  }, `receipt_${structureName.replace(/\s+/g, '_').toLowerCase()}_${order.invoice_number ?? order.id.split('-')[0].toUpperCase()}.pdf`);
 };
 
 // Capture un élément du DOM tel qu'il est rendu à l'écran (styles Tailwind

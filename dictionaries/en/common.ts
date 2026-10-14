@@ -40,6 +40,8 @@ const common: typeof fr = {
   email: 'Email',
   phone: 'Phone',
   password: 'Password',
+  showPassword: 'Show password',
+  hidePassword: 'Hide password',
   city: 'City',
   address: 'Address',
   notes: 'Notes',

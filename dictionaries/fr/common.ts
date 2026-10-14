@@ -39,6 +39,8 @@ const common = {
   email: 'Email',
   phone: 'Téléphone',
   password: 'Mot de passe',
+  showPassword: 'Afficher le mot de passe',
+  hidePassword: 'Masquer le mot de passe',
   city: 'Ville',
   address: 'Adresse',
   notes: 'Notes',

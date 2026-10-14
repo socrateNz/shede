@@ -13,6 +13,8 @@ export type DocumentStructure = {
   niu?: string | null;
   rccm?: string | null;
   currency?: string | null;
+  /** Logo de l'établissement (URL publique, ex. Cloudinary). */
+  logo_url?: string | null;
 };
 
 /** Lignes d'en-tête : adresse, contact, NIU / RCCM (omises si non renseignées). */
@@ -29,6 +31,26 @@ export function structureIdentityLines(structure: DocumentStructure | null | und
     .filter(Boolean)
     .join(' · ');
   return [location, contact, fiscal].filter((line): line is string => Boolean(line));
+}
+
+/** Coordonnées de l'établissement, une information par ligne (colonne étroite). */
+export function ticketDetails(structure: DocumentStructure | null | undefined, t: Translator) {
+  if (!structure) return [];
+  return [
+    structure.address,
+    [structure.city, structure.country].filter(Boolean).join(', '),
+    structure.phone && t('documents.identity.phone', { phone: structure.phone }),
+    structure.email,
+    structure.niu && t('documents.identity.niu', { niu: structure.niu }),
+    structure.rccm && t('documents.identity.rccm', { rccm: structure.rccm }),
+  ].filter((line): line is string => Boolean(line));
+}
+
+/** Initiales pour l'en-tête sans logo : « La vallée de Bana » → « VB ». */
+export function initialsOf(name: string) {
+  const words = name.split(/\s+/).filter((w) => w.length > 2 || /^[A-Z0-9]/.test(w));
+  const letters = (words.length ? words : name.split(/\s+/)).map((w) => w[0]).join('');
+  return (letters.length > 2 ? letters[0] + letters[letters.length - 1] : letters).toUpperCase() || 'S';
 }
 
 /** Libellé monétaire affiché sur les documents (FCFA pour XAF / XOF). */
