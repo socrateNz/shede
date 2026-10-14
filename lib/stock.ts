@@ -68,17 +68,10 @@ export async function recordStockMovement(input: {
   const newQty =
     input.type === 'IN' ? currentQty + input.quantity : input.type === 'OUT' ? currentQty - input.quantity : input.quantity;
 
-  const { error: stockError } = await admin.from('stocks').upsert(
-    {
-      structure_id: input.structureId,
-      quantity: newQty,
-      threshold: currentStock?.threshold ?? 5,
-      updated_at: new Date().toISOString(),
-      ...itemColumns(input.itemType, input.itemId),
-    },
-    { onConflict: `structure_id, ${column}` }
-  );
-  if (stockError) throw stockError;
+  await saveStockRow(input.structureId, input.itemType, input.itemId, {
+    quantity: newQty,
+    threshold: currentStock?.threshold ?? 5,
+  });
 
   // Passage sous le seuil (pas à chaque mouvement suivant) : le magasin est prévenu une fois
   const threshold = Number(currentStock?.threshold ?? 5);
@@ -99,6 +92,34 @@ async function notifyLowStock(structureId: string, itemType: StockItemType, item
     }),
     url: itemType === 'ingredient' ? '/stock/ingredients' : '/stock',
   });
+}
+
+/**
+ * Crée ou met à jour la ligne de stock d'un article. Pas d'upsert : les index uniques des
+ * produits et accompagnements sont partiels (WHERE … IS NULL) et PostgreSQL refuse un
+ * ON CONFLICT qui ne reprend pas ce prédicat — la quantité n'était alors jamais mise à jour.
+ */
+export async function saveStockRow(
+  structureId: string,
+  itemType: StockItemType,
+  itemId: string,
+  patch: { quantity?: number; threshold?: number }
+) {
+  const admin = getAdminSupabase();
+  const column = ITEM_COLUMN[itemType];
+  const { data: existing, error: readError } = await admin
+    .from('stocks')
+    .select('id')
+    .eq('structure_id', structureId)
+    .eq(column, itemId)
+    .limit(1)
+    .maybeSingle();
+  if (readError) throw readError;
+  const values = { ...patch, updated_at: new Date().toISOString() };
+  const { error } = existing
+    ? await admin.from('stocks').update(values).eq('id', existing.id)
+    : await admin.from('stocks').insert({ structure_id: structureId, ...itemColumns(itemType, itemId), quantity: 0, ...values });
+  if (error) throw error;
 }
 
 /**
@@ -130,9 +151,18 @@ export async function deductOrderStock(orderId: string, userId?: string | null) 
     const accompanimentIds = [...new Set((accompChoices || []).map((a) => a.accompaniment_id as string).filter(Boolean))];
     const [recipes, productCosts] = await Promise.all([loadRecipeLines(productIds, accompanimentIds), loadPurchaseCosts(productIds)]);
 
+    // Une sortie en erreur est journalisée sans bloquer les autres lignes de la commande
+    const record = async (movement: Parameters<typeof recordStockMovement>[0]) => {
+      try {
+        await recordStockMovement(movement);
+      } catch (error) {
+        console.error('[stock] sortie de stock :', movement.itemType, movement.itemId, error);
+      }
+    };
+
     const consumeRecipe = async (lines: RecipeRow[], soldQuantity: number) => {
       for (const line of lines) {
-        await recordStockMovement({
+        await record({
           ...base,
           itemId: line.ingredient_id,
           itemType: 'ingredient',
@@ -155,10 +185,10 @@ export async function deductOrderStock(orderId: string, userId?: string | null) 
         .eq('product_id', item.product_id);
       if (legacy && legacy.length > 0) {
         for (const ing of legacy) {
-          await recordStockMovement({ ...base, itemId: ing.ingredient_id, itemType: 'product', quantity: ing.quantity * item.quantity });
+          await record({ ...base, itemId: ing.ingredient_id, itemType: 'product', quantity: ing.quantity * item.quantity });
         }
       } else {
-        await recordStockMovement({
+        await record({
           ...base,
           itemId: item.product_id,
           itemType: 'product',
@@ -173,7 +203,7 @@ export async function deductOrderStock(orderId: string, userId?: string | null) 
       if (lines.length) {
         await consumeRecipe(lines, Number(choice.quantity));
       } else {
-        await recordStockMovement({ ...base, itemId: choice.accompaniment_id, itemType: 'accompaniment', quantity: choice.quantity });
+        await record({ ...base, itemId: choice.accompaniment_id, itemType: 'accompaniment', quantity: choice.quantity });
       }
     }
   } catch (error) {

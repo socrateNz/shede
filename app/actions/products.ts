@@ -1,5 +1,6 @@
 'use server';
 
+import { saveStockRow } from '@/lib/stock';
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
@@ -363,12 +364,7 @@ export async function createProduct(params: {
     });
 
     if (params.threshold !== undefined) {
-      await admin.from('stocks').upsert({
-        structure_id: session.structureId,
-        product_id: product.id,
-        threshold: params.threshold,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'structure_id, product_id' });
+      await saveStockRow(session.structureId as string, 'product', product.id, { threshold: params.threshold });
     }
 
     revalidatePath('/products');
@@ -435,12 +431,7 @@ export async function updateProduct(params: {
     });
 
     if (params.threshold !== undefined) {
-      await admin.from('stocks').upsert({
-        structure_id: session.structureId,
-        product_id: params.productId,
-        threshold: params.threshold,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'structure_id, product_id' });
+      await saveStockRow(session.structureId as string, 'product', params.productId, { threshold: params.threshold });
     }
 
     revalidatePath('/products');
