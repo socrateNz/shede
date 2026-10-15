@@ -8,7 +8,21 @@ const fr = {
     title: 'API Shede v1 — Documentation',
     description: 'Intégrez les restaurants Shede à votre marketplace de livraison : menu, commandes, livraison et webhooks.',
   },
-  header: { docs: 'Documentation', api: 'API v1', back: 'Retour', onThisPage: 'Sur cette page', copy: 'Copier', copied: 'Copié !' },
+  header: {
+    docs: 'Documentation',
+    api: 'API v1',
+    back: 'Retour',
+    onThisPage: 'Sur cette page',
+    copy: 'Copier',
+    copied: 'Copié !',
+    copyPrompt: 'Copier en tant que prompt',
+    copiedPrompt: 'Prompt copié !',
+    copyPromptHint: 'Copie toute la documentation en Markdown, prête à coller dans un assistant IA (ChatGPT, Claude…)',
+  },
+  prompt: {
+    intro:
+      'Tu es un développeur chargé d’intégrer l’API Shede (logiciel de restaurant) dans une plateforme de livraison. Voici la documentation complète de l’API v1 (adresse de base : {api}). Appuie-toi uniquement sur cette documentation : n’invente ni point d’accès, ni champ, ni code d’erreur. Si une information manque, dis-le et pose la question.',
+  },
   nav: {
     intro: 'Introduction',
     auth: 'Authentification',
@@ -253,7 +267,21 @@ const en: ApiDocsContent = {
     title: 'Shede API v1 — Documentation',
     description: 'Connect Shede restaurants to your delivery marketplace: menu, orders, delivery and webhooks.',
   },
-  header: { docs: 'Documentation', api: 'API v1', back: 'Back', onThisPage: 'On this page', copy: 'Copy', copied: 'Copied!' },
+  header: {
+    docs: 'Documentation',
+    api: 'API v1',
+    back: 'Back',
+    onThisPage: 'On this page',
+    copy: 'Copy',
+    copied: 'Copied!',
+    copyPrompt: 'Copy as prompt',
+    copiedPrompt: 'Prompt copied!',
+    copyPromptHint: 'Copies the whole documentation as Markdown, ready to paste into an AI assistant (ChatGPT, Claude…)',
+  },
+  prompt: {
+    intro:
+      'You are a developer integrating the Shede API (restaurant software) into a delivery platform. Below is the complete API v1 documentation (base URL: {api}). Rely only on this documentation: do not invent endpoints, fields or error codes. If something is missing, say so and ask.',
+  },
   nav: {
     intro: 'Introduction',
     auth: 'Authentication',

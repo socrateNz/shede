@@ -4,7 +4,8 @@ import { ArrowLeft, ChevronRight, KeyRound, ShieldCheck } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { getLocale } from '@/lib/i18n/server';
 import { API_DOCS_CONTENT, type ApiDocsContent } from './content';
-import { CopyButton } from './copy-button';
+import { CopyButton, CopyPromptButton } from './copy-button';
+import { buildApiPrompt } from './prompt';
 import { TryItButton, TryItProvider } from './try-it';
 
 export async function generateMetadata() {
@@ -217,6 +218,7 @@ export default async function ApiDocsPage() {
   const c = API_DOCS_CONTENT[locale];
   const api = `${await baseUrl()}/api/v1`;
   const ex = examples(api);
+  const prompt = buildApiPrompt(c, ex, api, VALIDATION_CODES);
 
   const nav: { group: string; items: [string, string][] }[] = [
     { group: c.groups.start, items: [['intro', c.nav.intro], ['auth', c.nav.auth], ['responses', c.nav.responses], ['limits', c.nav.limits], ['test', c.nav.test]] },
@@ -253,6 +255,7 @@ export default async function ApiDocsPage() {
             </span>
           </div>
           <div className="flex items-center gap-3">
+            <CopyPromptButton text={prompt} label={c.header.copyPrompt} copiedLabel={c.header.copiedPrompt} hint={c.header.copyPromptHint} />
             <TryItButton label={c.tryIt.open} variant="header" />
             <LanguageSwitcher tone="light" />
             <Link href="/docs" className="hidden items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 sm:inline-flex">
