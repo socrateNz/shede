@@ -5,6 +5,8 @@ const org = {
     HOTEL: '🏨 Hôtel',
     MIXTE: '🍽️🏨 Mixte',
     MIXTE_LONG: '🍽️🏨 Mixte (Restaurant + Hôtel)',
+    ENTREPRISE: '🏢 Entreprise',
+    ENTREPRISE_LONG: '🏢 Entreprise (comptabilité seule)',
   },
   points: {
     badge: 'Points & licence',

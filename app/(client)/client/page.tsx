@@ -1,3 +1,4 @@
+import { isCustomerFacingType } from '@/lib/structure-types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Bed, CalendarDays, UtensilsCrossed, MapPin, Store, Building2, ArrowRight, TrendingUp, Clock, Wallet, ChevronRight, Sparkles } from 'lucide-react';
 import { ClientInvoiceWrapper } from '@/components/client-invoice-wrapper';
@@ -40,7 +41,7 @@ export default async function ClientDashboardPage() {
     .select(`*, ${STRUCTURE_LICENSE_SELECT}`)
     .order('created_at', { ascending: false });
 
-  const structures = rawStructures?.filter(isStructureVisible).filter(x => x.name !== "Shede HQ") || [];
+  const structures = rawStructures?.filter(isStructureVisible).filter((x) => isCustomerFacingType(x.type)).filter(x => x.name !== "Shede HQ") || [];
 
   const globalPromotions = await getAllGlobalActivePromotions();
 

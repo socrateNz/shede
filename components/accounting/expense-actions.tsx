@@ -11,6 +11,7 @@ import { cancelExpense, payExpense } from '@/app/actions/accounting';
 import { PAYMENT_METHODS } from '@/lib/accounting/mapping';
 import { useT } from '@/lib/i18n/client';
 import { useDialogs } from '@/components/dialog-provider';
+import { TreasurySelect, type TreasuryChoice } from '@/components/accounting/treasury-select';
 
 const today = () => {
   const d = new Date();
@@ -23,11 +24,13 @@ export function ExpenseActions({
   status,
   expenseDate,
   canCancel,
+  treasuryAccounts = [],
 }: {
   id: string;
   status: string;
   expenseDate: string;
   canCancel: boolean;
+  treasuryAccounts?: TreasuryChoice[];
 }) {
   const { t } = useT();
   const dialogs = useDialogs();
@@ -35,13 +38,14 @@ export function ExpenseActions({
   const [pending, startTransition] = useTransition();
   const [payOpen, setPayOpen] = useState(false);
   const [method, setMethod] = useState('CASH');
+  const [bankAccountId, setBankAccountId] = useState('');
   const [date, setDate] = useState(today());
 
   if (status === 'CANCELLED') return null;
 
   function pay() {
     startTransition(async () => {
-      const result = await payExpense(id, method, date);
+      const result = await payExpense(id, method, date, bankAccountId || null);
       if (!result.success) {
         toast.error(result.error);
         return;
@@ -108,6 +112,7 @@ export function ExpenseActions({
                 ))}
               </select>
             </label>
+            <TreasurySelect accounts={treasuryAccounts} method={method} value={bankAccountId} onChange={setBankAccountId} />
             <label className="block space-y-1 text-sm text-slate-300">
               {t('accounting.expenses.payDate')}
               <Input type="date" value={date} min={expenseDate} max={today()} onChange={(e) => setDate(e.target.value)} required className="border-slate-600 bg-slate-900/50 text-slate-100 [color-scheme:dark]" />

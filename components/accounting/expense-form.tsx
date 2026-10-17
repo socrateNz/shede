@@ -12,6 +12,7 @@ import { createExpense, saveSupplier } from '@/app/actions/accounting';
 import { EXPENSE_CATEGORIES, EXPENSE_CATEGORY_KEYS, PAYMENT_METHODS, type ExpenseCategory } from '@/lib/accounting/mapping';
 import { CAMEROON_VAT_RATE } from '@/lib/tax';
 import { useT } from '@/lib/i18n/client';
+import { TreasurySelect, type TreasuryChoice } from '@/components/accounting/treasury-select';
 
 const fieldClass = 'w-full rounded-md border border-slate-600 bg-slate-900/50 px-3 py-2 text-sm text-slate-100';
 const today = () => {
@@ -24,7 +25,13 @@ function vatFromTtc(ttc: number) {
   return Math.round(ttc - ttc / (1 + CAMEROON_VAT_RATE / 100));
 }
 
-export function ExpenseFormDialog({ suppliers: initialSuppliers }: { suppliers: { id: string; name: string }[] }) {
+export function ExpenseFormDialog({
+  suppliers: initialSuppliers,
+  treasuryAccounts = [],
+}: {
+  suppliers: { id: string; name: string }[];
+  treasuryAccounts?: TreasuryChoice[];
+}) {
   const { t, format } = useT();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -42,6 +49,7 @@ export function ExpenseFormDialog({ suppliers: initialSuppliers }: { suppliers: 
   const [tax, setTax] = useState('');
   const [taxEdited, setTaxEdited] = useState(false);
   const [paid, setPaid] = useState(true);
+  const [bankAccountId, setBankAccountId] = useState('');
   const [method, setMethod] = useState<string>('CASH');
   const [attachment, setAttachment] = useState<string | null>(null);
 
@@ -87,6 +95,7 @@ export function ExpenseFormDialog({ suppliers: initialSuppliers }: { suppliers: 
         taxAmount: taxValue,
         paid,
         paymentMethod: paid ? method : null,
+        bankAccountId: paid ? bankAccountId || null : null,
         attachmentUrl: attachment,
       });
       if (!result.success) {
@@ -238,6 +247,7 @@ export function ExpenseFormDialog({ suppliers: initialSuppliers }: { suppliers: 
                 </select>
               </label>
             )}
+            {paid && <TreasurySelect accounts={treasuryAccounts} method={method} value={bankAccountId} onChange={setBankAccountId} className={fieldClass} />}
           </div>
 
           <div className="space-y-1 text-sm text-slate-300">

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import type { SessionPayload } from '@/lib/auth';
 import { getSessionFromRequest, hasModule } from '@/lib/auth-session';
+import { isAccountingOnly } from '@/lib/modules';
 
 /** Tous les rôles staff (hors CLIENT) */
 const STAFF_ROLES = [
@@ -179,6 +180,8 @@ function matchesPrefix(pathname: string, prefixes: string[]): boolean {
 
 /** Redirige le staff vers sa page d'accueil selon son rôle */
 function getStaffHome(session: SessionPayload): string {
+  // Licence « Comptabilité seule » : l'accueil de l'administrateur, du manager et du comptable est la comptabilité
+  if (['ADMIN', 'MANAGER', 'COMPTABLE'].includes(session.role) && isAccountingOnly(session.modules)) return '/accounting';
   switch (session.role) {
     case 'SUPER_ADMIN':  return '/structures';
     case 'ORG_ADMIN':    return '/organization';
@@ -279,6 +282,11 @@ export async function middleware(request: NextRequest) {
     }
     if (session.role === 'ORG_ADMIN' && !matchesPrefix(pathname, ORG_ADMIN_PREFIXES)) {
       return NextResponse.redirect(new URL('/organization', request.url));
+    }
+
+    // Comptabilité seule : le tableau des ventes et les statistiques de vente n'ont pas de sens
+    if (session.role !== 'SUPER_ADMIN' && isAccountingOnly(session.modules) && matchesPrefix(pathname, ['/dashboard', '/statistics'])) {
+      return NextResponse.redirect(new URL('/accounting', request.url));
     }
 
     const ruleRedirect = checkRouteRule(pathname, session, request.url);

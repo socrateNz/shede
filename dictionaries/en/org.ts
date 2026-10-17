@@ -6,6 +6,8 @@ const org: typeof fr = {
     HOTEL: '🏨 Hotel',
     MIXTE: '🍽️🏨 Mixed',
     MIXTE_LONG: '🍽️🏨 Mixed (Restaurant + Hotel)',
+    ENTREPRISE: '🏢 Company',
+    ENTREPRISE_LONG: '🏢 Company (accounting only)',
   },
   points: {
     badge: 'Outlets & license',

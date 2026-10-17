@@ -1,11 +1,12 @@
 'use server';
 
+import { isStructureType } from '@/lib/structure-types';
 import { getSession, type SessionPayload } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 import { insertUserAccount, parseAccountFormData } from '@/lib/accounts';
 import { firstOf, isLicenseValid } from '@/lib/license';
-import { sanitizeModules } from '@/lib/modules';
+import { sanitizeModules, isAccountingOnly } from '@/lib/modules';
 import { CAMEROON_VAT_RATE } from '@/lib/tax';
 import {
   buildAccountCreatedMail,
@@ -27,7 +28,6 @@ import type { Translator } from '@/lib/i18n/translate';
 
 type ActionState = { success: boolean; error: string; pointId?: string };
 
-const POINT_TYPES = ['RESTAURANT', 'HOTEL', 'MIXTE'];
 
 async function requireOrgAdmin(): Promise<
   (SessionPayload & { organizationId: string }) | null
@@ -67,7 +67,7 @@ function parsePointFormData(
   if (!name || !email || !city) {
     return { error: t('org.errors.pointRequired') };
   }
-  if (!POINT_TYPES.includes(type)) {
+  if (!isStructureType(type)) {
     return { error: t('org.errors.invalidType') };
   }
   return { data: { name, email, city, type, phone, address } };
@@ -209,7 +209,8 @@ export async function createPoint(
         name: point.data.name,
         email: point.data.email,
         city: point.data.city,
-        type: point.data.type,
+        // Licence « Comptabilité seule » : le point est une entreprise, quel que soit le type choisi
+        type: isAccountingOnly(sanitizeModules(organization.modules)) ? 'ENTREPRISE' : point.data.type,
         phone: point.data.phone,
         address: point.data.address,
         modules: sanitizeModules(organization.modules),

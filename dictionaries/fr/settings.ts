@@ -8,6 +8,7 @@ const settings = {
     RESTAURANT: '🍽️ Restaurant',
     HOTEL: '🏨 Hôtel',
     MIXTE: '🏩 Hôtel-restaurant',
+    ENTREPRISE: '🏢 Entreprise (comptabilité)',
   },
   timezones: {
     'Africa/Douala': 'Douala — UTC+1',

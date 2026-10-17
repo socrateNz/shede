@@ -100,6 +100,7 @@ export function PointForm({
               <option value="RESTAURANT">{t('org.pointTypes.RESTAURANT')}</option>
               <option value="HOTEL">{t('org.pointTypes.HOTEL')}</option>
               <option value="MIXTE">{t('org.pointTypes.MIXTE_LONG')}</option>
+              <option value="ENTREPRISE">{t('org.pointTypes.ENTREPRISE_LONG')}</option>
             </select>
           </Field>
         </div>

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getSession, type SessionPayload } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { getLocale, te } from '@/lib/i18n/server';
+import { bankAccountNumber } from '@/lib/accounting/treasury';
 import { notifyStructureStaff } from '@/lib/notifications';
 import { buildChart, type AccountLabel } from '@/lib/accounting/chart';
 import {
@@ -157,13 +158,19 @@ async function loadLines(structureIds: string[], to: string): Promise<LedgerLine
   return fetchAll<LedgerLine>((a, b) =>
     admin
       .from('accounting_lines')
-      .select('id, entry_id, structure_id, journal, entry_date, account, label, debit, credit')
+      .select('id, entry_id, structure_id, journal, entry_date, account, label, debit, credit, accounting_entries(source_type)')
       .in('structure_id', structureIds)
       .lte('entry_date', to)
       .order('entry_date')
       .order('id')
       .range(a, b)
-  ).then((rows) => rows.map((l) => ({ ...l, debit: Number(l.debit), credit: Number(l.credit) })));
+  ).then((rows) =>
+    rows.map((l) => {
+      const { accounting_entries: entry, ...line } = l as LedgerLine & { accounting_entries?: { source_type?: string } | { source_type?: string }[] | null };
+      const source = (Array.isArray(entry) ? entry[0] : entry)?.source_type ?? '';
+      return { ...line, debit: Number(line.debit), credit: Number(line.credit), closing: source.startsWith('YEAR_CLOSING') };
+    })
+  );
 }
 
 async function loadChart(structureIds: string[]): Promise<AccountLabel[]> {
@@ -626,6 +633,8 @@ export async function createExpense(input: {
   paid: boolean;
   paymentMethod?: string | null;
   attachmentUrl?: string | null;
+  /** Banque ou compte Mobile Money qui paie (sinon compte par défaut du moyen de paiement). */
+  bankAccountId?: string | null;
 }): Promise<Result<{ id: string }>> {
   const scope = await getScope();
   if (!scope?.canExpense || !scope.structureId) return { success: false, error: await te('errors.unauthorized') };
@@ -648,6 +657,7 @@ export async function createExpense(input: {
   }
 
   const admin = getAdminSupabase();
+  const paymentAccount = input.paid ? await bankAccountNumber(scope.structureId, input.bankAccountId) : null;
   let supplierId: string | null = null;
   if (input.supplierId) {
     const { data: supplier } = await admin
@@ -674,6 +684,7 @@ export async function createExpense(input: {
       amount_ttc: ttc,
       status: input.paid ? 'PAID' : 'UNPAID',
       payment_method: input.paid ? input.paymentMethod : null,
+      ...(paymentAccount ? { payment_account: paymentAccount } : {}),
       paid_at: input.paid ? input.date : null,
       attachment_url: input.attachmentUrl || null,
       created_by: scope.userId,
@@ -708,7 +719,7 @@ export async function createExpense(input: {
   return { success: true, data: { id: expense.id } };
 }
 
-export async function payExpense(id: string, paymentMethod: string, date: string): Promise<Result> {
+export async function payExpense(id: string, paymentMethod: string, date: string, bankAccountId?: string | null): Promise<Result> {
   const scope = await getScope();
   if (!scope?.canExpense || !scope.structureId) return { success: false, error: await te('errors.unauthorized') };
   if (!isPaymentMethod(paymentMethod)) return { success: false, error: await te('accounting.errors.paymentMethodRequired') };
@@ -724,10 +735,17 @@ export async function payExpense(id: string, paymentMethod: string, date: string
   if (expense.status !== 'UNPAID') return { success: false, error: await te('accounting.errors.expenseNotUnpaid') };
   if (date < expense.expense_date) return { success: false, error: await te('accounting.errors.invalidDate') };
   try {
-    const paymentEntryId = await postExpensePayment({ ...expense, payment_method: paymentMethod, paid_at: date }, scope.userId);
+    const paymentAccount = await bankAccountNumber(scope.structureId, bankAccountId);
+    const paymentEntryId = await postExpensePayment({ ...expense, payment_method: paymentMethod, paid_at: date, payment_account: paymentAccount }, scope.userId);
     await admin
       .from('expenses')
-      .update({ status: 'PAID', payment_method: paymentMethod, paid_at: date, payment_entry_id: paymentEntryId })
+      .update({
+        status: 'PAID',
+        payment_method: paymentMethod,
+        paid_at: date,
+        payment_entry_id: paymentEntryId,
+        ...(paymentAccount ? { payment_account: paymentAccount } : {}),
+      })
       .eq('id', id);
   } catch (error) {
     return { success: false, error: await errorMessage(error) };

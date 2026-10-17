@@ -16,6 +16,10 @@ export default async function AccountingLayout({ children }: { children: React.R
 
   const tabs = [
     { href: '/accounting', label: t('accounting.nav.dashboard'), show: scope.canReports },
+    { href: '/accounting/invoices', label: t('accounting.nav.invoices'), show: scope.canPost },
+    { href: '/accounting/customers', label: t('accounting.nav.customers'), show: scope.canPost },
+    { href: '/accounting/bank', label: t('accounting.nav.bank'), show: scope.canPost },
+    { href: '/accounting/assets', label: t('accounting.nav.assets'), show: scope.canPost },
     { href: '/accounting/expenses', label: t('accounting.nav.expenses'), show: scope.canExpense },
     { href: '/accounting/suppliers', label: t('accounting.nav.suppliers'), show: scope.canExpense },
     { href: '/accounting/journal', label: t('accounting.nav.journal'), show: scope.canReports },
@@ -23,6 +27,8 @@ export default async function AccountingLayout({ children }: { children: React.R
     { href: '/accounting/balance', label: t('accounting.nav.balance'), show: scope.canReports },
     { href: '/accounting/statements', label: t('accounting.nav.statements'), show: scope.canReports },
     { href: '/accounting/vat', label: t('accounting.nav.vat'), show: scope.canReports },
+    { href: '/accounting/official', label: t('accounting.nav.official'), show: scope.canReports },
+    { href: '/accounting/closing', label: t('accounting.nav.closing'), show: scope.canPost },
     { href: '/accounting/accounts', label: t('accounting.nav.accounts'), show: true },
   ].filter((tab) => tab.show);
 

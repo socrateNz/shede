@@ -9,6 +9,7 @@ const settings: typeof fr = {
     RESTAURANT: '🍽️ Restaurant',
     HOTEL: '🏨 Hotel',
     MIXTE: '🏩 Hotel & restaurant',
+    ENTREPRISE: '🏢 Company (accounting)',
   },
   timezones: {
     'Africa/Douala': 'Douala — UTC+1',

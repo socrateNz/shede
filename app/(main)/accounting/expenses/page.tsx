@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Paperclip } from 'lucide-react';
 import { getExpenses } from '@/app/actions/accounting';
+import { listTreasuryChoices } from '@/app/actions/bank';
 import { PageNav } from '@/components/page-nav';
 import { parsePage } from '@/lib/pagination';
 import { FilterBar, SetupNotice } from '@/components/accounting/filter-bar';
@@ -25,7 +26,7 @@ export default async function ExpensesPage({
 }) {
   const params = await searchParams;
   // 20 dépenses par page ; totaux de la période calculés en SQL.
-  const data = await getExpenses({ ...params, page: parsePage(params.page) });
+  const [data, treasuryAccounts] = await Promise.all([getExpenses({ ...params, page: parsePage(params.page) }), listTreasuryChoices()]);
   if (!data) redirect('/unauthorized');
   const { t, format } = await getT();
   const { scope, period, expenses, meta } = data;
@@ -42,7 +43,7 @@ export default async function ExpensesPage({
   return (
     <div className="space-y-6">
       <FilterBar from={period.from} to={period.to}>
-        <ExpenseFormDialog suppliers={data.suppliers} />
+        <ExpenseFormDialog suppliers={data.suppliers} treasuryAccounts={treasuryAccounts} />
       </FilterBar>
       {!data.installed && <SetupNotice title={t('accounting.setup.title')} text={t('accounting.setup.text')} />}
 
@@ -127,7 +128,7 @@ export default async function ExpensesPage({
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <ExpenseActions id={e.id} status={e.status} expenseDate={e.expense_date} canCancel={scope.canPost} />
+                    <ExpenseActions id={e.id} status={e.status} expenseDate={e.expense_date} canCancel={scope.canPost} treasuryAccounts={treasuryAccounts} />
                   </td>
                 </tr>
               ))

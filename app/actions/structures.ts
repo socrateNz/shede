@@ -1,5 +1,6 @@
 'use server';
 
+import { isStructureType } from '@/lib/structure-types';
 import { createSession, getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
@@ -611,7 +612,7 @@ export async function updateStructureSettings(
     return { success: false, error: t('settings.errors.nameEmailRequired') };
   }
 
-  if (!['RESTAURANT', 'HOTEL', 'MIXTE'].includes(type)) {
+  if (!isStructureType(type)) {
     return { success: false, error: t('settings.errors.invalidType') };
   }
 

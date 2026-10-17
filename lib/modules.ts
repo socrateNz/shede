@@ -70,3 +70,15 @@ export function sanitizeModules(modules: unknown): string[] {
   const clean = [...new Set(withDependencies)];
   return clean.length > 0 ? clean : ['POS'];
 }
+
+/** Modules d'exploitation (vente, salle, hôtel, stock…) : sans eux, le point ne tient que ses comptes. */
+const OPERATIONAL_MODULES: ModuleCode[] = ['POS', 'CLIENT_APP', 'CUISINE', 'BAR', 'LIVRAISON', 'TABLES', 'HOTEL', 'STOCK', 'ACHATS', 'PREVISIONS', 'PROMOTION', 'API'];
+
+/**
+ * Licence « Comptabilité seule » : le module Comptabilité sans aucun module d'exploitation
+ * (RH et CRM restent possibles). L'accueil est alors la comptabilité, pas le tableau des ventes.
+ */
+export function isAccountingOnly(modules: string[] | null | undefined) {
+  const list = modules ?? [];
+  return list.includes('COMPTABILITE') && !list.some((m) => (OPERATIONAL_MODULES as string[]).includes(m));
+}

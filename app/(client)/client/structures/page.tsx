@@ -1,3 +1,4 @@
+import { isCustomerFacingType } from '@/lib/structure-types';
 import { getAdminSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
@@ -21,7 +22,7 @@ export default async function ClientStructuresPage() {
     .select(`*, ${STRUCTURE_LICENSE_SELECT}`)
     .order('name', { ascending: true });
 
-  const structures = rawStructures?.filter(isStructureVisible).filter(x => x.name !== "Shede HQ") || [];
+  const structures = rawStructures?.filter(isStructureVisible).filter((x) => isCustomerFacingType(x.type)).filter(x => x.name !== "Shede HQ") || [];
 
   return (
     <div className="min-h-screen bg-slate-50 selection:bg-blue-200">

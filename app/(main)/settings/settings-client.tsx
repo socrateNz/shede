@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { STRUCTURE_TYPES } from '@/lib/structure-types';
 import { toast } from 'sonner';
 import { Building2, Mail, Phone, MapPin, Globe, DollarSign, Clock, Bell, LogOut, Save, Shield, Users, Loader2, ChevronRight, Settings, Receipt, CheckCircle2, Lock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -32,7 +33,6 @@ const TIMEZONES = [
   'Africa/Casablanca', 'Africa/Tunis', 'Africa/Cairo', 'Europe/Paris',
 ] as const;
 
-const STRUCTURE_TYPES = ['RESTAURANT', 'HOTEL', 'MIXTE'] as const;
 
 export function SettingsPageClient({ session, structure }: SettingsPageClientProps) {
   const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(session.role);
@@ -226,17 +226,20 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
                         className="bg-slate-900/50 border-slate-600 text-slate-100 placeholder:text-slate-600 focus:border-blue-500"
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="takeaway_fee" className="text-slate-300">{t('settings.page.takeawayFee')}</Label>
-                      <Input
-                        id="takeaway_fee"
-                        name="takeaway_fee"
-                        type="number"
-                        min={0}
-                        defaultValue={structure.takeaway_fee ?? 0}
-                        className="bg-slate-900/50 border-slate-600 text-slate-100 placeholder:text-slate-600 focus:border-blue-500"
-                      />
-                    </div>
+                    {/* Frais d'emballage : seulement pour un point qui vend (caisse) */}
+                    {session.modules?.includes('POS') && (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="takeaway_fee" className="text-slate-300">{t('settings.page.takeawayFee')}</Label>
+                        <Input
+                          id="takeaway_fee"
+                          name="takeaway_fee"
+                          type="number"
+                          min={0}
+                          defaultValue={structure.takeaway_fee ?? 0}
+                          className="bg-slate-900/50 border-slate-600 text-slate-100 placeholder:text-slate-600 focus:border-blue-500"
+                        />
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

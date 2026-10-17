@@ -14,6 +14,8 @@ export type LedgerLine = {
   label: string;
   debit: number;
   credit: number;
+  /** Écriture de clôture d'exercice (ou son annulation) : exclue du compte de résultat. */
+  closing?: boolean;
 };
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -105,7 +107,8 @@ export function computeIncomeStatement(lines: LedgerLine[], from: string, to: st
   const charges = new Map<string, number>();
   const products = new Map<string, number>();
   for (const l of lines) {
-    if (l.entry_date < from || l.entry_date > to) continue;
+    // La clôture solde les comptes 6 et 7 : la compter annulerait le résultat de l'exercice
+    if (l.closing || l.entry_date < from || l.entry_date > to) continue;
     const cls = accountClass(l.account);
     if (cls === 6) charges.set(l.account, (charges.get(l.account) ?? 0) + Number(l.debit) - Number(l.credit));
     if (cls === 7) products.set(l.account, (products.get(l.account) ?? 0) + Number(l.credit) - Number(l.debit));

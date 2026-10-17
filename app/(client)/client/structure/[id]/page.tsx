@@ -1,5 +1,6 @@
 import { getAdminSupabase } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
+import { isCustomerFacingType } from '@/lib/structure-types';
 import ProductList from './ProductList';
 import Link from 'next/link';
 import { getActivePromotionsForClient } from '@/app/actions/promotions';
@@ -21,7 +22,7 @@ export default async function StructurePage({ params }: { params: Promise<{ id: 
     .eq('id', id)
     .single();
 
-  if (structError || !structure) {
+  if (structError || !structure || !isCustomerFacingType(structure.type)) {
     return notFound();
   }
 

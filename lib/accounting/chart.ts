@@ -22,11 +22,19 @@ export const STANDARD_ACCOUNTS: ChartAccount[] = [
 
   // Classe 2 — Actif immobilisé
   { number: '213', fr: 'Logiciels et sites internet', en: 'Software and websites' },
+  { number: '221', fr: 'Terrains', en: 'Land' },
   { number: '231', fr: 'Bâtiments', en: 'Buildings' },
+  { number: '234', fr: 'Aménagements, agencements et installations', en: 'Fittings and installations' },
   { number: '241', fr: 'Matériel et outillage', en: 'Equipment and tools' },
   { number: '244', fr: 'Matériel et mobilier', en: 'Furniture and office equipment' },
   { number: '245', fr: 'Matériel de transport', en: 'Vehicles' },
   { number: '284', fr: 'Amortissements du matériel', en: 'Depreciation of equipment' },
+  { number: '2813', fr: 'Amortissements des logiciels', en: 'Amortisation of software' },
+  { number: '2831', fr: 'Amortissements des bâtiments', en: 'Depreciation of buildings' },
+  { number: '2834', fr: 'Amortissements des aménagements', en: 'Depreciation of fittings' },
+  { number: '2841', fr: 'Amortissements du matériel et outillage', en: 'Depreciation of equipment and tools' },
+  { number: '2844', fr: 'Amortissements du matériel et mobilier', en: 'Depreciation of furniture and office equipment' },
+  { number: '2845', fr: 'Amortissements du matériel de transport', en: 'Depreciation of vehicles' },
 
   // Classe 3 — Stocks
   { number: '311', fr: 'Marchandises', en: 'Goods for resale' },
@@ -43,6 +51,7 @@ export const STANDARD_ACCOUNTS: ChartAccount[] = [
   { number: '441', fr: 'État, impôt sur les bénéfices', en: 'Income tax payable' },
   { number: '4431', fr: 'TVA facturée sur ventes', en: 'Output VAT on sales' },
   { number: '4432', fr: 'TVA facturée sur prestations de services', en: 'Output VAT on services' },
+  { number: '481', fr: 'Fournisseurs d’investissements', en: 'Suppliers of fixed assets' },
   { number: '4441', fr: 'État, TVA due', en: 'VAT payable' },
   { number: '4449', fr: 'État, crédit de TVA à reporter', en: 'VAT credit carried forward' },
   { number: '4452', fr: 'TVA récupérable sur achats', en: 'Input VAT on purchases' },
@@ -81,10 +90,14 @@ export const STANDARD_ACCOUNTS: ChartAccount[] = [
   { number: '661', fr: 'Rémunérations directes versées au personnel', en: 'Salaries' },
   { number: '664', fr: 'Charges sociales', en: 'Social charges' },
   { number: '671', fr: 'Intérêts des emprunts', en: 'Loan interest' },
+  { number: '674', fr: 'Autres intérêts (agios)', en: 'Other interest (bank charges)' },
   { number: '681', fr: 'Dotations aux amortissements d’exploitation', en: 'Depreciation expense' },
 
   // Classe 7 — Produits
   { number: '701', fr: 'Ventes de marchandises', en: 'Sales of goods' },
+  { number: '702', fr: 'Ventes de produits finis', en: 'Sales of finished products' },
+  { number: '704', fr: 'Travaux facturés', en: 'Invoiced works' },
+  { number: '706', fr: 'Services vendus', en: 'Services sold' },
   { number: '7061', fr: 'Services vendus — hébergement', en: 'Services sold — accommodation' },
   { number: '7062', fr: 'Services vendus — restauration', en: 'Services sold — food service' },
   { number: '707', fr: 'Produits accessoires (livraison, emballage)', en: 'Ancillary income (delivery, packaging)' },

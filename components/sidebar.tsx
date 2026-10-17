@@ -43,6 +43,7 @@ import { cn } from '@/lib/utils';
 import { Structure } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
 import { getSidebarCounts, type SidebarCounts } from '@/app/actions/sidebar';
+import { isAccountingOnly } from '@/lib/modules';
 import { useT } from '@/lib/i18n/client';
 import type { TranslationKey } from '@/lib/i18n/translate';
 
@@ -97,7 +98,9 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
   // Modules de la licence actuelle de l'organisation (relus côté serveur à
   // chaque requête) : un élément n'apparaît que si son module est sous licence.
   const hasModule = (moduleName: string) => Boolean(session.modules?.includes(moduleName));
-  const canManageShift = ['CAISSE', 'RECEPTION', 'ADMIN', 'MANAGER'].includes(role);
+  const accountingOnly = isAccountingOnly(session.modules);
+  // Ouverture / fermeture de caisse : seulement s'il y a des ventes (caisse ou hôtel)
+  const canManageShift = ['CAISSE', 'RECEPTION', 'ADMIN', 'MANAGER'].includes(role) && (hasModule('POS') || hasModule('HOTEL'));
 
   /**
    * `roles` = rôles qui peuvent réellement ouvrir la page : intersection de la
@@ -249,7 +252,10 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
 
   const navigationItems = (
     role === 'SUPER_ADMIN' ? superAdminItems : isOrgAdmin ? orgAdminItems : pointItems
-  ).filter((item) => item.roles.includes(role) && (!item.module || hasModule(item.module)));
+  )
+    .filter((item) => item.roles.includes(role) && (!item.module || hasModule(item.module)))
+    // Comptabilité seule : la comptabilité a son propre tableau de bord ; pas de statistiques de vente
+    .filter((item) => !accountingOnly || !['/dashboard', '/statistics'].includes(item.href));
   const homeHref = isOrgAdmin ? '/organization' : '/dashboard';
   // Entrée active : celle dont l'adresse correspond le plus précisément (Stock ≠ Stock › Ingrédients).
   const matches = (href: string, exact?: boolean) => pathname === href || (!exact && pathname.startsWith(href + '/'));

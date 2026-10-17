@@ -60,7 +60,7 @@ export interface Structure {
   address?: string;
   city?: string;
   country?: string;
-  type?: 'RESTAURANT' | 'HOTEL' | 'MIXTE';
+  type?: 'RESTAURANT' | 'HOTEL' | 'MIXTE' | 'ENTREPRISE';
   /** Copie des modules de l'organisation (synchronisée par l'application). */
   modules?: string[];
   /** Code devise ISO 4217 (ex: XOF, EUR, USD) */

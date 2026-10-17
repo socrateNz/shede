@@ -10,6 +10,7 @@ import {
   type ExpenseCategory,
   type Journal,
 } from '@/lib/accounting/mapping';
+import { LINE_NATURES, natureOfAccount } from '@/lib/invoicing';
 
 // Écritures comptables (docs/phase12-accounting.sql). Module serveur : jamais
 // importé par un composant client ni exposé comme Server Action.
@@ -23,6 +24,8 @@ export type EntryLine = {
   debit?: number;
   credit?: number;
   supplier_id?: string | null;
+  /** Client facturé (compte 411), docs/phase24-invoicing.sql. */
+  customer_id?: string | null;
 };
 
 export type PostEntryInput = {
@@ -63,6 +66,8 @@ export async function postEntry(input: PostEntryInput): Promise<string> {
       debit: round2(l.debit ?? 0),
       credit: round2(l.credit ?? 0),
       supplier_id: l.supplier_id ?? null,
+      // Client facturé (411) : ignoré par la base tant que phase24 n'est pas exécutée
+      ...(l.customer_id ? { customer_id: l.customer_id } : {}),
     }))
     .filter((l) => l.debit > 0 || l.credit > 0);
 
@@ -262,6 +267,8 @@ type ExpenseRow = {
   amount_ttc: number;
   payment_method: string | null;
   paid_at: string | null;
+  /** Banque précise choisie au paiement (docs/phase25-bank.sql). */
+  payment_account?: string | null;
 };
 
 function categoryOf(expense: ExpenseRow) {
@@ -305,19 +312,22 @@ export async function postExpensePayment(expense: ExpenseRow, createdBy?: string
     createdBy,
     lines: [
       { account: category.counterpart, debit: round2(expense.amount_ttc), supplier_id: supplierId },
-      { account: treasuryAccount(expense.payment_method), credit: round2(expense.amount_ttc) },
+      { account: expense.payment_account || treasuryAccount(expense.payment_method), credit: round2(expense.amount_ttc) },
     ],
   });
 }
 
 /** Contrepassation : écriture inverse, datée du jour (ou de `date`), journal OD. */
-export async function reverseEntry(entryId: string, options: { createdBy?: string; date?: string; reason?: string } = {}) {
+export async function reverseEntry(
+  entryId: string,
+  options: { createdBy?: string; date?: string; reason?: string; sourceType?: string } = {}
+) {
   const admin = getAdminSupabase();
   const { data: entry } = await admin.from('accounting_entries').select('*').eq('id', entryId).maybeSingle();
   if (!entry) throw new AccountingError('INVALID_LINES', 'entry not found');
   const { data: lines } = await admin
     .from('accounting_lines')
-    .select('account, label, debit, credit, supplier_id')
+    .select('*') // customer_id seulement après phase24 : on garde le tiers tel quel
     .eq('entry_id', entryId);
 
   return postEntry({
@@ -326,7 +336,7 @@ export async function reverseEntry(entryId: string, options: { createdBy?: strin
     date: options.date ?? accountingDate(),
     label: tr('accounting.auto.reversal', { number: entry.number }) + (options.reason ? ` — ${options.reason}` : ''),
     reference: entry.number,
-    sourceType: 'REVERSAL',
+    sourceType: options.sourceType ?? 'REVERSAL',
     sourceId: entry.id,
     reversalOf: entry.id,
     createdBy: options.createdBy,
@@ -336,6 +346,7 @@ export async function reverseEntry(entryId: string, options: { createdBy?: strin
       debit: Number(l.credit) || 0,
       credit: Number(l.debit) || 0,
       supplier_id: l.supplier_id,
+      customer_id: l.customer_id ?? null,
     })),
   });
 }
@@ -351,4 +362,81 @@ export async function postSaleSafely(kind: 'ORDER' | 'BOOKING', id: string) {
   } catch (error) {
     console.warn(`[accounting] écriture de vente non enregistrée (${kind} ${id}) :`, (error as Error).message);
   }
+}
+
+// ── Facturation clients (docs/phase24-invoicing.sql) ─────
+
+/**
+ * Facture (journal VE) : Débit 411 client TTC / Crédit ventes HT par compte + TVA collectée.
+ * Avoir : écriture inverse. Les lignes à 0 sont ignorées. Renvoie l'id de l'écriture.
+ */
+export async function postSalesDocument(documentId: string, createdBy?: string | null) {
+  const admin = getAdminSupabase();
+  const { data: doc } = await admin
+    .from('sales_documents')
+    .select('id, structure_id, customer_id, kind, status, number, issue_date, subject, total_ttc, customers(name), sales_document_lines(account, total_ht, tax_amount)')
+    .eq('id', documentId)
+    .maybeSingle();
+  if (!doc || doc.status !== 'ISSUED' || (doc.kind !== 'INVOICE' && doc.kind !== 'CREDIT_NOTE')) return null;
+
+  const credit = doc.kind === 'INVOICE'; // facture : produits au crédit ; avoir : au débit
+  const byAccount = new Map<string, number>();
+  for (const line of (doc.sales_document_lines || []) as { account: string; total_ht: number; tax_amount: number }[]) {
+    const nature = LINE_NATURES[natureOfAccount(line.account)];
+    byAccount.set(line.account, (byAccount.get(line.account) ?? 0) + round2(line.total_ht));
+    byAccount.set(nature.vat, (byAccount.get(nature.vat) ?? 0) + round2(line.tax_amount));
+  }
+  const customer = (Array.isArray(doc.customers) ? doc.customers[0] : doc.customers) as { name?: string } | null;
+  const label = tr(credit ? 'accounting.auto.invoice' : 'accounting.auto.creditNote', { number: doc.number ?? '', name: customer?.name ?? '' });
+  const total = round2(doc.total_ttc);
+  if (total <= 0) return null;
+
+  const lines: EntryLine[] = [
+    { account: SALES_ACCOUNTS.receivable, customer_id: doc.customer_id, ...(credit ? { debit: total } : { credit: total }) },
+    ...[...byAccount.entries()]
+      .filter(([, amount]) => amount > 0)
+      .map(([account, amount]) => ({ account, ...(credit ? { credit: amount } : { debit: amount }) })),
+  ];
+  return postEntry({
+    structureId: doc.structure_id,
+    journal: 'VE',
+    date: doc.issue_date,
+    label,
+    reference: doc.number,
+    sourceType: doc.kind === 'INVOICE' ? 'SALES_INVOICE' : 'SALES_CREDIT_NOTE',
+    sourceId: doc.id,
+    createdBy: createdBy ?? null,
+    lines,
+  });
+}
+
+/** Encaissement d'une facture (journal TR) : Débit trésorerie / Crédit 411 client. */
+export async function postSalesPayment(paymentId: string, createdBy?: string | null) {
+  const admin = getAdminSupabase();
+  const { data: payment } = await admin
+    .from('sales_payments')
+    .select('*, sales_documents(number, customer_id, customers(name))') // treasury_account : après phase25
+    .eq('id', paymentId)
+    .maybeSingle();
+  if (!payment) return null;
+  const doc = (Array.isArray(payment.sales_documents) ? payment.sales_documents[0] : payment.sales_documents) as
+    | { number: string | null; customer_id: string; customers: { name?: string } | { name?: string }[] | null }
+    | null;
+  if (!doc) return null;
+  const customer = Array.isArray(doc.customers) ? doc.customers[0] : doc.customers;
+  const amount = round2(payment.amount);
+  return postEntry({
+    structureId: payment.structure_id,
+    journal: 'TR',
+    date: payment.paid_at,
+    label: tr('accounting.auto.invoicePayment', { number: doc.number ?? '', name: customer?.name ?? '' }),
+    reference: payment.reference || doc.number,
+    sourceType: 'SALES_PAYMENT',
+    sourceId: payment.id,
+    createdBy: createdBy ?? null,
+    lines: [
+      { account: (payment.treasury_account as string | null) || treasuryAccount(payment.payment_method), debit: amount },
+      { account: SALES_ACCOUNTS.receivable, credit: amount, customer_id: doc.customer_id },
+    ],
+  });
 }
