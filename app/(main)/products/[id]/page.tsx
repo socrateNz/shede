@@ -98,7 +98,7 @@ export default async function EditProductPage({
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-transparent mb-2">
             {t('products.form.editTitle')}
           </h1>
           <p className="text-slate-400">{t('products.form.editSubtitle')}</p>
@@ -118,12 +118,12 @@ export default async function EditProductPage({
               <div className="flex items-center gap-2 text-slate-400">
                 <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                 <span>{t('products.form.currentProduct')}</span>
-                <span className="text-white font-medium">{product.name}</span>
+                <span className="text-slate-50 font-medium">{product.name}</span>
               </div>
               <div className="flex items-center gap-2 text-slate-400">
                 <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
                 <span>{t('products.form.currentPrice')}</span>
-                <span className="text-white font-medium">{format.money(product.price)}</span>
+                <span className="text-slate-50 font-medium">{format.money(product.price)}</span>
               </div>
             </div>
           </CardContent>

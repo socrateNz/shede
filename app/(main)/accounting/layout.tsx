@@ -36,7 +36,7 @@ export default async function AccountingLayout({ children }: { children: React.R
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="w-full space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-white">{t('accounting.header.title')}</h1>
+          <h1 className="text-3xl font-bold text-slate-50">{t('accounting.header.title')}</h1>
           <p className="mt-1 text-slate-400">{t('accounting.header.subtitle')}</p>
         </div>
         <AccountingTabs items={tabs} />

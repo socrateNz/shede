@@ -82,7 +82,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-transparent mb-2">
               {t('hotel.bookings.title')}
             </h1>
             <p className="text-slate-400">{t('hotel.bookings.subtitle')}</p>
@@ -99,7 +99,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300">
             <div className="text-sm text-slate-400 mb-1">{t('hotel.bookings.statTotal')}</div>
-            <div className="text-2xl font-bold text-white">{stats.total.count}</div>
+            <div className="text-2xl font-bold text-slate-50">{stats.total.count}</div>
             <div className="text-xs font-semibold text-blue-400 mt-1">{format.money(stats.total.revenue)}</div>
           </div>
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300">
@@ -181,7 +181,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
                         >
                           <TableCell className="font-medium text-slate-200">
                             <div className="flex flex-col">
-                              <span className="text-white font-semibold">{booking.rooms?.number}</span>
+                              <span className="text-slate-50 font-semibold">{booking.rooms?.number}</span>
                               <span className="text-xs text-slate-400">{roomTypeLabel(booking.rooms?.type)}</span>
                             </div>
                           </TableCell>
@@ -212,7 +212,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
                             </div>
                           </TableCell>
                           <TableCell className="text-slate-300">
-                            <span className="font-bold text-white">{format.money(booking.total_amount)}</span>
+                            <span className="font-bold text-slate-50">{format.money(booking.total_amount)}</span>
                           </TableCell>
                           <TableCell>
                             {booking.is_paid ? (
@@ -373,7 +373,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
+                                    className="h-8 w-8 p-0 text-slate-400 hover:text-slate-50 hover:bg-slate-700"
                                   >
                                     <MoreVertical className="h-4 w-4" />
                                   </Button>

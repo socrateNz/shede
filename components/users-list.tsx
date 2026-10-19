@@ -164,7 +164,7 @@ export function UsersList({ users, meta }: UsersListProps) {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-slate-50 hover:bg-slate-700"
                         >
                           <MoreVertical className="h-4 w-4" />
                         </Button>

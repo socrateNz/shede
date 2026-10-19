@@ -51,7 +51,7 @@ export function SuggestionsView({ groups, canOrder, openDays }: { groups: Suppli
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="mb-6">
-        <h1 className="mb-2 bg-gradient-to-r from-white to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">{t('planning.suggestions.title')}</h1>
+        <h1 className="mb-2 bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">{t('planning.suggestions.title')}</h1>
         <p className="max-w-3xl text-slate-400">{t('planning.suggestions.subtitle')}</p>
       </div>
 
@@ -70,7 +70,7 @@ export function SuggestionsView({ groups, canOrder, openDays }: { groups: Suppli
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/50 bg-slate-800/60 px-4 py-3">
                   <div>
                     {group.supplier ? (
-                      <Link href={`/purchasing/suppliers/${group.supplier.id}`} className="font-semibold text-white hover:text-cyan-300">{group.supplier.name}</Link>
+                      <Link href={`/purchasing/suppliers/${group.supplier.id}`} className="font-semibold text-slate-50 hover:text-cyan-300">{group.supplier.name}</Link>
                     ) : (
                       <p className="font-semibold text-amber-300">{t('planning.suggestions.noSupplier')}</p>
                     )}
@@ -89,7 +89,7 @@ export function SuggestionsView({ groups, canOrder, openDays }: { groups: Suppli
                         </span>
                       )}
                       <span className="text-sm text-slate-300">
-                        {t('planning.suggestions.total')} : <strong className="tabular-nums text-white">{format.money(Math.round(total))}</strong>
+                        {t('planning.suggestions.total')} : <strong className="tabular-nums text-slate-50">{format.money(Math.round(total))}</strong>
                       </span>
                       {canOrder && (
                         <Button type="button" size="sm" onClick={() => createOrder(group)} disabled={pending || total <= 0} className="bg-cyan-600 text-white hover:bg-cyan-700">

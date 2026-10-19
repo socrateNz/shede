@@ -26,7 +26,7 @@ export default function MainError({
             <AlertCircle className="w-12 h-12 text-red-400" />
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-white mb-3">
+        <h2 className="text-2xl font-bold text-slate-50 mb-3">
           {t('errorPage.title')}
         </h2>
         <p className="text-slate-400 mb-2 text-sm">

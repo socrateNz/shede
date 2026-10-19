@@ -48,7 +48,7 @@ export default function NewRoomPage() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-transparent mb-2">
             {t('hotel.roomForm.createTitle')}
           </h1>
           <p className="text-slate-400">{t('hotel.roomForm.createSubtitle')}</p>
@@ -181,7 +181,7 @@ export default function NewRoomPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-300"
+                    className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-slate-50 transition-all duration-300"
                   >
                     {t('common.cancel')}
                   </Button>

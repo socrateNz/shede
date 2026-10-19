@@ -283,7 +283,7 @@ export default async function DashboardPage() {
         {/* ── Header ── */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-1">
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-transparent mb-1">
               {greet()}
             </h1>
             <p className="text-slate-400">{t('dashboard.welcome', { role: roleConfig.label })}</p>
@@ -309,7 +309,7 @@ export default async function DashboardPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="relative z-10">
-                    <div className="text-xl sm:text-2xl font-bold text-white leading-tight">{card.value?.toString()}</div>
+                    <div className="text-xl sm:text-2xl font-bold text-slate-50 leading-tight">{card.value?.toString()}</div>
                   </CardContent>
                 </Card>
               );

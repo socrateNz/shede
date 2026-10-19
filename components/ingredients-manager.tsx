@@ -98,7 +98,7 @@ export function IngredientsManager({ result }: { result: Paginated<IngredientRow
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="mb-2 bg-gradient-to-r from-white to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">
+          <h1 className="mb-2 bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">
             {t('ingredients.title')}
           </h1>
           <p className="max-w-2xl text-slate-400">{t('ingredients.subtitle')}</p>
@@ -171,7 +171,7 @@ export function IngredientsManager({ result }: { result: Paginated<IngredientRow
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-700 hover:text-white" aria-label={t('ingredients.colActions')}>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-700 hover:text-slate-50" aria-label={t('ingredients.colActions')}>
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>

@@ -45,7 +45,7 @@ export default async function FloorManagerPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-transparent mb-2">
               {t('floor.page.title')}
             </h1>
             <p className="text-slate-400">{t('floor.page.subtitle')}</p>

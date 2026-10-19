@@ -56,7 +56,7 @@ export default async function OperationsPage({ searchParams }: { searchParams: P
     const point = p as PointOperations;
     return (
       <tr className={total ? 'bg-slate-800/70 font-semibold' : 'hover:bg-slate-800/50'}>
-        <td className={`px-4 py-3 ${total ? 'text-white' : 'font-medium text-slate-100'}`}>
+        <td className={`px-4 py-3 ${total ? 'text-slate-50' : 'font-medium text-slate-100'}`}>
           {p.name}
           {!total && point.openOrders > 0 && <span className="block text-[11px] font-normal text-sky-300">{t('operations.openOrders', { count: point.openOrders })}</span>}
         </td>
@@ -89,7 +89,7 @@ export default async function OperationsPage({ searchParams }: { searchParams: P
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="mb-6">
-        <h1 className="mb-2 bg-gradient-to-r from-white to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">{t('operations.title')}</h1>
+        <h1 className="mb-2 bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">{t('operations.title')}</h1>
         <p className="max-w-3xl text-slate-400">
           {report.organizationName} · {t('operations.subtitle')}
         </p>
@@ -123,13 +123,13 @@ export default async function OperationsPage({ searchParams }: { searchParams: P
                 tone: foodCostTone(report.totals.foodCostPercent),
               },
               { label: t('operations.kpiLosses'), value: money(report.totals.losses), hint: report.totals.lossesPercent !== null ? t('operations.ofRevenue', { percent: format.number(report.totals.lossesPercent) }) : undefined },
-              { label: t('operations.kpiGap'), value: money(report.totals.inventoryGap), tone: report.totals.inventoryGap < 0 ? 'text-red-400' : 'text-white' },
+              { label: t('operations.kpiGap'), value: money(report.totals.inventoryGap), tone: report.totals.inventoryGap < 0 ? 'text-red-400' : 'text-slate-50' },
               { label: t('operations.kpiPurchases'), value: money(report.totals.purchases) },
               { label: t('operations.kpiStock'), value: money(report.totals.stockValue) },
             ].map((kpi) => (
               <div key={kpi.label} className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
                 <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{kpi.label}</p>
-                <p className={`mt-1 text-2xl font-bold tabular-nums ${kpi.tone ?? 'text-white'}`}>{kpi.value}</p>
+                <p className={`mt-1 text-2xl font-bold tabular-nums ${kpi.tone ?? 'text-slate-50'}`}>{kpi.value}</p>
                 {kpi.hint && <p className="mt-1 text-xs text-slate-500">{kpi.hint}</p>}
               </div>
             ))}
@@ -137,7 +137,7 @@ export default async function OperationsPage({ searchParams }: { searchParams: P
 
           {/* À surveiller */}
           <div className="mb-6 rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
-            <p className="mb-3 flex items-center gap-2 font-semibold text-white">
+            <p className="mb-3 flex items-center gap-2 font-semibold text-slate-50">
               <AlertTriangle className="h-4 w-4 text-amber-300" /> {t('operations.alertsTitle')}
             </p>
             {alerts.length === 0 ? (

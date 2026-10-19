@@ -48,8 +48,8 @@ export default async function StructuresPage({ searchParams }: { searchParams: P
   const { stats } = meta;
 
   const statCards = [
-    { label: t('business.list.statOrganizations'), value: stats.total, icon: Network, color: 'text-white', iconColor: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { label: t('business.list.statPoints'), value: stats.points, icon: Building2, color: 'text-white', iconColor: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { label: t('business.list.statOrganizations'), value: stats.total, icon: Network, color: 'text-slate-50', iconColor: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { label: t('business.list.statPoints'), value: stats.points, icon: Building2, color: 'text-slate-50', iconColor: 'text-purple-400', bg: 'bg-purple-500/10' },
     { label: t('business.list.statActiveLicenses'), value: stats.active, icon: CheckCircle, color: 'text-green-400', iconColor: 'text-green-400', bg: 'bg-green-500/10' },
     { label: t('business.list.statExpiringSoon'), value: stats.expiringSoon, icon: AlertTriangle, color: 'text-yellow-400', iconColor: 'text-yellow-400', bg: 'bg-yellow-500/10' },
   ];
@@ -65,7 +65,7 @@ export default async function StructuresPage({ searchParams }: { searchParams: P
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-transparent mb-2">
               {t('business.list.title')}
             </h1>
             <p className="text-slate-400">{t('business.list.subtitle')}</p>
@@ -258,7 +258,7 @@ export default async function StructuresPage({ searchParams }: { searchParams: P
                       {/* Actions */}
                       <div className="flex justify-end gap-2 pt-4 border-t border-slate-700">
                         <Link href={`/structures/${organization.id}/edit`}>
-                          <Button variant="outline" size="sm" className="border-slate-600 text-slate-200 hover:bg-slate-700 hover:text-white">
+                          <Button variant="outline" size="sm" className="border-slate-600 text-slate-200 hover:bg-slate-700 hover:text-slate-50">
                             <Edit2 className="w-4 h-4 mr-2" />
                             {t('common.edit')}
                           </Button>

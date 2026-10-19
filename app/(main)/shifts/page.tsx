@@ -27,14 +27,14 @@ export default async function ShiftsHistoryPage({ searchParams }: { searchParams
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-transparent mb-2">
               {t('analytics.shifts.title')}
             </h1>
             <p className="text-slate-400">{t('analytics.shifts.subtitle')}</p>
           </div>
           <div className="flex items-center gap-2">
             <Link href="/statistics">
-              <Button variant="ghost" className="text-slate-400 hover:text-white">
+              <Button variant="ghost" className="text-slate-400 hover:text-slate-50">
                 <BarChart3 className="w-4 h-4 mr-2" />
                 {t('analytics.shifts.statistics')}
               </Button>
@@ -51,7 +51,7 @@ export default async function ShiftsHistoryPage({ searchParams }: { searchParams
                 </div>
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900/50 px-2 py-1 rounded">{t('analytics.shifts.volume')}</span>
              </div>
-             <p className="text-3xl font-black text-white">{stats.total}</p>
+             <p className="text-3xl font-black text-slate-50">{stats.total}</p>
              <p className="text-sm text-slate-500">{t('analytics.shifts.recorded')}</p>
           </div>
 

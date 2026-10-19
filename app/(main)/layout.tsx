@@ -2,6 +2,8 @@ import { requireAuth } from '@/app/actions/auth';
 import { MainShell } from '@/components/main-shell';
 import { getAdminSupabase } from '@/lib/supabase';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { parseTheme, THEME_COOKIE } from '@/lib/theme';
 
 export default async function MainLayout({
   children,
@@ -21,5 +23,7 @@ export default async function MainLayout({
     structure = data;
   }
 
-  return <MainShell session={session} structure={structure}>{children}</MainShell>;
+  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+
+  return <MainShell session={session} structure={structure} initialTheme={theme}>{children}</MainShell>;
 }

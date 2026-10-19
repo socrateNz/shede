@@ -194,7 +194,7 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
                   <>
                     <button
                       onClick={() => startRenameFloor(floor)}
-                      className="text-slate-400 hover:text-white p-1"
+                      className="text-slate-400 hover:text-slate-50 p-1"
                       title={t('floor.manager.renameFloor')}
                     >
                       <Edit2 className="w-3.5 h-3.5" />
@@ -278,7 +278,7 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
                   <GripHorizontal className="absolute -top-3 text-slate-400 w-5 h-5 opacity-50" />
                 )}
 
-                <span className="font-bold text-white text-lg tracking-wider">{table.name}</span>
+                <span className="font-bold text-slate-50 text-lg tracking-wider">{table.name}</span>
 
                 <div className="flex items-center gap-1 text-slate-300 mt-1 opacity-80">
                   <Users className="w-3 h-3" />

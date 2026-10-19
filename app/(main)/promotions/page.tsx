@@ -43,7 +43,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-transparent mb-2">
               {t('promotions.page.title')}
             </h1>
             <p className="text-slate-400">{t('promotions.page.subtitle')}</p>
@@ -64,7 +64,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-400 mb-1 uppercase tracking-wider">{t('promotions.page.statTotal')}</p>
-                <h3 className="text-3xl font-bold text-white tracking-tight">{stats.total}</h3>
+                <h3 className="text-3xl font-bold text-slate-50 tracking-tight">{stats.total}</h3>
               </div>
               <div className="p-3 bg-blue-500/10 rounded-xl group-hover:scale-110 transition-transform">
                 <Tag className="w-6 h-6 text-blue-400" />

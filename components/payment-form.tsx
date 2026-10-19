@@ -146,7 +146,7 @@ export function PaymentForm({ orderId, amount, onSuccess }: PaymentFormProps) {
         </div>
         <div className="flex items-center justify-between pt-2 border-t border-slate-700">
           <span className="text-sm font-medium text-slate-300">{t('orders.payment.toPay')}</span>
-          <span className="text-xl font-bold text-white">
+          <span className="text-xl font-bold text-slate-50">
             {format.money(parseFloat(paymentAmount || '0'))}
           </span>
         </div>

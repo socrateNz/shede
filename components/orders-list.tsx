@@ -239,7 +239,7 @@ export function OrdersList({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-700 transition-all duration-200"
+                          className="h-8 w-8 text-slate-400 hover:text-slate-50 hover:bg-slate-700 transition-all duration-200"
                           title={t('orders.list.viewDetails')}
                           aria-label={t('orders.list.viewDetails')}
                         >

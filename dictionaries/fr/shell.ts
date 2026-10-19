@@ -92,6 +92,9 @@ const shell = {
     role: 'Rôle',
     openMenu: 'Ouvrir le menu',
     closeMenu: 'Fermer le menu',
+    themeLight: 'Passer en mode clair',
+    themeDark: 'Passer en mode sombre',
+    themeToggle: 'Changer de thème',
   },
   unauthorized: {
     title: 'Accès refusé',

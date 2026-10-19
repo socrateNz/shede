@@ -49,7 +49,7 @@ export function OwnerExportButton({
       variant="outline"
       onClick={handleExport}
       disabled={pending}
-      className="border-slate-600 text-slate-200 hover:bg-slate-700 hover:text-white"
+      className="border-slate-600 text-slate-200 hover:bg-slate-700 hover:text-slate-50"
     >
       {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
       {t('org.owner.export.button')}

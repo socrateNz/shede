@@ -63,7 +63,7 @@ export function PromoBanner({ promotions, isGlobal = false }: { promotions: Prom
               <Zap className="h-6 w-6 text-yellow-300 animate-pulse" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-white leading-tight">
+              <h3 className="text-xl font-bold text-slate-50 leading-tight">
                 {current.name}
               </h3>
               {isGlobal && current.structures && (

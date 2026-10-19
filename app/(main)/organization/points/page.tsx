@@ -37,7 +37,7 @@ export default async function OrganizationPointsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">{organization.name}</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-slate-50 mb-1">{organization.name}</h1>
             <p className="text-slate-400">
               {t('org.points.subtitle')}
             </p>
@@ -173,7 +173,7 @@ export default async function OrganizationPointsPage() {
 
                       <div className="flex gap-2 shrink-0">
                         <Link href={`/organization/points/${point.id}`}>
-                          <Button variant="outline" size="sm" className="border-slate-600 text-slate-200 hover:bg-slate-700 hover:text-white">
+                          <Button variant="outline" size="sm" className="border-slate-600 text-slate-200 hover:bg-slate-700 hover:text-slate-50">
                             <Settings2 className="w-4 h-4 mr-2" />
                             {t('common.manage')}
                           </Button>

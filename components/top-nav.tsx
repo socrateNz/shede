@@ -1,7 +1,7 @@
 'use client';
 
 import type { SessionPayload } from '@/lib/auth';
-import { Bell, Menu, Search } from 'lucide-react';
+import { Bell, Menu, Moon, Search, Sun } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
@@ -9,17 +9,22 @@ import { getUnreadNotificationsCount } from '@/app/actions/push';
 import Link from 'next/link';
 import { useT } from '@/lib/i18n/client';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import type { Appearance } from '@/lib/theme';
 
 interface TopNavProps {
   session: SessionPayload;
   onMenuClick?: () => void;
+  /** Apparence affichée ; null tant que celle de l'appareil n'est pas connue. */
+  appearance: Appearance | null;
+  onToggleTheme: () => void;
 }
 
-export function TopNav({ session, onMenuClick }: TopNavProps) {
+export function TopNav({ session, onMenuClick, appearance, onToggleTheme }: TopNavProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const { t } = useT();
   // Les notifications sont rattachées à un point : l'ORG_ADMIN n'en reçoit pas.
   const showNotifications = session.role !== 'ORG_ADMIN';
+  const themeLabel = appearance === 'clair' ? 'nav.themeDark' : appearance === 'sombre' ? 'nav.themeLight' : 'nav.themeToggle';
 
   useEffect(() => {
     if (!showNotifications) return;
@@ -74,6 +79,19 @@ export function TopNav({ session, onMenuClick }: TopNavProps) {
           </Button>
         </Link>
         )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="text-slate-400 hover:text-slate-200"
+          aria-label={t(themeLabel)}
+          title={t(themeLabel)}
+          onClick={onToggleTheme}
+        >
+          {/* Icône choisie par le CSS (variante dark:) : juste dès le premier affichage, même en thème du système */}
+          <Sun className="hidden h-5 w-5 dark:block" />
+          <Moon className="h-5 w-5 dark:hidden" />
+        </Button>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 sm:h-10 sm:w-10">
           <span className="text-sm font-medium text-white">
             {session.email.charAt(0).toUpperCase()}

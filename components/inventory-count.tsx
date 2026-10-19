@@ -112,7 +112,7 @@ export function InventoryCount({ inventory }: { inventory: InventoryDetail }) {
       </Link>
 
       <div className="mb-5">
-        <h1 className="text-2xl font-bold text-white md:text-3xl">
+        <h1 className="text-2xl font-bold text-slate-50 md:text-3xl">
           {t('stockControl.inventory.countTitle', { date: format.date(inventory.created_at) })}
         </h1>
         <p className="mt-1 text-sm text-slate-400">

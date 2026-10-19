@@ -73,13 +73,13 @@ export function PromotionFormClient({
 
   return (
     <div className="w-full">
-      <Link href="/promotions" className="inline-flex items-center text-sm text-slate-400 hover:text-white mb-6 transition-colors">
+      <Link href="/promotions" className="inline-flex items-center text-sm text-slate-400 hover:text-slate-50 mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4 mr-2" />
         {t('promotions.form.back')}
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">
+        <h1 className="text-3xl font-bold text-slate-50 mb-2">
           {initialData ? t('promotions.form.editTitle') : t('promotions.form.createTitle')}
         </h1>
         <p className="text-slate-400 text-lg font-light">
@@ -144,7 +144,7 @@ export function PromotionFormClient({
                 <Label htmlFor="name" className="text-slate-300">{t('promotions.form.name')}</Label>
                 <Input id="name" name="name" 
                   defaultValue={initialData?.name}
-                  placeholder={t('promotions.form.namePlaceholder')} required className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-600" />
+                  placeholder={t('promotions.form.namePlaceholder')} required className="bg-slate-800 border-slate-700 text-slate-50 placeholder:text-slate-600" />
               </div>
 
               {promoMode === 'CODE' && (
@@ -153,13 +153,13 @@ export function PromotionFormClient({
                     <Label htmlFor="code_name" className="text-slate-300">{t('promotions.form.codeName')}</Label>
                     <Input id="code_name" name="code_name" 
                       defaultValue={initialData?.code_name}
-                      placeholder={t('promotions.form.codePlaceholder')} required className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-600 uppercase" />
+                      placeholder={t('promotions.form.codePlaceholder')} required className="bg-slate-800 border-slate-700 text-slate-50 placeholder:text-slate-600 uppercase" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="usage_limit" className="text-slate-300">{t('promotions.form.usageLimit')}</Label>
                     <Input id="usage_limit" name="usage_limit" type="number" 
                       defaultValue={initialData?.usage_limit}
-                      placeholder={t('promotions.form.usageLimitPlaceholder')} className="bg-slate-800 border-slate-700 text-white" />
+                      placeholder={t('promotions.form.usageLimitPlaceholder')} className="bg-slate-800 border-slate-700 text-slate-50" />
                   </div>
                 </div>
               )}
@@ -170,7 +170,7 @@ export function PromotionFormClient({
                   <div className="space-y-2">
                     <Label className="text-slate-300">{t('promotions.form.discountType')}</Label>
                     <Select name="type" defaultValue={initialData?.type || "PERCENTAGE"}>
-                      <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                      <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-50">
                         <SelectValue placeholder={t('promotions.form.chooseType')} />
                       </SelectTrigger>
                       <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
@@ -192,7 +192,7 @@ export function PromotionFormClient({
                     <Label htmlFor="value" className="text-slate-300">{t('promotions.form.value')}</Label>
                     <Input id="value" name="value" type="number" step="0.01" 
                       defaultValue={initialData?.value}
-                      placeholder={t('promotions.form.valuePlaceholder')} required className="bg-slate-800 border-slate-700 text-white" />
+                      placeholder={t('promotions.form.valuePlaceholder')} required className="bg-slate-800 border-slate-700 text-slate-50" />
                   </div>
                 </div>
               )}
@@ -205,13 +205,13 @@ export function PromotionFormClient({
                       <Label htmlFor="required_qty" className="text-slate-300">{t('promotions.form.requiredQty')}</Label>
                       <Input id="required_qty" name="required_qty" type="number" min="1" 
                         defaultValue={initialData?.required_qty}
-                        placeholder={t('promotions.form.requiredQtyPlaceholder')} required className="bg-slate-800 border-slate-700 text-white" />
+                        placeholder={t('promotions.form.requiredQtyPlaceholder')} required className="bg-slate-800 border-slate-700 text-slate-50" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="free_qty" className="text-slate-300">{t('promotions.form.freeQty')}</Label>
                       <Input id="free_qty" name="free_qty" type="number" min="1" 
                         defaultValue={initialData?.free_qty}
-                        placeholder={t('promotions.form.freeQtyPlaceholder')} required className="bg-slate-800 border-slate-700 text-white" />
+                        placeholder={t('promotions.form.freeQtyPlaceholder')} required className="bg-slate-800 border-slate-700 text-slate-50" />
                     </div>
                   </div>
                   
@@ -252,7 +252,7 @@ export function PromotionFormClient({
                   <div className="space-y-2">
                     <Label className="text-slate-300">{t('promotions.form.scope')}</Label>
                     <Select name="scope" defaultValue="ORDER">
-                      <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                      <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-50">
                         <SelectValue placeholder={t('promotions.form.chooseScope')} />
                       </SelectTrigger>
                       <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
@@ -275,7 +275,7 @@ export function PromotionFormClient({
                 <div className="space-y-2">
                   <Label htmlFor="product_id" className="text-slate-300">{promoMode === 'BUY_X_GET_Y' ? t('promotions.form.targetRequired') : t('promotions.form.targetOptional')}</Label>
                   <Select name="product_id" defaultValue={initialData?.product_id || "none"}>
-                    <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                    <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-50">
                       <SelectValue placeholder={t('promotions.form.selectProduct')} />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-700 text-slate-200 max-h-[300px]">
@@ -293,7 +293,7 @@ export function PromotionFormClient({
                   <Label htmlFor="min_order_amount" className="text-slate-300">{t('promotions.form.minOrder')}</Label>
                   <Input id="min_order_amount" name="min_order_amount" type="number" 
                     defaultValue={initialData?.min_order_amount || "0"}
-                    className="bg-slate-800 border-slate-700 text-white" />
+                    className="bg-slate-800 border-slate-700 text-slate-50" />
                 </div>
               )}
             </CardContent>
@@ -311,20 +311,20 @@ export function PromotionFormClient({
                 <Label htmlFor="start_date" className="text-slate-300">{t('promotions.form.startDate')}</Label>
                 <Input id="start_date" name="start_date" type="datetime-local" required 
                   defaultValue={initialData?.start_date ? new Date(initialData.start_date).toISOString().slice(0, 16) : ''}
-                  className="bg-slate-800 border-slate-700 text-white [color-scheme:dark]" />
+                  className="bg-slate-800 border-slate-700 text-slate-50 [color-scheme:dark]" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="end_date" className="text-slate-300">{t('promotions.form.endDate')}</Label>
                 <Input id="end_date" name="end_date" type="datetime-local" required 
                   defaultValue={initialData?.end_date ? new Date(initialData.end_date).toISOString().slice(0, 16) : ''}
-                  className="bg-slate-800 border-slate-700 text-white [color-scheme:dark]" />
+                  className="bg-slate-800 border-slate-700 text-slate-50 [color-scheme:dark]" />
               </div>
             </CardContent>
           </Card>
 
           <div className="flex justify-end gap-4 pt-4">
             <Link href="/promotions">
-              <Button type="button" variant="ghost" className="text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl px-8">{t('common.cancel')}</Button>
+              <Button type="button" variant="ghost" className="text-slate-400 hover:text-slate-50 hover:bg-slate-800 rounded-xl px-8">{t('common.cancel')}</Button>
             </Link>
             <Button type="submit" disabled={loading} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-12 rounded-xl h-12 shadow-lg hover:shadow-xl transition-all hover:scale-105">
               <Save className="w-4 h-4 mr-2" /> {initialData ? t('promotions.form.update') : t('promotions.form.save')}

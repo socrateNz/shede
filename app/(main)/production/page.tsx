@@ -37,7 +37,7 @@ export default async function ProductionPage({ searchParams }: { searchParams: P
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8 print:bg-white print:p-0 print:text-black">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white print:text-black">
+          <h1 className="text-3xl font-bold text-slate-50 print:text-black">
             {t('planning.production.title')} — <span className="capitalize">{format.date(`${plan.date}T12:00:00Z`, { weekday: 'long', day: 'numeric', month: 'long' })}</span>
           </h1>
           <p className="mt-1 text-slate-400">{t('planning.production.subtitle')}</p>
@@ -95,7 +95,7 @@ export default async function ProductionPage({ searchParams }: { searchParams: P
                         {line.slots[slot.key] ? n(line.slots[slot.key]) : '—'}
                       </td>
                     ))}
-                    <td className="px-3 py-2 text-right font-semibold tabular-nums text-white print:text-black">{n(line.forecast)}</td>
+                    <td className="px-3 py-2 text-right font-semibold tabular-nums text-slate-50 print:text-black">{n(line.forecast)}</td>
                     {isToday && <td className="px-3 py-2 text-right tabular-nums text-slate-400">{n(line.sold)}</td>}
                     {isToday && (
                       <td className="px-4 py-2 text-right font-semibold tabular-nums text-indigo-300 print:text-black">
@@ -112,7 +112,7 @@ export default async function ProductionPage({ searchParams }: { searchParams: P
 
       {(!station || station === 'CUISINE') && (
         <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5 print:border-black print:bg-white">
-          <p className="font-semibold text-white print:text-black">{t('planning.production.ingredientsTitle')}</p>
+          <p className="font-semibold text-slate-50 print:text-black">{t('planning.production.ingredientsTitle')}</p>
           <p className="mb-3 text-xs text-slate-500">{t('planning.production.ingredientsHint')}</p>
           {plan.ingredients.length === 0 ? (
             <p className="text-sm text-slate-400">{t('planning.production.ingredientsEmpty')}</p>

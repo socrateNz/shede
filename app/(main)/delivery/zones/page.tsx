@@ -26,7 +26,7 @@ export default async function DeliveryZonesPage() {
         </Link>
 
         <div>
-          <h1 className="text-3xl font-bold text-white">{t('delivery.zones.title')}</h1>
+          <h1 className="text-3xl font-bold text-slate-50">{t('delivery.zones.title')}</h1>
           <p className="mt-1 text-slate-400">
             {t('delivery.zones.subtitle')}
           </p>

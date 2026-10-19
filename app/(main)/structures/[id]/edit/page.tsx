@@ -66,7 +66,7 @@ export default async function EditOrganizationPage({
         </Link>
 
         <div>
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-transparent mb-2">
             {organization.name}
           </h1>
           <p className="text-slate-400">{t('business.edit.subtitle')}</p>
@@ -75,7 +75,7 @@ export default async function EditOrganizationPage({
         {/* Informations + modules */}
         <Card className="bg-slate-800/50 border-slate-700/50">
           <CardHeader className="border-b border-slate-700/50">
-            <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+            <CardTitle className="text-xl font-bold text-slate-50 flex items-center gap-3">
               <Network className="w-5 h-5 text-blue-400" />
               {t('business.edit.infoTitle')}
             </CardTitle>
@@ -174,7 +174,7 @@ export default async function EditOrganizationPage({
                   {t('business.edit.saveChanges')}
                 </Button>
                 <Link href="/structures" className="sm:flex-none">
-                  <Button type="button" variant="outline" className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white">
+                  <Button type="button" variant="outline" className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-slate-50">
                     {t('common.cancel')}
                   </Button>
                 </Link>
@@ -186,7 +186,7 @@ export default async function EditOrganizationPage({
         {/* Points */}
         <Card className="bg-slate-800/50 border-slate-700/50">
           <CardHeader className="border-b border-slate-700/50">
-            <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+            <CardTitle className="text-xl font-bold text-slate-50 flex items-center gap-3">
               <Building2 className="w-5 h-5 text-blue-400" />
               {t('business.edit.pointsTitle', { count: points?.length ?? 0 })}
             </CardTitle>
@@ -217,7 +217,7 @@ export default async function EditOrganizationPage({
         {/* Administrateurs de l'organisation */}
         <Card className="bg-slate-800/50 border-slate-700/50">
           <CardHeader className="border-b border-slate-700/50">
-            <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+            <CardTitle className="text-xl font-bold text-slate-50 flex items-center gap-3">
               <ShieldCheck className="w-5 h-5 text-purple-400" />
               {t('business.edit.orgAdminsTitle')}
             </CardTitle>

@@ -93,6 +93,9 @@ const shell: typeof fr = {
     role: 'Role',
     openMenu: 'Open menu',
     closeMenu: 'Close menu',
+    themeLight: 'Switch to light mode',
+    themeDark: 'Switch to dark mode',
+    themeToggle: 'Toggle theme',
   },
   unauthorized: {
     title: 'Access denied',

@@ -150,7 +150,7 @@ export function CatalogManager({
       </Link>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="mb-2 flex items-center gap-3 text-3xl font-bold text-white">
+          <h1 className="mb-2 flex items-center gap-3 text-3xl font-bold text-slate-50">
             <BookOpen className="h-7 w-7 text-cyan-300" />
             {t('purchasing.catalog.title', { supplier: supplier.name })}
           </h1>
@@ -223,7 +223,7 @@ export function CatalogManager({
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-700 hover:text-white" aria-label={t('purchasing.catalog.colActions')}>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-700 hover:text-slate-50" aria-label={t('purchasing.catalog.colActions')}>
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>

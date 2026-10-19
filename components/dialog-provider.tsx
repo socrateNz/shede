@@ -66,7 +66,7 @@ const TONES: Record<Tone, { content: string; description: string; cancel: string
   dark: {
     content: 'border-slate-700 bg-slate-800 text-slate-100',
     description: 'text-slate-300',
-    cancel: 'border-slate-600 bg-transparent text-slate-200 hover:bg-slate-700 hover:text-white',
+    cancel: 'border-slate-600 bg-transparent text-slate-200 hover:bg-slate-700 hover:text-slate-50',
     input: 'border-slate-600 bg-slate-900/50 text-slate-50 placeholder:text-slate-500',
   },
   light: {

@@ -71,7 +71,7 @@ export function SettingsPageClient({ session, structure }: SettingsPageClientPro
             <ChevronRight className="w-3.5 h-3.5" />
             <span className="text-slate-300">{t('settings.page.title')}</span>
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-1 flex items-center gap-3">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-transparent mb-1 flex items-center gap-3">
             <Settings className="w-7 h-7 text-blue-400" />
             {t('settings.page.title')}
           </h1>

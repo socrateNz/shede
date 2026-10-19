@@ -206,7 +206,7 @@ export function PromotionsList({ promotions: initialPromotions, meta, products }
               <td className="px-4 py-4 text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-white">
+                    <Button variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-slate-50">
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>

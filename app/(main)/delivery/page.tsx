@@ -56,7 +56,7 @@ export default async function DeliveryPage() {
               <Truck className="h-7 w-7 text-cyan-400" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-white">{t('delivery.board.title')}</h1>
+              <h1 className="text-3xl font-bold text-slate-50">{t('delivery.board.title')}</h1>
               <p className="text-slate-400">
                 {t('delivery.board.summary', counts)}
               </p>
@@ -64,7 +64,7 @@ export default async function DeliveryPage() {
           </div>
           {isManager && (
             <Link href="/delivery/zones">
-              <Button variant="outline" className="border-slate-600 text-slate-200 hover:bg-slate-700 hover:text-white">
+              <Button variant="outline" className="border-slate-600 text-slate-200 hover:bg-slate-700 hover:text-slate-50">
                 <Settings2 className="mr-2 h-4 w-4" />
                 {t('delivery.board.zones')}
               </Button>
@@ -98,7 +98,7 @@ export default async function DeliveryPage() {
                 <Card key={order.id} className="border-slate-700/50 bg-slate-800/50 shadow-xl">
                   <CardHeader className="border-b border-slate-700/50 pb-3">
                     <CardTitle className="flex items-center justify-between gap-2 text-base">
-                      <span className="font-mono text-white">#{order.id.slice(-8).toUpperCase()}</span>
+                      <span className="font-mono text-slate-50">#{order.id.slice(-8).toUpperCase()}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-normal text-slate-400">{ORDER_STATUSES.includes(order.status) ? t(`orders.status.${order.status}` as TranslationKey) : order.status}</span>
                         <Badge variant="outline" className={cn('text-xs', status.className)}>

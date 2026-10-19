@@ -81,7 +81,7 @@ export function PurchaseOrderForm({
       <Link href={initial?.id ? `/purchasing/orders/${initial.id}` : '/purchasing/orders'} className="mb-4 inline-flex items-center gap-2 text-sm text-slate-400 hover:text-cyan-300">
         <ArrowLeft className="h-4 w-4" /> {t('purchasing.orders.back')}
       </Link>
-      <h1 className="mb-6 text-3xl font-bold text-white">
+      <h1 className="mb-6 text-3xl font-bold text-slate-50">
         {initial?.number ? t('purchasing.orders.editTitle', { number: initial.number }) : t('purchasing.orders.newTitle')}
       </h1>
 
@@ -177,7 +177,7 @@ export function PurchaseOrderForm({
               </p>
             )}
             <p className="text-sm text-slate-300">
-              {t('purchasing.orders.total')} : <strong className="tabular-nums text-white">{format.money(Math.round(total))}</strong>
+              {t('purchasing.orders.total')} : <strong className="tabular-nums text-slate-50">{format.money(Math.round(total))}</strong>
             </p>
             <Button type="submit" disabled={pending || !supplierId || total <= 0} className="bg-cyan-600 text-white hover:bg-cyan-700">
               {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}

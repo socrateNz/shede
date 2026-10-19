@@ -41,7 +41,7 @@ export function ThermalReceiptPrintButton({ order }: { order: any }) {
       <Button
         onClick={handlePrint}
         variant="outline"
-        className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 ml-2"
+        className="bg-slate-800 border-slate-700 text-slate-300 hover:text-slate-50 hover:bg-slate-700 ml-2"
       >
         <Printer className="w-4 h-4 mr-2" />
         {t('documents.receipt.thermalButton')}
@@ -51,7 +51,7 @@ export function ThermalReceiptPrintButton({ order }: { order: any }) {
       <div
         ref={ticketRef}
         aria-hidden
-        className="thermal-ticket pointer-events-none fixed left-[-10000px] top-0 bg-white text-black text-xs font-mono p-[4mm]"
+        className="couleurs-fixes thermal-ticket pointer-events-none fixed left-[-10000px] top-0 bg-white text-black text-xs font-mono p-[4mm]"
         style={{ width: '80mm', boxSizing: 'border-box' }}
       >
         <div className="text-center mb-4">

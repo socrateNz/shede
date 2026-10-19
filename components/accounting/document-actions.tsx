@@ -62,7 +62,7 @@ export function DocumentActions({
     });
   };
   const icon = (key: string, Icon: typeof Check) => (busy === key ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />);
-  const btn = 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white';
+  const btn = 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-slate-50';
 
   // La confirmation est demandée avant la transition : une fenêtre ouverte pendant une
   // transition ne s'afficherait qu'à sa fin, c'est-à-dire jamais.

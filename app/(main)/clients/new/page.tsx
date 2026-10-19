@@ -45,7 +45,7 @@ export default function NewClientPage() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+          <h1 className="text-3xl md:text-4xl font-bold text-slate-50 mb-2">
             {t('crm.form.title')}
           </h1>
           <p className="text-slate-400">{t('crm.form.subtitle')}</p>
@@ -54,7 +54,7 @@ export default function NewClientPage() {
         {/* Formulaire Card */}
         <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-2xl">
           <CardHeader className="border-b border-slate-700/50 pb-6">
-            <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+            <CardTitle className="text-xl font-bold text-slate-50 flex items-center gap-3">
               <div className="p-2 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl">
                 <User className="w-5 h-5 text-white" />
               </div>
@@ -197,7 +197,7 @@ export default function NewClientPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-300 cursor-pointer"
+                    className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-slate-50 transition-all duration-300 cursor-pointer"
                   >
                     {t('common.cancel')}
                   </Button>

@@ -281,7 +281,7 @@ export function AutoMatchButton({ bankAccountId }: { bankAccountId: string }) {
           router.refresh();
         })
       }
-      className="border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white"
+      className="border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-slate-50"
     >
       {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
       {t('accounting.bank.autoMatch')}

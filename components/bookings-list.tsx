@@ -91,7 +91,7 @@ export function BookingsList({ bookings }: { bookings: any[] }) {
                 >
                   <TableCell className="font-medium text-slate-200">
                     <div className="flex flex-col">
-                      <span className="text-white font-semibold">{booking.rooms?.number}</span>
+                      <span className="text-slate-50 font-semibold">{booking.rooms?.number}</span>
                       <span className="text-xs text-slate-400">{booking.rooms?.type}</span>
                     </div>
                   </TableCell>
@@ -122,7 +122,7 @@ export function BookingsList({ bookings }: { bookings: any[] }) {
                     </div>
                   </TableCell>
                   <TableCell className="text-slate-300">
-                    <span className="font-bold text-white">{booking.total_amount?.toLocaleString()} FCFA</span>
+                    <span className="font-bold text-slate-50">{booking.total_amount?.toLocaleString()} FCFA</span>
                   </TableCell>
                   <TableCell>
                     {booking.is_paid ? (
@@ -258,7 +258,7 @@ export function BookingsList({ bookings }: { bookings: any[] }) {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-slate-50 hover:bg-slate-700"
                           >
                             <MoreVertical className="h-4 w-4" />
                           </Button>

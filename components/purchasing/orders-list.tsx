@@ -28,7 +28,7 @@ export function PurchaseOrdersList({ result, canManage }: { result: Paginated<Pu
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="mb-2 bg-gradient-to-r from-white to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">{t('purchasing.orders.title')}</h1>
+          <h1 className="mb-2 bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">{t('purchasing.orders.title')}</h1>
           <p className="max-w-2xl text-slate-400">{t('purchasing.orders.subtitle')}</p>
         </div>
         {orders !== null && canManage && (
@@ -48,13 +48,13 @@ export function PurchaseOrdersList({ result, canManage }: { result: Paginated<Pu
           <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
               <div className="text-xs text-slate-400">{t('purchasing.orders.statTotal')}</div>
-              <div className="text-xl font-bold text-white">{format.number(stats.total.count)}</div>
+              <div className="text-xl font-bold text-slate-50">{format.number(stats.total.count)}</div>
               <div className="text-xs tabular-nums text-cyan-300">{format.money(stats.total.amount)}</div>
             </div>
             {statuses.map((st) => (
               <div key={st} className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
                 <div className="text-xs text-slate-400">{t(`purchasing.orders.status.${st}`)}</div>
-                <div className="text-xl font-bold text-white">{format.number(stats.byStatus[st]?.count ?? 0)}</div>
+                <div className="text-xl font-bold text-slate-50">{format.number(stats.byStatus[st]?.count ?? 0)}</div>
                 <div className="text-xs tabular-nums text-slate-400">{format.money(stats.byStatus[st]?.amount ?? 0)}</div>
               </div>
             ))}

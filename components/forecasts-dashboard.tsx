@@ -84,7 +84,7 @@ export function ForecastsDashboard({
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="mb-6">
-        <h1 className="mb-2 bg-gradient-to-r from-white to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">{t('forecasts.title')}</h1>
+        <h1 className="mb-2 bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">{t('forecasts.title')}</h1>
         <p className="max-w-3xl text-slate-400">{t('forecasts.subtitle')}</p>
       </div>
 
@@ -92,12 +92,12 @@ export function ForecastsDashboard({
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{t('forecasts.kpiToday')}</p>
-          <p className="mt-1 text-2xl font-bold text-white">{format.money(days[0]?.revenue ?? 0)}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-50">{format.money(days[0]?.revenue ?? 0)}</p>
           <p className="mt-1 text-xs text-slate-500">{t('forecasts.kpiTodayActual', { amount: format.money(todayActual.revenue) })}</p>
         </div>
         <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{t('forecasts.kpiWeek')}</p>
-          <p className="mt-1 text-2xl font-bold text-white">{format.money(weekRevenue)}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-50">{format.money(weekRevenue)}</p>
         </div>
         <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{t('forecasts.kpiAccuracy')}</p>
@@ -111,7 +111,7 @@ export function ForecastsDashboard({
         </div>
         <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5" title={t('forecasts.trendHint')}>
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{t('forecasts.kpiTrend')}</p>
-          <p className={`mt-1 flex items-center gap-1.5 text-2xl font-bold ${trendPercent > 0 ? 'text-emerald-400' : trendPercent < 0 ? 'text-red-400' : 'text-white'}`}>
+          <p className={`mt-1 flex items-center gap-1.5 text-2xl font-bold ${trendPercent > 0 ? 'text-emerald-400' : trendPercent < 0 ? 'text-red-400' : 'text-slate-50'}`}>
             {trendPercent > 0 ? <TrendingUp className="h-5 w-5" /> : trendPercent < 0 ? <TrendingDown className="h-5 w-5" /> : null}
             {trendPercent > 0 ? '+' : ''}
             {format.number(trendPercent)} %
@@ -166,7 +166,7 @@ export function ForecastsDashboard({
               <tr className="bg-slate-800/70 font-semibold">
                 <td className="sticky left-0 bg-slate-800 px-4 py-2 text-slate-300">{t('forecasts.revenue')}</td>
                 {days.map((day) => (
-                  <td key={day.date} className="px-3 py-2 text-right tabular-nums text-white">{format.money(day.revenue)}</td>
+                  <td key={day.date} className="px-3 py-2 text-right tabular-nums text-slate-50">{format.money(day.revenue)}</td>
                 ))}
               </tr>
             </tbody>
@@ -184,7 +184,7 @@ export function ForecastsDashboard({
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Prévu / réalisé */}
         <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
-          <p className="font-semibold text-white">{t('forecasts.accuracyTitle')}</p>
+          <p className="font-semibold text-slate-50">{t('forecasts.accuracyTitle')}</p>
           <p className="mb-3 text-xs text-slate-500">{t('forecasts.accuracyHint')}</p>
           {accuracy.days.length === 0 ? (
             <p className="text-sm text-slate-400">{t('forecasts.accuracyEmpty')}</p>
@@ -220,7 +220,7 @@ export function ForecastsDashboard({
         {/* Événements */}
         <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
           <div className="mb-1 flex items-center justify-between gap-2">
-            <p className="font-semibold text-white">{t('forecasts.eventsTitle')}</p>
+            <p className="font-semibold text-slate-50">{t('forecasts.eventsTitle')}</p>
             <Button
               type="button"
               size="sm"

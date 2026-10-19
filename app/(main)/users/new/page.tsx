@@ -52,7 +52,7 @@ export default function NewUserPage() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-transparent mb-2">
             {t('team.form.createTitle')}
           </h1>
           <p className="text-slate-400">{t('team.form.createSubtitle')}</p>
@@ -63,7 +63,7 @@ export default function NewUserPage() {
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
           <CardHeader className="border-b border-slate-700/50 pb-6">
-            <CardTitle className="text-2xl font-bold text-white flex items-center gap-3">
+            <CardTitle className="text-2xl font-bold text-slate-50 flex items-center gap-3">
               <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
                 <UserPlus className="w-5 h-5 text-white" />
               </div>
@@ -228,7 +228,7 @@ export default function NewUserPage() {
                 <Link href="/users" className="flex-1 sm:flex-none">
                   <Button
                     variant="outline"
-                    className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-300"
+                    className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-slate-50 transition-all duration-300"
                   >
                     {t('common.cancel')}
                   </Button>

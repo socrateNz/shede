@@ -170,7 +170,7 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-transparent mb-2">
               {t('analytics.stats.title')}
             </h1>
             <p className="text-slate-400">
@@ -203,7 +203,7 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
             {/* Export Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-slate-800/50 backdrop-blur-sm">
+                <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-slate-50 bg-slate-800/50 backdrop-blur-sm">
                   <Download className="w-4 h-4 mr-2" />
                   {t('analytics.stats.export')}
                 </Button>
@@ -240,7 +240,7 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
                     </div>
                   </CardHeader>
                   <CardContent className="relative z-10">
-                    <div className="text-2xl font-bold text-white">{card.value}</div>
+                    <div className="text-2xl font-bold text-slate-50">{card.value}</div>
                     <div className="flex items-center gap-1 mt-2 text-xs text-slate-500">
                       <Calendar className="w-3 h-3" />
                       <span>{rangeLabel}</span>
@@ -264,7 +264,7 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-white mb-2">
+                <div className="text-3xl font-bold text-slate-50 mb-2">
                   {format.money(data.orderRevenue)}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-slate-400">
@@ -294,7 +294,7 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-white mb-2">
+                <div className="text-3xl font-bold text-slate-50 mb-2">
                   {format.money(data.hotelRevenue)}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-slate-400">
@@ -339,38 +339,38 @@ export function AnalyticsDashboardClient({ initialData, initialRange }: { initia
                   <div className="flex items-center gap-2 text-slate-400">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                     <span>{t('analytics.stats.period')}</span>
-                    <span className="text-white font-medium">{rangeLabel}</span>
+                    <span className="text-slate-50 font-medium">{rangeLabel}</span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-400">
                     <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
                     <span>{t('analytics.stats.updated')}</span>
-                    <span className="text-white font-medium">{t('analytics.stats.justNow')}</span>
+                    <span className="text-slate-50 font-medium">{t('analytics.stats.justNow')}</span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-400">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                     <span>{t('analytics.stats.restaurantRevenueLabel')}</span>
-                    <span className="text-white font-medium">{format.money(data.orderRevenue)}</span>
+                    <span className="text-slate-50 font-medium">{format.money(data.orderRevenue)}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-slate-400">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
                     <span>{t('analytics.stats.paymentMethods')}</span>
-                    <span className="text-white font-medium">
+                    <span className="text-slate-50 font-medium">
                       {t('analytics.stats.activeCount', { count: Object.keys(data.paymentsByMethod).length })}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-400">
                     <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
                     <span>{t('analytics.stats.orderStatuses')}</span>
-                    <span className="text-white font-medium">
+                    <span className="text-slate-50 font-medium">
                       {t('analytics.stats.typeCount', { count: Object.keys(data.ordersByStatus).length })}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-400">
                     <div className="w-1.5 h-1.5 rounded-full bg-pink-400" />
                     <span>{t('analytics.stats.hotelRevenueLabel')}</span>
-                    <span className="text-white font-medium">{format.money(data.hotelRevenue)}</span>
+                    <span className="text-slate-50 font-medium">{format.money(data.hotelRevenue)}</span>
                   </div>
                 </div>
               </div>

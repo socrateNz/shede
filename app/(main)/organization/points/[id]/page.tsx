@@ -40,7 +40,7 @@ export default async function PointPage({ params }: { params: Promise<{ id: stri
 
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{point.name}</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-slate-50 mb-2">{point.name}</h1>
             <p className={isActive ? 'text-green-400' : 'text-red-400'}>
               {isActive ? t('org.pointDetail.active') : t('org.pointDetail.disabled')}
             </p>
@@ -68,7 +68,7 @@ export default async function PointPage({ params }: { params: Promise<{ id: stri
 
         <Card className="bg-slate-800/50 border-slate-700/50">
           <CardHeader className="border-b border-slate-700/50">
-            <CardTitle className="text-xl text-white flex items-center gap-3">
+            <CardTitle className="text-xl text-slate-50 flex items-center gap-3">
               <Building2 className="w-5 h-5 text-blue-400" />
               {t('org.pointDetail.infoTitle')}
             </CardTitle>
@@ -84,7 +84,7 @@ export default async function PointPage({ params }: { params: Promise<{ id: stri
 
         <Card className="bg-slate-800/50 border-slate-700/50">
           <CardHeader className="border-b border-slate-700/50">
-            <CardTitle className="text-xl text-white flex items-center gap-3">
+            <CardTitle className="text-xl text-slate-50 flex items-center gap-3">
               <ShieldCheck className="w-5 h-5 text-purple-400" />
               {t('org.pointDetail.adminsTitle')}
             </CardTitle>
@@ -114,7 +114,7 @@ export default async function PointPage({ params }: { params: Promise<{ id: stri
                         type="submit"
                         variant="outline"
                         size="sm"
-                        className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+                        className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-slate-50"
                       >
                         {user.is_active ? t('common.disable') : t('common.reactivate')}
                       </Button>
@@ -137,7 +137,7 @@ export default async function PointPage({ params }: { params: Promise<{ id: stri
         {apiStatus && (
           <Card className="bg-slate-800/50 border-slate-700/50">
             <CardHeader className="border-b border-slate-700/50">
-              <CardTitle className="text-xl text-white flex items-center gap-3">
+              <CardTitle className="text-xl text-slate-50 flex items-center gap-3">
                 <Plug className="w-5 h-5 text-emerald-400" />
                 {t('api.keys.title')}
               </CardTitle>

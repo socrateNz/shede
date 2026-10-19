@@ -57,7 +57,7 @@ export function BarDisplay({ initialOrders, structureId }: BarDisplayProps) {
   };
 
   return (
-    <div className="flex-1 bg-slate-950 text-white">
+    <div className="flex-1 bg-slate-950 text-slate-50">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur border-b border-slate-700/50 px-4 py-3">
         <div className="w-full flex items-center justify-between">
@@ -66,7 +66,7 @@ export function BarDisplay({ initialOrders, structureId }: BarDisplayProps) {
               <Beer className="w-6 h-6 text-amber-400" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white">{t('displays.bar.title')}</h1>
+              <h1 className="text-lg font-bold text-slate-50">{t('displays.bar.title')}</h1>
               <p className="text-xs text-slate-400">{t('displays.bar.subtitle')}</p>
             </div>
           </div>
@@ -78,7 +78,7 @@ export function BarDisplay({ initialOrders, structureId }: BarDisplayProps) {
               {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
               {isConnected ? t('displays.realtime') : t('displays.connecting')}
             </div>
-            <Button variant="outline" size="sm" onClick={refreshOrders} disabled={isPending} className="border-slate-600 text-slate-400 hover:text-white gap-1.5">
+            <Button variant="outline" size="sm" onClick={refreshOrders} disabled={isPending} className="border-slate-600 text-slate-400 hover:text-slate-50 gap-1.5">
               <RefreshCw className={cn('w-3.5 h-3.5', isPending && 'animate-spin')} />
             </Button>
           </div>
@@ -105,7 +105,7 @@ export function BarDisplay({ initialOrders, structureId }: BarDisplayProps) {
             {orders.map((order) => (
               <div key={order.id} className="flex flex-col rounded-xl border border-amber-500/30 bg-amber-500/5 overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 bg-amber-500/10 border-b border-amber-500/20">
-                  <span className="font-mono font-bold text-white text-sm">
+                  <span className="font-mono font-bold text-slate-50 text-sm">
                     #{order.id.slice(-6).toUpperCase()}
                   </span>
                   <div className="flex items-center gap-2">

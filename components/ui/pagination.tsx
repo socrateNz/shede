@@ -60,7 +60,7 @@ function PaginationLink({
         }),
         isActive
           ? "bg-blue-600 hover:bg-blue-700 text-white border-transparent shadow-lg shadow-blue-500/20"
-          : "border-slate-700 text-slate-300 hover:bg-slate-700/50 hover:text-white transition-all duration-200",
+          : "border-slate-700 text-slate-300 hover:bg-slate-700/50 hover:text-slate-50 transition-all duration-200",
         className,
       )}
       {...props}

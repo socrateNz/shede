@@ -18,7 +18,7 @@ interface OrdersLiveListProps {
 
 /** Cartes de statistiques : calculées en SQL sur toutes les commandes ; chacune filtre la liste. */
 const STAT_CARDS = [
-  { status: null, key: 'statTotal', icon: ShoppingCart, tone: 'text-white', sub: 'text-blue-400', ring: 'bg-blue-500/10 text-blue-400' },
+  { status: null, key: 'statTotal', icon: ShoppingCart, tone: 'text-slate-50', sub: 'text-blue-400', ring: 'bg-blue-500/10 text-blue-400' },
   { status: 'PENDING', key: 'statPending', icon: Clock, tone: 'text-yellow-400', sub: 'text-yellow-500/80', ring: 'bg-yellow-500/10 text-yellow-400' },
   { status: 'IN_PROGRESS', key: 'statInProgress', icon: Package, tone: 'text-purple-400', sub: 'text-purple-500/80', ring: 'bg-purple-500/10 text-purple-400' },
   { status: 'COMPLETED', key: 'statPaid', icon: CheckCircle2, tone: 'text-green-400', sub: 'text-green-500', ring: 'bg-green-500/10 text-green-400' },
@@ -120,7 +120,7 @@ export function OrdersLiveList({ initial, status, canManageStatus = false }: Ord
               <Bell className="h-4 w-4 animate-pulse" />
               <span className="font-medium">{t('orders.live.newOrder')}</span>
             </div>
-            <button type="button" className="flex items-center gap-1 text-blue-200 transition-colors hover:text-white" onClick={() => setHasNewOrder(false)}>
+            <button type="button" className="flex items-center gap-1 text-blue-200 transition-colors hover:text-slate-50" onClick={() => setHasNewOrder(false)}>
               <CheckCircle className="h-4 w-4" />
               {t('orders.live.ok')}
             </button>
@@ -144,7 +144,7 @@ export function OrdersLiveList({ initial, status, canManageStatus = false }: Ord
             <button
               type="button"
               onClick={handleRefresh}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-700/50 px-3 py-1.5 text-sm text-slate-300 transition-all duration-200 hover:bg-slate-700 hover:text-white"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-700/50 px-3 py-1.5 text-sm text-slate-300 transition-all duration-200 hover:bg-slate-700 hover:text-slate-50"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               {t('orders.live.refresh')}

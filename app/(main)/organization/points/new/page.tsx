@@ -22,7 +22,7 @@ export default async function NewPointPage() {
         </Link>
 
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{t('org.newPoint.title')}</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-slate-50 mb-2">{t('org.newPoint.title')}</h1>
           <p className="text-slate-400">
             {t('org.newPoint.subtitle')}
           </p>
@@ -30,7 +30,7 @@ export default async function NewPointPage() {
 
         <Card className="bg-slate-800/50 border-slate-700/50">
           <CardHeader className="border-b border-slate-700/50">
-            <CardTitle className="text-xl text-white flex items-center gap-3">
+            <CardTitle className="text-xl text-slate-50 flex items-center gap-3">
               <Building2 className="w-5 h-5 text-blue-400" />
               {t('org.newPoint.card')}
             </CardTitle>

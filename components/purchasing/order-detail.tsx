@@ -81,7 +81,7 @@ export function PurchaseOrderDetailView({ order, pointName }: { order: PurchaseO
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-mono text-3xl font-bold text-white">{order.number}</h1>
+            <h1 className="font-mono text-3xl font-bold text-slate-50">{order.number}</h1>
             <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${ORDER_STATUS_STYLES[order.status]}`}>
               {t(`purchasing.orders.status.${order.status}`)}
             </span>
@@ -161,13 +161,13 @@ export function PurchaseOrderDetailView({ order, pointName }: { order: PurchaseO
             })}
             <TableRow className="border-slate-700 bg-slate-800/60">
               <TableCell colSpan={5} className="text-right font-semibold text-slate-300">{t('purchasing.orders.total')}</TableCell>
-              <TableCell className="text-right font-bold tabular-nums text-white">{format.money(order.total_ht)}</TableCell>
+              <TableCell className="text-right font-bold tabular-nums text-slate-50">{format.money(order.total_ht)}</TableCell>
             </TableRow>
           </TableBody>
         </Table>
       </div>
 
-      <h2 className="mb-3 text-lg font-semibold text-white">{t('purchasing.orders.receipts')}</h2>
+      <h2 className="mb-3 text-lg font-semibold text-slate-50">{t('purchasing.orders.receipts')}</h2>
       {order.receipts.length === 0 ? (
         <p className="text-sm text-slate-400">{t('purchasing.orders.noReceipts')}</p>
       ) : (

@@ -89,7 +89,7 @@ function OrderCard({
         )}
       >
         <div className="flex items-center gap-2">
-          <span className="font-mono font-bold text-white text-sm">
+          <span className="font-mono font-bold text-slate-50 text-sm">
             #{order.id.slice(-6).toUpperCase()}
           </span>
           <Badge
@@ -222,7 +222,7 @@ export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayPro
   const inProgress = orders.filter((o) => o.status === 'IN_PROGRESS');
 
   return (
-    <div className="flex-1 bg-slate-950 text-white">
+    <div className="flex-1 bg-slate-950 text-slate-50">
       {/* Header KDS */}
       <div className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur border-b border-slate-700/50 px-4 py-3">
         <div className="w-full flex items-center justify-between gap-4">
@@ -231,7 +231,7 @@ export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayPro
               <ChefHat className="w-6 h-6 text-orange-400" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white leading-none">{t('displays.kitchen.title')}</h1>
+              <h1 className="text-lg font-bold text-slate-50 leading-none">{t('displays.kitchen.title')}</h1>
               <p className="text-xs text-slate-400 mt-0.5">{t('displays.kitchen.subtitle')}</p>
             </div>
           </div>
@@ -265,7 +265,7 @@ export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayPro
               size="sm"
               onClick={refreshOrders}
               disabled={isPending}
-              className="border-slate-600 text-slate-400 hover:text-white gap-1.5"
+              className="border-slate-600 text-slate-400 hover:text-slate-50 gap-1.5"
             >
               <RefreshCw className={cn('w-3.5 h-3.5', isPending && 'animate-spin')} />
               <span className="hidden sm:inline">{t('displays.refresh')}</span>

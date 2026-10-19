@@ -135,7 +135,7 @@ export function ReceiptForm({
       <Link href={order ? `/purchasing/orders/${order.id}` : '/purchasing/receipts'} className="mb-4 inline-flex items-center gap-2 text-sm text-slate-400 hover:text-cyan-300">
         <ArrowLeft className="h-4 w-4" /> {order ? t('purchasing.orders.back') : t('purchasing.receipts.title')}
       </Link>
-      <h1 className="mb-6 flex items-center gap-3 text-3xl font-bold text-white">
+      <h1 className="mb-6 flex items-center gap-3 text-3xl font-bold text-slate-50">
         <PackageCheck className="h-7 w-7 text-cyan-300" />
         {order ? t('purchasing.receipts.receiveTitle', { number: order.number }) : t('purchasing.receipts.directTitle')}
       </h1>
@@ -261,7 +261,7 @@ export function ReceiptForm({
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-700 bg-slate-900/95 p-3 backdrop-blur lg:left-64">
           <div className="mx-auto flex max-w-5xl items-center justify-end gap-4">
             <p className="text-sm text-slate-300">
-              {t('purchasing.receipts.total')} : <strong className="tabular-nums text-white">{format.money(Math.round(total))}</strong>
+              {t('purchasing.receipts.total')} : <strong className="tabular-nums text-slate-50">{format.money(Math.round(total))}</strong>
             </p>
             <Button type="submit" disabled={pending || !supplierId || total <= 0} className="bg-cyan-600 text-white hover:bg-cyan-700">
               {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PackageCheck className="mr-2 h-4 w-4" />}

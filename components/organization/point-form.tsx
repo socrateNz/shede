@@ -162,7 +162,7 @@ export function PointForm({
           {isPending ? t('org.pointForm.saving') : submitLabel}
         </Button>
         <Link href="/organization/points" className="sm:flex-none">
-          <Button type="button" variant="outline" className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white">
+          <Button type="button" variant="outline" className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-slate-50">
             {t('common.cancel')}
           </Button>
         </Link>

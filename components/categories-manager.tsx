@@ -170,7 +170,7 @@ export function CategoriesManager({ initialCategories }: { initialCategories: Ca
               type="button"
               onClick={() => move(siblings, index, -1)}
               disabled={pending || index === 0}
-              className="rounded p-1 text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-30"
+              className="rounded p-1 text-slate-400 hover:bg-slate-700 hover:text-slate-50 disabled:opacity-30"
               aria-label={t('categories.moveUp')}
             >
               <ArrowUp className="h-3.5 w-3.5" />
@@ -179,7 +179,7 @@ export function CategoriesManager({ initialCategories }: { initialCategories: Ca
               type="button"
               onClick={() => move(siblings, index, 1)}
               disabled={pending || index === siblings.length - 1}
-              className="rounded p-1 text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-30"
+              className="rounded p-1 text-slate-400 hover:bg-slate-700 hover:text-slate-50 disabled:opacity-30"
               aria-label={t('categories.moveDown')}
             >
               <ArrowDown className="h-3.5 w-3.5" />
@@ -222,7 +222,7 @@ export function CategoriesManager({ initialCategories }: { initialCategories: Ca
         <TableCell className="text-right">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-700 hover:text-white" aria-label={t('categories.colActions')}>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-700 hover:text-slate-50" aria-label={t('categories.colActions')}>
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -257,7 +257,7 @@ export function CategoriesManager({ initialCategories }: { initialCategories: Ca
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="mb-2 bg-gradient-to-r from-white to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">
+          <h1 className="mb-2 bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">
             {t('categories.title')}
           </h1>
           <p className="max-w-2xl text-slate-400">{t('categories.subtitle')}</p>

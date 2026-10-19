@@ -23,7 +23,7 @@ export default async function QRCodesPage() {
   const structureName = structure?.name || t('floor.qr.fallbackName');
 
   return (
-    <div className="flex-1 bg-slate-50 p-4 md:p-8">
+    <div className="couleurs-fixes flex-1 bg-slate-50 p-4 md:p-8">
       {/* Non-printable header */}
       <div className="w-full mb-8 flex items-center justify-between print:hidden">
         <div>

@@ -18,7 +18,7 @@ export function ClientsList({ clients, meta }: { clients: any[]; meta: PageMeta<
     <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50">
       <CardHeader className="border-b border-slate-700/50 pb-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <CardTitle className="text-xl font-bold text-white">{t('crm.list.listTitle')}</CardTitle>
+          <CardTitle className="text-xl font-bold text-slate-50">{t('crm.list.listTitle')}</CardTitle>
           <UrlSearch placeholder={t('crm.list.search')} className="w-full sm:w-72" />
         </div>
       </CardHeader>
@@ -95,7 +95,7 @@ export function ClientsList({ clients, meta }: { clients: any[]; meta: PageMeta<
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
-                        <Button asChild variant="outline" size="sm" className="bg-slate-900/50 border-slate-600 hover:bg-slate-700 text-slate-300 hover:text-white">
+                        <Button asChild variant="outline" size="sm" className="bg-slate-900/50 border-slate-600 hover:bg-slate-700 text-slate-300 hover:text-slate-50">
                           <Link href={`/clients/${client.id}`}>
                             {t('crm.list.details')}
                           </Link>

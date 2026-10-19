@@ -84,7 +84,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                     {client.first_name[0]}{client.last_name[0]}
                   </span>
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-1">
+                <h2 className="text-2xl font-bold text-slate-50 mb-1">
                   {client.first_name} {client.last_name}
                 </h2>
                 <p className="text-sm text-slate-400 mb-6">
@@ -122,7 +122,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
             <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50">
               <CardHeader className="border-b border-slate-700/50 pb-4">
-                <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
+                <CardTitle className="text-lg font-bold text-slate-50 flex items-center gap-2">
                   <Heart className="w-5 h-5 text-pink-400" />
                   {t('crm.detail.preferences')}
                 </CardTitle>
@@ -155,7 +155,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             {client.notes && (
               <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50">
                 <CardHeader className="border-b border-slate-700/50 pb-4">
-                  <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
+                  <CardTitle className="text-lg font-bold text-slate-50 flex items-center gap-2">
                     <MessageSquare className="w-5 h-5 text-amber-400" />
                     {t('crm.detail.notes')}
                   </CardTitle>
@@ -174,7 +174,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 h-full">
               <CardHeader className="border-b border-slate-700/50 pb-4">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
+                  <CardTitle className="text-xl font-bold text-slate-50 flex items-center gap-2">
                     <ShoppingBag className="w-5 h-5 text-pink-400" />
                     {t('crm.detail.history')}
                   </CardTitle>
@@ -220,7 +220,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                               <td className="px-6 py-4 font-mono text-slate-400">
                                 #{order.id.slice(-8).toUpperCase()}
                               </td>
-                              <td className="px-6 py-4 font-bold text-white">
+                              <td className="px-6 py-4 font-bold text-slate-50">
                                 {format.money(order.total)}
                               </td>
                               <td className="px-6 py-4">

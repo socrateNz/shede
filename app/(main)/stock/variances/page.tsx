@@ -23,7 +23,7 @@ export default async function VariancesPage({ searchParams }: { searchParams: Pr
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="mb-6">
-        <h1 className="mb-2 bg-gradient-to-r from-white to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">{t('stockControl.variances.title')}</h1>
+        <h1 className="mb-2 bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">{t('stockControl.variances.title')}</h1>
         <p className="max-w-3xl text-slate-400">{t('stockControl.variances.subtitle')}</p>
       </div>
 
@@ -47,7 +47,7 @@ export default async function VariancesPage({ searchParams }: { searchParams: Pr
           <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
               <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{t('stockControl.variances.sold')}</p>
-              <p className="mt-1 text-2xl font-bold text-white">{format.money(report.totals.soldValue)}</p>
+              <p className="mt-1 text-2xl font-bold text-slate-50">{format.money(report.totals.soldValue)}</p>
             </div>
             <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
               <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{t('stockControl.variances.lost')}</p>
@@ -62,7 +62,7 @@ export default async function VariancesPage({ searchParams }: { searchParams: Pr
             </div>
             <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
               <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{t('stockControl.variances.unexplained')}</p>
-              <p className="mt-1 text-2xl font-bold text-white">{unexplained === null ? '—' : `${format.number(unexplained)} %`}</p>
+              <p className="mt-1 text-2xl font-bold text-slate-50">{unexplained === null ? '—' : `${format.number(unexplained)} %`}</p>
             </div>
           </div>
 

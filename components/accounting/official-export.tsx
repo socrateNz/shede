@@ -28,7 +28,7 @@ export function OfficialExport({ sheets, fileName, label }: { sheets: ExportShee
           setBusy(false);
         }
       }}
-      className="border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white print:hidden"
+      className="border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-slate-50 print:hidden"
     >
       {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />}
       {label}

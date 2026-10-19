@@ -53,7 +53,7 @@ export function PageNav({
   const to = Math.min(total, page * pageSize);
   const base = 'inline-flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-medium transition-colors';
   const dark = tone === 'dark';
-  const idle = dark ? 'text-slate-300 hover:bg-slate-700/60 hover:text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900';
+  const idle = dark ? 'text-slate-300 hover:bg-slate-700/60 hover:text-slate-50' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900';
   const off = dark ? 'text-slate-600' : 'text-slate-300';
 
   return (

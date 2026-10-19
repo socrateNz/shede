@@ -23,7 +23,7 @@ export function OrderPlace({ order }: { order: KitchenOrder }) {
 
   return (
     <div className="space-y-1.5">
-      <p className="flex items-center gap-2 text-base font-bold text-white">
+      <p className="flex items-center gap-2 text-base font-bold text-slate-50">
         <Icon className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
         <span className="truncate">{label}</span>
         {place.floor && <span className="truncate text-sm font-medium text-slate-400">· {place.floor}</span>}

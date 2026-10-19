@@ -78,7 +78,7 @@ export default async function OwnerCashPage({
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="w-full space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-white md:text-4xl">{t('org.cash.title')}</h1>
+          <h1 className="text-3xl font-bold text-slate-50 md:text-4xl">{t('org.cash.title')}</h1>
           <p className="mt-1 text-slate-400">
             {t('org.cash.subtitle')}
           </p>

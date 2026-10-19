@@ -143,7 +143,7 @@ export function RapportZ({ shiftId, containerRef }: Props) {
       <div
         id="print-area"
         ref={containerRef}
-        className="mx-auto bg-white shadow-2xl rounded-none w-full max-w-[210mm] min-h-[297mm] p-[10mm] md:p-[20mm] text-slate-900 border border-slate-200 print:border-0"
+        className="couleurs-fixes mx-auto bg-white shadow-2xl rounded-none w-full max-w-[210mm] min-h-[297mm] p-[10mm] md:p-[20mm] text-slate-900 border border-slate-200 print:border-0"
       >
         {/* Company Header */}
         <div className="flex justify-between items-start border-b-4 border-slate-900 pb-8 mb-8">
@@ -171,7 +171,7 @@ export function RapportZ({ shiftId, containerRef }: Props) {
             </div>
           </div>
           <div className="text-right">
-            <div className="inline-block bg-slate-900 text-white px-4 py-2 font-black text-xl mb-2">{t('documents.zReport.title')}</div>
+            <div className="inline-block bg-slate-900 text-slate-50 px-4 py-2 font-black text-xl mb-2">{t('documents.zReport.title')}</div>
             <p className="text-xs font-bold text-slate-400">{t('documents.zReport.session', { id: shift.id.slice(0, 8).toUpperCase() })}</p>
             <p className="text-xs font-bold text-slate-400 mt-1">{format.date(new Date())}</p>
           </div>
@@ -312,7 +312,7 @@ export function RapportZ({ shiftId, containerRef }: Props) {
             </tbody>
             {orders.length > 0 && (
               <tfoot>
-                <tr className="font-black text-sm bg-slate-900 text-white">
+                <tr className="font-black text-sm bg-slate-900 text-slate-50">
                   <td colSpan={4} className="py-2 px-3">{t('documents.zReport.restaurantSubtotal')}</td>
                   <td className="py-2 px-3 text-right">{formatFCFA(orders.reduce((sum: number, o: any) => sum + Number(o.total), 0))}</td>
                 </tr>
@@ -353,7 +353,7 @@ export function RapportZ({ shiftId, containerRef }: Props) {
             </tbody>
             {bookings.length > 0 && (
               <tfoot>
-                <tr className="font-black text-sm bg-slate-900 text-white">
+                <tr className="font-black text-sm bg-slate-900 text-slate-50">
                   <td colSpan={4} className="py-2 px-3">{t('documents.zReport.hotelSubtotal')}</td>
                   <td className="py-2 px-3 text-right">{formatFCFA(bookings.reduce((sum: number, b: any) => sum + Number(b.total_amount), 0))}</td>
                 </tr>

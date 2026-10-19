@@ -25,7 +25,7 @@ export default async function ReceiptsPage({ searchParams }: { searchParams: Pro
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="mb-2 bg-gradient-to-r from-white to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">{t('purchasing.receipts.title')}</h1>
+          <h1 className="mb-2 bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">{t('purchasing.receipts.title')}</h1>
           <p className="max-w-2xl text-slate-400">{t('purchasing.receipts.subtitle')}</p>
         </div>
         {receipts !== null && (
@@ -53,7 +53,7 @@ export default async function ReceiptsPage({ searchParams }: { searchParams: Pro
               }}
             />
             <p className="text-sm text-slate-300">
-              {t('purchasing.receipts.colTotal')} : <strong className="tabular-nums text-white">{format.money(total)}</strong>
+              {t('purchasing.receipts.colTotal')} : <strong className="tabular-nums text-slate-50">{format.money(total)}</strong>
             </p>
           </div>
           <div className="overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/40">

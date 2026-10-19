@@ -51,18 +51,18 @@ export function FoodCostReport({ rows, taxSettings }: { rows: FoodCostRow[] | nu
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="mb-8">
-        <h1 className="mb-2 bg-gradient-to-r from-white to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">{t('foodCost.title')}</h1>
+        <h1 className="mb-2 bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">{t('foodCost.title')}</h1>
         <p className="max-w-2xl text-slate-400">{t('foodCost.subtitle')}</p>
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{t('foodCost.statCoverage')}</p>
-          <p className="mt-1 text-3xl font-bold text-white">{t('foodCost.coverage', { count: withRecipe.length, total: list.length })}</p>
+          <p className="mt-1 text-3xl font-bold text-slate-50">{t('foodCost.coverage', { count: withRecipe.length, total: list.length })}</p>
         </div>
         <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{t('foodCost.statAverage')}</p>
-          <p className="mt-1 text-3xl font-bold text-white">{average === null ? '—' : `${format.number(average)} %`}</p>
+          <p className="mt-1 text-3xl font-bold text-slate-50">{average === null ? '—' : `${format.number(average)} %`}</p>
         </div>
         <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{t('foodCost.statAbove', { percent: FOOD_COST_TARGET_PERCENT })}</p>

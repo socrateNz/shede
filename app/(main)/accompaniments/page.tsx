@@ -97,7 +97,7 @@ export default function AccompanimentsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-transparent mb-2">
               {t('products.accompaniments.title')}
             </h1>
             <p className="text-slate-400">{t('products.accompaniments.subtitle')}</p>
@@ -109,7 +109,7 @@ export default function AccompanimentsPage() {
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-white">{meta.stats.total}</div>
+                <div className="text-2xl font-bold text-slate-50">{meta.stats.total}</div>
                 <div className="text-sm text-slate-400">{t('products.accompaniments.statTotal')}</div>
               </div>
               <div className="p-3 bg-blue-500/10 rounded-xl">
@@ -294,7 +294,7 @@ export default function AccompanimentsPage() {
                                     size="icon"
                                     variant="ghost"
                                     onClick={() => setEditingId(null)}
-                                    className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-700"
+                                    className="h-8 w-8 text-slate-400 hover:text-slate-50 hover:bg-slate-700"
                                   >
                                     <X className="w-4 h-4" />
                                   </Button>
@@ -307,7 +307,7 @@ export default function AccompanimentsPage() {
                                 {item.name}
                               </TableCell>
                               <TableCell className="text-slate-300">
-                                <span className="font-semibold text-white">{format.money(item.price)}</span>
+                                <span className="font-semibold text-slate-50">{format.money(item.price)}</span>
                               </TableCell>
                               <TableCell>
                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${item.is_available
@@ -324,7 +324,7 @@ export default function AccompanimentsPage() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
+                                      className="h-8 w-8 p-0 text-slate-400 hover:text-slate-50 hover:bg-slate-700"
                                     >
                                       <span className="sr-only">{t('products.accompaniments.menuActions')}</span>
                                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

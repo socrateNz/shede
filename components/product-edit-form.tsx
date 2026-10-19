@@ -225,7 +225,7 @@ export function ProductEditForm({
 
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-transparent mb-2">
             {product.name}
           </h1>
           <p className="text-slate-400">{t('products.form.editSubtitle')}</p>
@@ -561,7 +561,7 @@ export function ProductEditForm({
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-300"
+                    className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-slate-50 transition-all duration-300"
                     disabled={isPending}
                   >
                     <X className="w-4 h-4 mr-2" />

@@ -221,7 +221,7 @@ export default async function OwnerViewPage({
         {/* En-tête */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white md:text-4xl">{data.organization.name}</h1>
+            <h1 className="text-3xl font-bold text-slate-50 md:text-4xl">{data.organization.name}</h1>
             <p className="mt-1 text-slate-400">
               {t('org.owner.periodLine', {
                 scope: (data.pointId && data.points.find((p) => p.id === data.pointId)?.name) || t('org.owner.allPoints'),

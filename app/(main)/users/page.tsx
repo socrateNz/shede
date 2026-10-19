@@ -33,7 +33,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-50 to-slate-400 bg-clip-text text-transparent mb-2">
               {t('team.list.title')}
             </h1>
             <p className="text-slate-400">{t('team.list.subtitle')}</p>
@@ -51,7 +51,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300 group">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-white">{stats.total}</div>
+                <div className="text-2xl font-bold text-slate-50">{stats.total}</div>
                 <div className="text-sm text-slate-400">{t('team.list.statTotal')}</div>
               </div>
               <div className="p-3 bg-blue-500/10 rounded-xl group-hover:scale-110 transition-transform duration-300">
