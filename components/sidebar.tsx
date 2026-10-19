@@ -42,7 +42,8 @@ import { InstallAppButton } from './install-app-button';
 import { logout } from '@/app/actions/auth';
 import { cn } from '@/lib/utils';
 import { Structure } from '@/lib/supabase';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useLiveRefresh } from '@/components/displays/use-live-refresh';
 import { getSidebarCounts, type SidebarCounts } from '@/app/actions/sidebar';
 import { isAccountingOnly } from '@/lib/modules';
 import { useT } from '@/lib/i18n/client';
@@ -81,20 +82,17 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
   const role = session.role;
   const isOrgAdmin = role === 'ORG_ADMIN';
 
+  // ORG_ADMIN et SUPER_ADMIN ne sont rattachés à aucun point : pas de compteurs opérationnels.
+  const hasCounters = Boolean(session.structureId);
+  const loadCounts = useCallback(async () => {
+    setCounts(await getSidebarCounts());
+  }, []);
   useEffect(() => {
-    // ORG_ADMIN et SUPER_ADMIN ne sont rattachés à aucun point : pas de compteurs opérationnels.
-    if (!session.structureId) return;
-    const fetchCounts = async () => {
-      try {
-        setCounts(await getSidebarCounts());
-      } catch {
-        // Réseau coupé : on garde les derniers compteurs
-      }
-    };
-    fetchCounts();
-    const interval = setInterval(fetchCounts, 30000);
-    return () => clearInterval(interval);
-  }, [session.structureId]);
+    // Réseau coupé : on garde les derniers compteurs
+    if (hasCounters) loadCounts().catch(() => undefined);
+  }, [hasCounters, loadCounts]);
+  // Puis toutes les 30 s (pause onglet caché) et à chaque notification push
+  useLiveRefresh(loadCounts, { intervalMs: 30_000, paused: !hasCounters });
 
   // Modules de la licence actuelle de l'organisation (relus côté serveur à
   // chaque requête) : un élément n'apparaît que si son module est sous licence.

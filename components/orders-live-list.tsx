@@ -9,6 +9,7 @@ import { OrdersList } from '@/components/orders-list';
 import { PageNav } from '@/components/page-nav';
 import type { Paginated } from '@/lib/pagination';
 import type { Order } from '@/lib/supabase';
+import { useLiveRefresh } from '@/components/displays/use-live-refresh';
 
 interface OrdersLiveListProps {
   initial: Paginated<Order, OrderListStats>;
@@ -46,19 +47,10 @@ export function OrdersLiveList({ initial, status, canManageStatus = false }: Ord
     setData(latest);
   }
 
-  useEffect(() => {
-    if (!isPolling) return;
-    let mounted = true;
-    // Seule la page affichée (20 commandes) est relue, plus les totaux SQL.
-    const interval = setInterval(() => {
-      if (mounted) reload(true).catch((error) => console.error('Erreur lors de la mise à jour:', error));
-    }, 4000);
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, status, isPolling]);
+  // Seule la page affichée (20 commandes) est relue, plus les totaux SQL : à chaque notification
+  // push, toutes les 5 s (15 s si les notifications push sont actives), en pause onglet caché
+  // ou quand la mise à jour automatique est coupée.
+  useLiveRefresh(() => reload(true), { intervalMs: 5000, pushIntervalMs: 15000, paused: !isPolling });
 
   const handleStatusChange = async (orderId: string, nextStatus: string) => {
     setUpdatingOrderId(orderId);

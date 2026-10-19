@@ -4,12 +4,13 @@ import type { SessionPayload } from '@/lib/auth';
 import { Bell, Menu, Moon, Search, Sun } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getUnreadNotificationsCount } from '@/app/actions/push';
 import Link from 'next/link';
 import { useT } from '@/lib/i18n/client';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import type { Appearance } from '@/lib/theme';
+import { useLiveRefresh } from '@/components/displays/use-live-refresh';
 
 interface TopNavProps {
   session: SessionPayload;
@@ -26,18 +27,14 @@ export function TopNav({ session, onMenuClick, appearance, onToggleTheme }: TopN
   const showNotifications = session.role !== 'ORG_ADMIN';
   const themeLabel = appearance === 'clair' ? 'nav.themeDark' : appearance === 'sombre' ? 'nav.themeLight' : 'nav.themeToggle';
 
+  const loadUnread = useCallback(async () => {
+    setUnreadCount(await getUnreadNotificationsCount());
+  }, []);
   useEffect(() => {
-    if (!showNotifications) return;
-    const fetchCount = async () => {
-      const count = await getUnreadNotificationsCount();
-      setUnreadCount(count);
-    };
-    fetchCount();
-    
-    // Simple interval for polling notifications (every 30s)
-    const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
-  }, [showNotifications]);
+    if (showNotifications) loadUnread().catch(() => undefined);
+  }, [showNotifications, loadUnread]);
+  // Puis toutes les 30 s (pause onglet caché) et dès qu'une notification push arrive
+  useLiveRefresh(loadUnread, { intervalMs: 30_000, paused: !showNotifications });
   return (
     <header className="print:hidden flex shrink-0 items-center justify-between gap-3 border-b border-slate-700 bg-slate-800 px-4 py-3 sm:px-6 sm:py-4">
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">

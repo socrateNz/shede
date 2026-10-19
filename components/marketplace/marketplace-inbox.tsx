@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useTransition } from 'react';
+import { useCallback, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Bike, Loader2, Pause, Play } from 'lucide-react';
@@ -10,6 +10,7 @@ import { DecisionButtons } from '@/components/marketplace/decision-buttons';
 import { setMarketplacePaused, type MarketplaceInboxOrder } from '@/app/actions/marketplace-orders';
 import { useT } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
+import { useLiveRefresh } from '@/components/displays/use-live-refresh';
 
 const REFRESH_MS = 20_000;
 
@@ -27,11 +28,10 @@ export function MarketplaceInbox({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  // Les nouvelles commandes arrivent par l'API : la page se rafraîchit seule.
-  useEffect(() => {
-    const timer = setInterval(() => router.refresh(), REFRESH_MS);
-    return () => clearInterval(timer);
-  }, [router]);
+  // Les nouvelles commandes arrivent par l'API : la page se rafraîchit seule (pause onglet caché,
+  // immédiat à chaque notification push).
+  const refreshPage = useCallback(async () => router.refresh(), [router]);
+  useLiveRefresh(refreshPage, { intervalMs: REFRESH_MS });
 
   function togglePause() {
     startTransition(async () => {

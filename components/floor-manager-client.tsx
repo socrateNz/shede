@@ -10,6 +10,7 @@ import { Trash2, Edit2, CheckCircle2, GripHorizontal, Users, Check, X } from 'lu
 import { toast } from 'sonner';
 import { AddFloorDialog } from '@/components/add-floor-dialog';
 import { EditTableDialog } from '@/components/edit-table-dialog';
+import { AutoRefresh } from '@/components/displays/auto-refresh';
 import type { Floor } from '@/lib/supabase';
 import { useT } from '@/lib/i18n/client';
 import { useDialogs } from '@/components/dialog-provider';
@@ -158,6 +159,8 @@ export function FloorManagerClient({ initialTables, activeOrders, floors: initia
 
   return (
     <div className="space-y-6">
+      {/* Tables occupées / libérées sans recharger ; jamais pendant un déplacement de tables */}
+      <AutoRefresh intervalMs={10_000} pushIntervalMs={20_000} paused={isEditMode} />
       {/* Barre d'outils */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-800/50 backdrop-blur-sm p-4 rounded-xl border border-slate-700/50">
         <div className="flex gap-2 flex-wrap items-center">

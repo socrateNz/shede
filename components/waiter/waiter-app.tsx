@@ -23,6 +23,7 @@ import { loadQueue, loadResolved, saveQueue, saveResolved, type QueuedOrder } fr
 import { useDialogs } from '@/components/dialog-provider';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import type { WaiterOrderInput } from '@/app/actions/waiter';
+import { REFRESH_MESSAGE } from '@/components/displays/use-live-refresh';
 import { useT } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 
@@ -145,9 +146,15 @@ export function WaiterApp({
     }, REFRESH_MS);
     const onVisible = () => document.visibilityState === 'visible' && refresh();
     document.addEventListener('visibilitychange', onVisible);
+    // Notification push reçue (commande prête…) : mise à jour immédiate (public/sw.js)
+    const onMessage = (event: MessageEvent) => event.data?.type === REFRESH_MESSAGE && refresh();
+    const sw = 'serviceWorker' in navigator ? navigator.serviceWorker : null;
+    sw?.addEventListener('message', onMessage);
+    sw?.startMessages();
     return () => {
       clearInterval(id);
       document.removeEventListener('visibilitychange', onVisible);
+      sw?.removeEventListener('message', onMessage);
     };
   }, [refresh]);
 

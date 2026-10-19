@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DeliveryActions } from '@/components/delivery/delivery-actions';
+import { AutoRefresh } from '@/components/displays/auto-refresh';
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -48,6 +49,8 @@ export default async function DeliveryPage() {
 
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
+      {/* Nouvelles livraisons et changements de statut sans recharger la page */}
+      <AutoRefresh intervalMs={10_000} pushIntervalMs={20_000} />
       <div className="w-full space-y-6">
         {/* En-tête */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

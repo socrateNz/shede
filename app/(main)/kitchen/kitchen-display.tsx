@@ -164,8 +164,9 @@ export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayPro
   const loadOrders = useCallback(async () => {
     setOrders(await getKitchenOrders(structureId));
   }, [structureId]);
-  // À chaque notification push (immédiat), toutes les 5 s et au retour sur l'onglet
-  const { refresh: refreshOrders, refreshing, online } = useLiveRefresh(loadOrders);
+  // À chaque notification push (immédiat), toutes les 5 s (15 s si les notifications push sont actives :
+  // elles préviennent déjà) et au retour sur l'onglet
+  const { refresh: refreshOrders, refreshing, online } = useLiveRefresh(loadOrders, { intervalMs: 5000, pushIntervalMs: 15000 });
 
   const handleStatusChange = async (
     orderId: string,
