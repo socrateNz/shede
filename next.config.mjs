@@ -60,6 +60,11 @@ const nextConfig = {
   serverExternalPackages: ['jspdf', 'jspdf-autotable', 'fflate', 'canvas'],
 
   output: 'standalone',
+
+  // Modèle Excel officiel de la DSF, lu par la route de téléchargement
+  outputFileTracingIncludes: {
+    '/accounting/official/dsf': ['./templates/dsf/**'],
+  },
 };
 
 export default nextConfig;

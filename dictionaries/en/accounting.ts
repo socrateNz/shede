@@ -748,9 +748,10 @@ const accounting: typeof fr = {
       cashGap: 'Difference of {amount} between the cash flow statement and balance sheet cash: transactions to reclassify (e.g. internal transfers, disposals).',
       unmapped: 'Income or expense accounts without an official item: {accounts}.',
     },
-    dsfHint: 'These statements use the SYSCOHADA references (AD, BZ, XI, ZH…): report them in the DGI tax return (DSF) form. Notes other than fixed assets remain to be completed.',
+    dsfHint: 'The “DSF (DGI template)” button fills in the official DGI Excel template: headers, cover page, R1 sheet, balance sheet, income statement, cash flow statement and notes 3A / 3C. Other sheets and notes remain to be completed before filing on impots.cm. As in the DSF, expenses are entered as positive amounts (the “+ / −” column gives the direction).',
     print: 'Print',
     export: 'Export (Excel)',
+    dsf: 'DSF (DGI template)',
     refs: {
       AD: 'INTANGIBLE ASSETS',
       AE: 'Development and prospecting costs',

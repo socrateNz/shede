@@ -747,9 +747,10 @@ const accounting = {
       cashGap: 'Écart de {amount} entre le tableau des flux et la trésorerie du bilan : opérations à reclasser (ex. virements internes, cessions).',
       unmapped: 'Comptes de gestion sans poste officiel : {accounts}.',
     },
-    dsfHint: 'Ces états reprennent les références (AD, BZ, XI, ZH…) de la liasse SYSCOHADA : reportez-les dans le formulaire DSF de la DGI. Les notes annexes autres que les immobilisations restent à compléter.',
+    dsfHint: 'Le bouton « DSF (modèle DGI) » remplit le modèle Excel officiel de la DGI : en-têtes, page de garde, fiche R1, bilan, compte de résultat, tableau des flux et notes 3A / 3C. Les autres fiches et notes restent à compléter avant le dépôt sur impots.cm. Comme dans la DSF, les charges y sont saisies en positif (la colonne « + / − » indique le sens).',
     print: 'Imprimer',
     export: 'Exporter (Excel)',
+    dsf: 'DSF (modèle DGI)',
     refs: {
       AD: 'IMMOBILISATIONS INCORPORELLES',
       AE: 'Frais de développement et de prospection',

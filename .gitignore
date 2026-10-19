@@ -19,3 +19,7 @@ node_modules
 supabase/seed.sql
 supabase/.temp/
 supabase/.branches/
+
+# Fichiers de travail déposés à la main (outil DSF sous licence, données de tiers) : jamais commités.
+# Le modèle officiel de la DGI utilisé par Shede est dans templates/dsf/.
+/assets/

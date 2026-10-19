@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { CheckCircle2, CircleAlert, Info } from 'lucide-react';
+import { CheckCircle2, CircleAlert, FileDown, Info } from 'lucide-react';
 import { getAccountingData } from '@/app/actions/accounting';
 import { getFiscalYears } from '@/app/actions/closing';
 import { OfficialExport, type ExportSheet } from '@/components/accounting/official-export';
@@ -135,6 +135,14 @@ export default async function OfficialStatementsPage({
             </button>
           </form>
           <OfficialExport sheets={sheets} fileName={`etats-syscohada-${from.slice(0, 4)}.xlsx`} label={t('accounting.official.export')} />
+          {/* Modèle Excel officiel de la DGI, rempli par le serveur (./dsf/route.ts) */}
+          <a
+            href={`/accounting/official/dsf?period=${from}_${to}${params.point ? `&point=${encodeURIComponent(params.point)}` : ''}`}
+            className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-600 bg-slate-800 px-4 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:text-slate-50 print:hidden"
+          >
+            <FileDown className="h-4 w-4" aria-hidden />
+            {t('accounting.official.dsf')}
+          </a>
           <PrintButton label={t('accounting.official.print')} />
         </div>
       </div>

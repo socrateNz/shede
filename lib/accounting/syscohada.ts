@@ -25,7 +25,7 @@ export function balancesAt(lines: OfficialLine[], to: string) {
 }
 
 /** Mouvements (débits, crédits) par compte sur la période, hors écritures de clôture. */
-function movements(lines: OfficialLine[], from: string, to: string) {
+export function movements(lines: OfficialLine[], from: string, to: string) {
   const map = new Map<string, { debit: number; credit: number }>();
   for (const l of lines) {
     if (l.closing || l.entry_date < from || l.entry_date > to) continue;
