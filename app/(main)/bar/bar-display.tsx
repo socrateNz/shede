@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useTransition } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { Beer, Clock, RefreshCw, Wifi, WifiOff, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,11 +10,7 @@ import type { KitchenOrder } from '@/app/actions/kitchen';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n/client';
 import { OrderItems, OrderPlace } from '@/components/displays/order-detail';
-
-const supabasePublic = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { useLiveRefresh } from '@/components/displays/use-live-refresh';
 
 interface BarDisplayProps {
   initialOrders: KitchenOrder[];
@@ -24,27 +19,13 @@ interface BarDisplayProps {
 
 export function BarDisplay({ initialOrders, structureId }: BarDisplayProps) {
   const [orders, setOrders] = useState<KitchenOrder[]>(initialOrders);
-  const [isConnected, setIsConnected] = useState(false);
-  const [isPending, startTransition] = useTransition();
   const { t } = useT();
 
-  const refreshOrders = useCallback(() => {
-    startTransition(async () => {
-      const fresh = await getBarOrders(structureId);
-      setOrders(fresh);
-    });
+  const loadOrders = useCallback(async () => {
+    setOrders(await getBarOrders(structureId));
   }, [structureId]);
-
-  useEffect(() => {
-    const channel = supabasePublic
-      .channel(`bar:${structureId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `structure_id=eq.${structureId}` }, () => {
-        refreshOrders();
-      })
-      .subscribe((status) => setIsConnected(status === 'SUBSCRIBED'));
-
-    return () => { supabasePublic.removeChannel(channel); };
-  }, [structureId, refreshOrders]);
+  // À chaque notification push (immédiat), toutes les 5 s et au retour sur l'onglet
+  const { refresh: refreshOrders, refreshing, online } = useLiveRefresh(loadOrders);
 
   const handleReady = async (orderId: string) => {
     const result = await updateOrderStatusFromBar(orderId, 'READY');
@@ -73,13 +54,13 @@ export function BarDisplay({ initialOrders, structureId }: BarDisplayProps) {
           <div className="flex items-center gap-2">
             <div className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border',
-              isConnected ? 'border-emerald-500/20 text-emerald-400 bg-emerald-500/10' : 'border-slate-600 text-slate-500 bg-slate-700/30'
+              online ? 'border-emerald-500/20 text-emerald-400 bg-emerald-500/10' : 'border-red-500/20 text-red-400 bg-red-500/10'
             )}>
-              {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-              {isConnected ? t('displays.realtime') : t('displays.connecting')}
+              {online ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+              {online ? t('displays.live') : t('displays.offline')}
             </div>
-            <Button variant="outline" size="sm" onClick={refreshOrders} disabled={isPending} className="border-slate-600 text-slate-400 hover:text-slate-50 gap-1.5">
-              <RefreshCw className={cn('w-3.5 h-3.5', isPending && 'animate-spin')} />
+            <Button variant="outline" size="sm" onClick={() => refreshOrders(true)} disabled={refreshing} className="border-slate-600 text-slate-400 hover:text-slate-50 gap-1.5">
+              <RefreshCw className={cn('w-3.5 h-3.5', refreshing && 'animate-spin')} />
             </Button>
           </div>
         </div>

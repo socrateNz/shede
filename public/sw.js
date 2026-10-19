@@ -109,7 +109,15 @@ self.addEventListener('push', function (event) {
     },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(title, options),
+      // Écrans ouverts (cuisine, bar) : rechargement immédiat, sans attendre leur prochain passage
+      self.clients
+        .matchAll({ type: 'window', includeUncontrolled: true })
+        .then((all) => all.forEach((client) => client.postMessage({ type: 'shede:refresh', url: data.url || null }))),
+    ]),
+  );
 });
 
 self.addEventListener('notificationclick', function (event) {

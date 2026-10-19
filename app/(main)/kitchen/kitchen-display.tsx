@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useTransition } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { ChefHat, Clock, CheckCircle2, RefreshCw, Wifi, WifiOff, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,12 +10,7 @@ import type { KitchenOrder } from '@/app/actions/kitchen';
 import { cn } from '@/lib/utils';
 import { OrderItems, OrderPlace } from '@/components/displays/order-detail';
 import { useT } from '@/lib/i18n/client';
-
-// Client Supabase public pour le Realtime (sans service role)
-const supabasePublic = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { useLiveRefresh } from '@/components/displays/use-live-refresh';
 
 interface KitchenDisplayProps {
   initialOrders: KitchenOrder[];
@@ -163,45 +157,15 @@ function OrderCard({
 
 export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayProps) {
   const [orders, setOrders] = useState<KitchenOrder[]>(initialOrders);
-  const [isConnected, setIsConnected] = useState(false);
-  const [isPending, startTransition] = useTransition();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const { t } = useT();
 
-  /** Recharge les commandes via Server Action */
-  const refreshOrders = useCallback(() => {
-    startTransition(async () => {
-      const fresh = await getKitchenOrders(structureId);
-      setOrders(fresh);
-    });
+  /** Recharge les commandes via Server Action (service role : rien n'est lu depuis le navigateur) */
+  const loadOrders = useCallback(async () => {
+    setOrders(await getKitchenOrders(structureId));
   }, [structureId]);
-
-  /** Supabase Realtime — déclenche un rechargement à chaque changement */
-  useEffect(() => {
-    const channel = supabasePublic
-      .channel(`kitchen:${structureId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders',
-          filter: `structure_id=eq.${structureId}`,
-        },
-        () => {
-          // On ne traite pas le payload directement (sécurité)
-          // On recharge les données via la Server Action (service role)
-          refreshOrders();
-        }
-      )
-      .subscribe((status) => {
-        setIsConnected(status === 'SUBSCRIBED');
-      });
-
-    return () => {
-      supabasePublic.removeChannel(channel);
-    };
-  }, [structureId, refreshOrders]);
+  // À chaque notification push (immédiat), toutes les 5 s et au retour sur l'onglet
+  const { refresh: refreshOrders, refreshing, online } = useLiveRefresh(loadOrders);
 
   const handleStatusChange = async (
     orderId: string,
@@ -249,25 +213,25 @@ export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayPro
               </span>
             </div>
 
-            {/* Statut connexion Realtime */}
+            {/* Mise à jour automatique : vert tant que le serveur répond */}
             <div className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border',
-              isConnected
+              online
                 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                : 'bg-slate-700/50 border-slate-600/50 text-slate-500'
+                : 'bg-red-500/10 border-red-500/20 text-red-400'
             )}>
-              {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-              {isConnected ? t('displays.realtime') : t('displays.connecting')}
+              {online ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+              {online ? t('displays.live') : t('displays.offline')}
             </div>
 
             <Button
               variant="outline"
               size="sm"
-              onClick={refreshOrders}
-              disabled={isPending}
+              onClick={() => refreshOrders(true)}
+              disabled={refreshing}
               className="border-slate-600 text-slate-400 hover:text-slate-50 gap-1.5"
             >
-              <RefreshCw className={cn('w-3.5 h-3.5', isPending && 'animate-spin')} />
+              <RefreshCw className={cn('w-3.5 h-3.5', refreshing && 'animate-spin')} />
               <span className="hidden sm:inline">{t('displays.refresh')}</span>
             </Button>
           </div>
@@ -307,7 +271,7 @@ export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayPro
                       key={order.id}
                       order={order}
                       onStatusChange={handleStatusChange}
-                      isPending={isPending && updatingId === order.id}
+                      isPending={updatingId === order.id}
                     />
                   ))
                 )}
@@ -333,7 +297,7 @@ export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayPro
                       key={order.id}
                       order={order}
                       onStatusChange={handleStatusChange}
-                      isPending={isPending && updatingId === order.id}
+                      isPending={updatingId === order.id}
                     />
                   ))
                 )}
