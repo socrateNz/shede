@@ -38,6 +38,7 @@ import {
   Smartphone,
 } from 'lucide-react';
 import { ShiftStatusIndicator } from './shift-status-indicator';
+import { InstallAppButton } from './install-app-button';
 import { logout } from '@/app/actions/auth';
 import { cn } from '@/lib/utils';
 import { Structure } from '@/lib/supabase';
@@ -356,6 +357,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
             </p>
           )}
         </div>
+        <InstallAppButton />
         <form action={logout}>
           <button
             type="submit"

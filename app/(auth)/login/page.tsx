@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
+import { InstallAppButton } from '@/components/install-app-button';
 import { useActionState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -166,6 +167,8 @@ function LoginForm() {
             </form>
           </CardContent>
         </Card>
+
+        <InstallAppButton className="mx-auto mt-4 w-auto justify-center text-sm" />
 
         <p className="text-center text-xs text-slate-500 mt-6">
           {t('common.copyright', { year: new Date().getFullYear() })}

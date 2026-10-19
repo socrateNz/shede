@@ -87,6 +87,14 @@ const common = {
     beyond: 'Cette page n’existe pas.',
     lastPage: 'Aller à la page {page}',
   },
+  pwa: {
+    install: 'Installer l’application',
+    installed: 'Application installée',
+    iosHint: 'Sur iPhone : touchez Partager, puis « Sur l’écran d’accueil ».',
+    offlineTitle: 'Pas de connexion',
+    offlineText: 'Shede n’arrive pas à joindre le serveur. Vérifiez le Wi-Fi ou les données mobiles, puis réessayez.',
+    retry: 'Réessayer',
+  },
 };
 
 export default common;

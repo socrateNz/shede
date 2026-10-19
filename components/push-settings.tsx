@@ -3,6 +3,7 @@
 import { sendTestPushNotification, subscribePush, unsubscribePush } from '@/app/actions/push';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { registerAppWorker } from '@/lib/pwa';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -41,7 +42,7 @@ export function PushSettings({
         return;
       }
 
-      const registration = await navigator.serviceWorker.register('/sw.js');
+      const registration = (await registerAppWorker()) ?? (await navigator.serviceWorker.ready);
       let subscription = await registration.pushManager.getSubscription();
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
@@ -68,7 +69,7 @@ export function PushSettings({
     setLoading(true);
     setMessage('');
     try {
-      const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+      const registration = await navigator.serviceWorker.getRegistration('/');
       const subscription = await registration?.pushManager.getSubscription();
       if (subscription) {
         await unsubscribePush(subscription.endpoint);

@@ -88,6 +88,14 @@ const common: typeof fr = {
     beyond: 'This page doesn’t exist.',
     lastPage: 'Go to page {page}',
   },
+  pwa: {
+    install: 'Install the app',
+    installed: 'App installed',
+    iosHint: 'On iPhone: tap Share, then “Add to Home Screen”.',
+    offlineTitle: 'No connection',
+    offlineText: 'Shede cannot reach the server. Check Wi-Fi or mobile data, then try again.',
+    retry: 'Try again',
+  },
 };
 
 export default common;

@@ -1,6 +1,7 @@
 'use client';
 
 import { subscribePush, unsubscribePush } from '@/app/actions/push';
+import { registerAppWorker } from '@/lib/pwa';
 
 // Alertes « commande prête » du mode serveur et cache hors ligne (public/sw.js).
 // Sur un téléphone partagé, l'abonnement push est rattaché au serveur connecté : il est
@@ -31,12 +32,8 @@ export function pushSupported() {
   return typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 }
 
-/** Service worker du site ; cache hors ligne seulement en production (fichiers stables). */
-export function registerWaiterWorker() {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return Promise.resolve(undefined);
-  const script = process.env.NODE_ENV === 'production' ? '/sw.js?cache=1' : '/sw.js';
-  return navigator.serviceWorker.register(script, { scope: '/' }).catch(() => undefined);
-}
+/** Service worker du site (le même pour toutes les pages, voir lib/pwa.ts). */
+export const registerWaiterWorker = registerAppWorker;
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);

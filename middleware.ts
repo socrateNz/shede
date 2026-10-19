@@ -36,6 +36,8 @@ const PUBLIC_EXACT = new Set([
   '/cart',
   '/forgot-password',
   '/reset-password',
+  // Page « Pas de connexion » gardée par le service worker
+  '/offline',
 ]);
 
 /** Préfixes publics (catalogue B2C, assets) */

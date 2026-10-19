@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
@@ -13,8 +13,16 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t('meta.title'),
     description: t('meta.description'),
+    // Application installable sur tout le site (le mode serveur a son propre manifeste)
+    manifest: '/manifest.webmanifest',
+    appleWebApp: { capable: true, title: 'Shede', statusBarStyle: 'black' },
+    icons: { apple: '/icons/app-apple-180.png' },
   };
 }
+
+export const viewport: Viewport = {
+  themeColor: '#0f172a',
+};
 
 export default async function RootLayout({
   children,

@@ -1,24 +1,45 @@
-// Service worker de Shede : notifications push, et mode serveur utilisable sans réseau.
+// Service worker de Shede : notifications push, application installable (PWA) et hors ligne.
 // Le mise en cache n'est active que si la page l'a demandé (?cache=1, en production) :
 // en développement, les fichiers changent sans changer d'adresse.
+// Les pages du back-office ne sont jamais gardées (données sensibles) : sans réseau, on affiche /offline.
+// Seules les pages du mode serveur restent consultables hors ligne.
 
 const CACHE_ENABLED = new URL(self.location.href).searchParams.get('cache') === '1';
 const PAGES = 'shede-waiter-pages-v1';
-const STATIC = 'shede-waiter-static-v1';
+const STATIC = 'shede-static-v1';
+const OFFLINE = 'shede-offline-v1';
+const OFFLINE_URL = '/offline';
 
-self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    (async () => {
+      if (CACHE_ENABLED) {
+        try {
+          const cache = await caches.open(OFFLINE);
+          await cache.add(new Request(OFFLINE_URL, { cache: 'reload' }));
+        } catch {}
+      }
+      await self.skipWaiting();
+    })(),
+  );
+});
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
-      const keep = new Set([PAGES, STATIC]);
+      const keep = new Set([PAGES, STATIC, OFFLINE]);
       for (const key of await caches.keys()) {
-        if (key.startsWith('shede-waiter-') && (!keep.has(key) || !CACHE_ENABLED)) await caches.delete(key);
+        if (key.startsWith('shede-') && (!keep.has(key) || !CACHE_ENABLED)) await caches.delete(key);
       }
       await self.clients.claim();
     })(),
   );
 });
+
+function isStaticFile(pathname) {
+  // Adresses qui changent à chaque version (ou presque jamais) : sans risque de servir un fichier périmé
+  return pathname.startsWith('/_next/static/') || pathname.startsWith('/icons/');
+}
 
 self.addEventListener('fetch', (event) => {
   if (!CACHE_ENABLED) return;
@@ -27,18 +48,31 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Pages du mode serveur : réseau d'abord, dernière version connue sans réseau
-  if (request.mode === 'navigate' && (url.pathname === '/serveur' || url.pathname.startsWith('/serveur/'))) {
+  if (request.mode === 'navigate') {
+    // Pages du mode serveur : réseau d'abord, dernière version connue sans réseau
+    if (url.pathname === '/serveur' || url.pathname.startsWith('/serveur/')) {
+      event.respondWith(
+        (async () => {
+          const cache = await caches.open(PAGES);
+          try {
+            const response = await fetch(request);
+            // Une redirection (session expirée, autre compte) n'est jamais gardée
+            if (response.ok && !response.redirected) await cache.put(url.pathname, response.clone());
+            return response;
+          } catch {
+            return (await cache.match(url.pathname)) || (await cache.match('/serveur')) || (await caches.match(OFFLINE_URL)) || Response.error();
+          }
+        })(),
+      );
+      return;
+    }
+    // Reste du site : toujours le réseau ; page « Pas de connexion » s'il ne répond pas
     event.respondWith(
       (async () => {
-        const cache = await caches.open(PAGES);
         try {
-          const response = await fetch(request);
-          // Une redirection (session expirée, autre compte) n'est jamais gardée
-          if (response.ok && !response.redirected) await cache.put(url.pathname, response.clone());
-          return response;
+          return await fetch(request);
         } catch {
-          return (await cache.match(url.pathname)) || (await cache.match('/serveur')) || Response.error();
+          return (await caches.match(OFFLINE_URL)) || Response.error();
         }
       })(),
     );
@@ -46,7 +80,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Fichiers de l'application (adresses versionnées) et icônes : cache d'abord
-  if (url.pathname.startsWith('/_next/static/') || url.pathname.startsWith('/icons/') || url.pathname === '/serveur.webmanifest') {
+  if (isStaticFile(url.pathname)) {
     event.respondWith(
       (async () => {
         const cache = await caches.open(STATIC);
@@ -65,7 +99,7 @@ self.addEventListener('push', function (event) {
   const title = data.title || 'Nouvelle notification';
   const options = {
     body: data.body || '',
-    icon: '/icons/waiter-192.png',
+    icon: '/icons/app-192.png',
     badge: '/icon-light-32x32.png',
     vibrate: [200, 100, 200],
     tag: data.url || undefined,

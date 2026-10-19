@@ -4,19 +4,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
 import { DialogProvider } from '@/components/dialog-provider';
+import { registerAppWorker } from '@/lib/pwa';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then((registration) => {
-          console.log('Service Worker registered with scope:', registration.scope);
-        })
-        .catch((error) => {
-          console.error('Service Worker registration failed:', error);
-        });
-    }
+    // Application installable et page hors ligne sur tout le site
+    registerAppWorker();
   }, []);
 
   const [queryClient] = useState(
