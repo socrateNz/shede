@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Côté serveur, base sur la même machine (VPS) : adresse locale, sans passer par Internet ni Nginx.
+// Absente du navigateur (pas de NEXT_PUBLIC_) : il garde l'adresse publique.
+const serverUrl = process.env.SUPABASE_INTERNAL_URL || supabaseUrl;
 
 if (!supabaseUrl) {
   throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL');
@@ -17,7 +20,7 @@ if (!supabaseAnonKey) {
  * Soumis au RLS — à utiliser pour le catalogue B2C (pages client, composants navigateur).
  * Ne jamais utiliser pour les opérations staff ou les écritures sensibles.
  */
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(serverUrl!, supabaseAnonKey);
 
 /** Alias explicite pour les lectures catalogue soumises au RLS. */
 export const supabasePublic = supabase;
@@ -30,7 +33,7 @@ export function getAdminSupabase() {
   if (!supabaseServiceRoleKey) {
     throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY');
   }
-  return createClient(supabaseUrl!, supabaseServiceRoleKey);
+  return createClient(serverUrl!, supabaseServiceRoleKey);
 }
 
 // Database type definitions

@@ -37,7 +37,8 @@ export default async function RootLayout({
         <I18nProvider locale={locale}>
           <Providers>{children}</Providers>
         </I18nProvider>
-        <Analytics />
+        {/* Statistiques de visite Vercel : sans objet sur le VPS */}
+        {process.env.VERCEL && <Analytics />}
       </body>
     </html>
   )

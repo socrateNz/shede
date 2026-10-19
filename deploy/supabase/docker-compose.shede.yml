@@ -1,0 +1,70 @@
+# Supabase auto-hébergé pour Shede (VPS tacynt, ~/apps/shede-supabase).
+# Se superpose au docker-compose.yml officiel (COMPOSE_FILE dans .env).
+#
+# Shede n'utilise ni l'authentification Supabase (il a la sienne), ni le stockage
+# (images sur Cloudinary), ni les fonctions, ni le pooler : ces services ne démarrent pas.
+# Restent : db, rest (PostgREST), realtime, meta, studio, api-gw (passerelle, port 8000).
+#
+# Tous les ports n'écoutent que sur 127.0.0.1, écrit explicitement : le réglage "ip" de
+# /etc/docker/daemon.json ne vaut que pour le réseau Docker par défaut, pas pour celui de
+# Supabase (constaté : 0.0.0.0:8000). Docker contournant UFW, chaque port doit être ici.
+# Nginx fait le lien pour /rest/v1 et /realtime/v1.
+
+services:
+  auth:
+    profiles: ["inutilise"]
+  storage:
+    profiles: ["inutilise"]
+  imgproxy:
+    profiles: ["inutilise"]
+  functions:
+    profiles: ["inutilise"]
+  supavisor:
+    profiles: ["inutilise"]
+
+  api-gw:
+    # Remplace la publication d'origine (0.0.0.0:8000)
+    ports: !override
+      - "127.0.0.1:8000:8000/tcp"
+
+  db:
+    # Accès direct à Postgres pour les transferts et les sauvegardes, en local uniquement
+    ports:
+      - "127.0.0.1:54322:5432"
+    shm_size: 1gb
+    volumes:
+      # Archivage continu : réglages, script de copie et dossier partagé avec shede-sauvegarde
+      - ./sauvegarde/archivage.conf:/etc/postgresql-custom/conf.d/zz-shede-archivage.conf:ro
+      - ./sauvegarde/copier-wal.sh:/usr/local/bin/copier-wal.sh:ro
+      - ./volumes/wal-archive:/var/lib/postgresql/wal-archive
+
+  # Envoi chiffré vers Backblaze B2 (wal-g) : segments WAL au fil de l'eau, copie complète la nuit
+  sauvegarde:
+    container_name: shede-sauvegarde
+    image: debian:bookworm-slim
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: ./sauvegarde/walg.env
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: supabase_admin
+      PGDATABASE: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./sauvegarde/wal-g:/usr/local/bin/wal-g:ro
+      - ./sauvegarde/pousser-wal.sh:/usr/local/bin/pousser-wal.sh:ro
+      - ./volumes/wal-archive:/wal-archive
+      # Même chemin que dans supabase-db : wal-g le vérifie pour les copies complètes
+      - ./volumes/db/data:/var/lib/postgresql/data:ro
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    command: ["/bin/sh", "/usr/local/bin/pousser-wal.sh"]
+    healthcheck:
+      # En panne si la boucle s'est arrêtée ou si un segment attend depuis plus de 10 minutes
+      test: ["CMD-SHELL", "test $$(( $$(date +%s) - $$(cat /tmp/dernier-tour) )) -lt 60 && test -z \"$$(find /wal-archive -type f -mmin +10)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
