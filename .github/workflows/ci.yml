@@ -1,0 +1,68 @@
+# Tests, typage et compilation à chaque envoi ; sur main, déploiement sur le VPS tacynt.
+# Le déploiement passe par une clé SSH que le serveur limite à ~/scripts/deployer-shede.sh :
+# elle ne peut rien faire d'autre que demander le déploiement d'un commit.
+# Secrets du dépôt : VPS_HOST, VPS_KNOWN_HOSTS, VPS_DEPLOY_KEY.
+name: CI et déploiement
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    name: Tests, typage et compilation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Valeurs factices : la compilation vérifie le code, elle ne contacte aucune base
+      NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-factice
+      SUPABASE_SERVICE_ROLE_KEY: ci-factice
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Tests
+        run: pnpm test
+      - name: Typage
+        run: pnpm exec tsc --noEmit
+      - name: Compilation
+        run: pnpm build
+
+  deployer:
+    name: Déploiement sur le VPS
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Un déploiement à la fois : les suivants attendent leur tour
+    concurrency:
+      group: deploiement-vps
+      cancel-in-progress: false
+    steps:
+      - name: Clé SSH et serveur connu
+        env:
+          VPS_DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_DEPLOY_KEY" | tr -d '\r' > ~/.ssh/deploiement
+          chmod 600 ~/.ssh/deploiement
+          printf '%s\n' "$VPS_KNOWN_HOSTS" | tr -d '\r' > ~/.ssh/known_hosts
+          # Empreintes (publiques) pour diagnostiquer un secret mal collé
+          echo "Clé de déploiement :"; ssh-keygen -lf ~/.ssh/deploiement
+          echo "Serveur attendu :"; ssh-keygen -lf ~/.ssh/known_hosts
+      - name: Déploiement du commit
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          hote=$(printf '%s' "$VPS_HOST" | tr -d '[:space:]')
+          ssh -i ~/.ssh/deploiement -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=30 "etarcosdev@$hote" "$GITHUB_SHA"
