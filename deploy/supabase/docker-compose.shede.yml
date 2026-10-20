@@ -28,15 +28,21 @@ services:
       - "127.0.0.1:8000:8000/tcp"
 
   db:
-    # Accès direct à Postgres pour les transferts et les sauvegardes, en local uniquement
     ports:
+      # Accès direct à Postgres pour les transferts et les sauvegardes, en local uniquement
       - "127.0.0.1:54322:5432"
+      # Seul port ouvert sur Internet : la copie de secours vers Supabase cloud (réplication logique).
+      # Seul le compte replication_secours y est accepté, en connexion chiffrée (securite/pg_hba.conf).
+      - "0.0.0.0:5433:5432"
     shm_size: 1gb
     volumes:
       # Archivage continu : réglages, script de copie et dossier partagé avec shede-sauvegarde
       - ./sauvegarde/archivage.conf:/etc/postgresql-custom/conf.d/zz-shede-archivage.conf:ro
       - ./sauvegarde/copier-wal.sh:/usr/local/bin/copier-wal.sh:ro
       - ./volumes/wal-archive:/var/lib/postgresql/wal-archive
+      # Règles d'accès et certificat de la copie de secours
+      - ./securite:/etc/postgresql-custom/shede:ro
+      - ./securite/securite.conf:/etc/postgresql-custom/conf.d/zz-shede-securite.conf:ro
 
   # Envoi chiffré vers Backblaze B2 (wal-g) : segments WAL au fil de l'eau, copie complète la nuit
   sauvegarde:
