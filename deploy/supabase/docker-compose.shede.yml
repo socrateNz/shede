@@ -31,9 +31,10 @@ services:
     ports:
       # Accès direct à Postgres pour les transferts et les sauvegardes, en local uniquement
       - "127.0.0.1:54322:5432"
-      # Seul port ouvert sur Internet : la copie de secours vers Supabase cloud (réplication logique).
-      # Seul le compte replication_secours y est accepté, en connexion chiffrée (securite/pg_hba.conf).
-      - "0.0.0.0:5433:5432"
+      # Seul port ouvert sur Internet, en IPv6 uniquement (Supabase cloud ne sort qu'en IPv6) :
+      # la copie de secours (réplication logique). Seul le compte replication_secours y est accepté,
+      # chiffré, depuis Amazon Francfort (securite/pg_hba.conf).
+      - "[::]:5433:5432"
     shm_size: 1gb
     volumes:
       # Archivage continu : réglages, script de copie et dossier partagé avec shede-sauvegarde
@@ -74,3 +75,13 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+
+# Réseau de Supabase en IPv4 + IPv6 : les connexions IPv6 venant d'Internet arrivent avec leur vraie
+# adresse (sans IPv6 sur le réseau, Docker les relaierait avec une adresse interne, que pg_hba autorise).
+networks:
+  default:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
+        - subnet: fd5e:de00:5ede::/64
