@@ -141,9 +141,10 @@ export function OrdersList({
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                         {t('orders.list.room', { number: (order as any).rooms.number })}
                       </span>
-                    ) : order.table_number ? (
+                    ) : (order as any).tables?.name || order.table_number ? (
+                      // Nom de la table du plan de salle (« Table VIP »), sinon le numéro libre saisi à la caisse
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20">
-                        {t('orders.list.table', { number: order.table_number })}
+                        {(order as any).tables?.name ?? t('orders.list.table', { number: order.table_number ?? '' })}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-500/10 text-slate-400 border border-slate-500/20">

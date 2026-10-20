@@ -1085,8 +1085,11 @@ DO $$
 DECLARE c demo_ctx%ROWTYPE; v_id uuid; r record; i int; v_tables uuid[];
 BEGIN
   SELECT * INTO c FROM demo_ctx;
-  -- La table « Table 4 » reste libre : la formation y installe des clients
-  SELECT array_agg(id) INTO v_tables FROM (SELECT id FROM tables WHERE structure_id = c.sid AND name <> 'Table 4' ORDER BY random() LIMIT 4) t;
+  -- La table de plus grande capacité reste libre : la formation y installe des clients
+  SELECT array_agg(id) INTO v_tables FROM (
+    SELECT id FROM tables WHERE structure_id = c.sid
+      AND id <> (SELECT id FROM tables WHERE structure_id = c.sid ORDER BY capacity DESC, name LIMIT 1)
+    ORDER BY random() LIMIT 4) t;
   FOR r IN SELECT * FROM (VALUES (1, 'PENDING', 'PENDING', 'PENDING', 4), (2, 'IN_PROGRESS', 'IN_PROGRESS', 'READY', 12),
                                  (3, 'IN_PROGRESS', 'PENDING', 'IN_PROGRESS', 7), (4, 'READY', 'READY', 'READY', 26)) AS v(n, status, kitchen, bar, minutes) LOOP
     v_id := gen_random_uuid();
