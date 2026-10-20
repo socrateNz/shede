@@ -4,8 +4,8 @@ import { sendMail } from '@/lib/mail';
 import { buildLicenseExpiringMails, getOrganizationAdminRecipients } from '@/lib/emails';
 
 // Rappels d'expiration de licence / d'essai, à J-7 et J-1.
-// À appeler une fois par jour (voir vercel.json) avec l'en-tête
-// `Authorization: Bearer <CRON_SECRET>` — c'est ce qu'envoie Vercel Cron.
+// À appeler une fois par jour avec l'en-tête `Authorization: Bearer <CRON_SECRET>` :
+// crontab du VPS (deploy/scripts/taches-shede.sh, 8 h heure de Douala).
 // Chaque licence ne tombe dans une fenêtre [J+N, J+N+1[ qu'un seul jour :
 // avec un appel quotidien, chaque rappel part une seule fois.
 
