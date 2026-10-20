@@ -223,6 +223,18 @@ export type RecipeRow = {
 
 const roundQuantity = (value: number) => Math.round(value * 10_000) / 10_000;
 
+/**
+ * Un plat ou un accompagnement avec fiche recette n'est pas suivi en stock : à la vente, ce
+ * sont ses ingrédients (ou, ancien format product_recipes, les produits qui le composent) qui
+ * sortent. À ajouter au select des produits / accompagnements, puis tester avec isMadeFromRecipe.
+ */
+export const PRODUCT_RECIPE_SELECT = 'recipe_items(id), product_recipes!product_recipes_product_id_fkey(id)';
+export const ACCOMPANIMENT_RECIPE_SELECT = 'recipe_items(id)';
+
+export function isMadeFromRecipe(item: { recipe_items?: unknown[] | null; product_recipes?: unknown[] | null }) {
+  return Boolean(item.recipe_items?.length || item.product_recipes?.length);
+}
+
 /** Lignes de recette des produits et accompagnements ; vide si la migration phase 16 n'est pas exécutée. */
 export async function loadRecipeLines(productIds: string[], accompanimentIds: string[]) {
   const byProduct = new Map<string, RecipeRow[]>();

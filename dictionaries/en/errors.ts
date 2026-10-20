@@ -16,7 +16,7 @@ const errors: typeof fr = {
   registerClosedItems: 'The register must be open to add items.',
   registerClosedBooking: 'The register must be open to change a booking’s status.',
   cashierOnly: 'Only administrators or cashiers can do this.',
-  openShiftRoles: 'Only cashiers or administrators can open a register session.',
+  openShiftRoles: 'Only cashiers, reception, managers or administrators can open a register session.',
   shiftAlreadyOpen: 'A register is already open for this user.',
   noActiveShift: 'No register is open.',
 

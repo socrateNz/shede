@@ -16,7 +16,7 @@ const errors = {
   registerClosedItems: 'La caisse doit être ouverte pour ajouter des articles.',
   registerClosedBooking: 'La caisse doit être ouverte pour modifier le statut d’une réservation.',
   cashierOnly: 'Seuls les administrateurs ou les caissiers peuvent effectuer cette opération.',
-  openShiftRoles: 'Seuls les caissiers ou les administrateurs peuvent ouvrir une session de caisse.',
+  openShiftRoles: 'Seuls la caisse, la réception, les managers ou les administrateurs peuvent ouvrir une session de caisse.',
   shiftAlreadyOpen: 'Une caisse est déjà ouverte pour cet utilisateur.',
   noActiveShift: 'Aucune caisse ouverte.',
 

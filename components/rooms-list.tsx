@@ -40,7 +40,8 @@ import { useDialogs } from '@/components/dialog-provider';
 type RoomType = 'Standard' | 'Double' | 'Studio' | 'Suite' | 'Familiale' | 'Autre';
 
 /** Une page de chambres, déjà filtrée par le serveur. */
-export default function RoomsList({ rooms, meta }: { rooms: any[]; meta: PageMeta<unknown> }) {
+/** canManage : modifier et supprimer les chambres (administrateur) ; la réception les consulte seulement. */
+export default function RoomsList({ rooms, meta, canManage = true }: { rooms: any[]; meta: PageMeta<unknown>; canManage?: boolean }) {
   const [editingRoom, setEditingRoom] = useState<any>(null);
   const [viewingRoom, setViewingRoom] = useState<any>(null);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
@@ -227,6 +228,7 @@ export default function RoomsList({ rooms, meta }: { rooms: any[]; meta: PageMet
                         <Eye className="h-4 w-4" />
                       </Button>
 
+                      {canManage && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -262,6 +264,7 @@ export default function RoomsList({ rooms, meta }: { rooms: any[]; meta: PageMet
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

@@ -8,7 +8,8 @@ import { te } from '@/lib/i18n/server';
 
 export async function getRooms() {
   const session = await getSession();
-  if (!session || !session.structureId || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
+  // La réception consulte les chambres (page Chambres, réservations) sans pouvoir les créer ni les supprimer
+  if (!session || !session.structureId || !['ADMIN', 'SUPER_ADMIN', 'RECEPTION'].includes(session.role)) {
     return [];
   }
 
@@ -34,7 +35,7 @@ export async function listRooms(filters: { page?: number; q?: string; status?: s
   const empty: RoomListStats = { total: 0, available: 0, occupied: 0, cleaning: 0 };
   const session = await getSession();
   const page = Math.max(1, filters.page ?? 1);
-  if (!session?.structureId || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) return emptyPage(empty, page);
+  if (!session?.structureId || !['ADMIN', 'SUPER_ADMIN', 'RECEPTION'].includes(session.role)) return emptyPage(empty, page);
   const admin = getAdminSupabase();
   const [from, to] = pageRange(page);
   const q = searchTerm(filters.q);
@@ -127,7 +128,7 @@ export async function deleteRoom(roomId: string) {
 
 export async function updateRoomStatus(roomId: string, status: string) {
   const session = await getSession();
-  if (!session || !session.structureId || !['ADMIN', 'SUPER_ADMIN', 'CAISSE', 'SERVEUR'].includes(session.role)) {
+  if (!session || !session.structureId || !['ADMIN', 'SUPER_ADMIN', 'RECEPTION', 'CAISSE', 'SERVEUR'].includes(session.role)) {
     return { success: false, error: await te('errors.unauthorized') };
   }
 

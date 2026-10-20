@@ -54,7 +54,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
   const roomTypeLabel = (type?: string | null) =>
     type && ROOM_TYPES.includes(type) ? t(`hotel.roomTypes.${type}.label` as TranslationKey) : (type ?? '');
   const clientName = (booking: any) =>
-    booking.users ? `${booking.users.first_name} ${booking.users.last_name}` : t('hotel.bookings.walkIn');
+    booking.users ? `${booking.users.first_name} ${booking.users.last_name}` : booking.guest_name || t('hotel.bookings.walkIn');
   const at = (value: string) => t('hotel.bookingDetails.at', { date: format.date(value), time: format.time(value) });
 
   if (!session?.structureId) return null;

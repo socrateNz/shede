@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireModule } from './auth';
 import { revalidatePath } from 'next/cache';
-import { deductOrderStock, recordStockMovement } from '@/lib/stock';
+import { ACCOMPANIMENT_RECIPE_SELECT, PRODUCT_RECIPE_SELECT, deductOrderStock, isMadeFromRecipe, recordStockMovement } from '@/lib/stock';
 import { buildMeta, fetchAll, pageRange, searchTerm, settlePage, type Paginated } from '@/lib/pagination';
 
 export type StockItemType = 'product' | 'accompaniment' | 'ingredient';
@@ -13,12 +13,12 @@ export async function getStockList() {
   const session = await requireModule('STOCK');
   const admin = getAdminSupabase();
 
-  // 1. Produits
+  // 1. Produits (sans les plats à fiche recette : ce sont leurs ingrédients qui sont suivis)
   // Lectures complètes par tranches : l'API coupe sans erreur au-delà de 1000 lignes.
   const productStocks = await fetchAll<any>((from, to) =>
     admin
       .from('products')
-      .select('id, name, category, stocks(quantity, threshold)')
+      .select(`id, name, category, stocks(quantity, threshold), ${PRODUCT_RECIPE_SELECT}`)
       .eq('structure_id', session.structureId)
       .eq('is_deleted', false)
       .order('name')
@@ -29,7 +29,7 @@ export async function getStockList() {
     return [];
   });
 
-  const productItems = (productStocks || []).map((p: any) => ({
+  const productItems = (productStocks || []).filter((p: any) => !isMadeFromRecipe(p)).map((p: any) => ({
     id: p.id,
     name: p.name,
     category: p.category,
@@ -42,7 +42,7 @@ export async function getStockList() {
   const accompStocks = await fetchAll<any>((from, to) =>
     admin
       .from('accompaniments')
-      .select('id, name, stocks(quantity, threshold)')
+      .select(`id, name, stocks(quantity, threshold), ${ACCOMPANIMENT_RECIPE_SELECT}`)
       .eq('structure_id', session.structureId)
       .eq('is_available', true)
       .eq('is_deleted', false)
@@ -54,7 +54,7 @@ export async function getStockList() {
     return [];
   });
 
-  const accompItems = (accompStocks || []).map((a: any) => ({
+  const accompItems = (accompStocks || []).filter((a: any) => !isMadeFromRecipe(a)).map((a: any) => ({
     id: a.id,
     name: a.name,
     category: null,

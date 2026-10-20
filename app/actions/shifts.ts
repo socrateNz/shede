@@ -46,6 +46,8 @@ async function getShiftTransactions(admin: any, structureId: string, windowStart
   return { orders, bookings, orderRevenue, bookingRevenue, totalDiscounts, totalTax };
 }
 
+const SHIFT_ROLES = ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'CAISSE', 'RECEPTION'];
+
 export async function getActiveShift() {
   const session = await getSession();
   if (!session?.userId) return null;
@@ -69,8 +71,8 @@ export async function openShift(openingBalance: number) {
   const session = await getSession();
   if (!session?.userId || !session?.structureId) return { success: false, error: await te('errors.unauthorized') };
 
-  // Only Admin or Caisse can open a shift
-  if (!['ADMIN', 'SUPER_ADMIN', 'CAISSE'].includes(session.role)) {
+  // Mêmes rôles que le bouton de la barre latérale (canManageShift) : la réception encaisse les séjours
+  if (!SHIFT_ROLES.includes(session.role)) {
     return { success: false, error: await te('errors.openShiftRoles') };
   }
 
@@ -107,8 +109,8 @@ export async function closeShift(actualAmount: number, notes: string) {
   
   if (!session || !activeShift) return { success: false, error: await te('errors.noActiveShift') };
 
-  // Only Admin or Caisse can close a shift
-  if (!['ADMIN', 'SUPER_ADMIN', 'CAISSE'].includes(session.role)) {
+  // Mêmes rôles que pour l’ouverture
+  if (!SHIFT_ROLES.includes(session.role)) {
     return { success: false, error: await te('errors.unauthorized') };
   }
 

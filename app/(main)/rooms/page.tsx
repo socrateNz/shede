@@ -10,7 +10,9 @@ import { requireRole } from '@/app/actions/auth';
 import { getT } from '@/lib/i18n/server';
 
 export default async function RoomsPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string; status?: string }> }) {
-  await requireRole('ADMIN', 'RECEPTION');
+  const session = await requireRole('ADMIN', 'RECEPTION');
+  // La réception consulte les chambres ; seul l'administrateur les crée, modifie et supprime.
+  const canManage = session.role !== 'RECEPTION';
   const { t } = await getT();
   const params = await searchParams;
   // 20 chambres par page ; statistiques calculées en SQL.
@@ -34,12 +36,14 @@ export default async function RoomsPage({ searchParams }: { searchParams: Promis
             </h1>
             <p className="text-slate-400">{t('hotel.rooms.subtitle')}</p>
           </div>
-          <Link href="/rooms/new">
-            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-              <Plus className="w-4 h-4 mr-2" />
-              {t('hotel.rooms.newRoom')}
-            </Button>
-          </Link>
+          {canManage && (
+            <Link href="/rooms/new">
+              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                <Plus className="w-4 h-4 mr-2" />
+                {t('hotel.rooms.newRoom')}
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Stats Cards */}
@@ -109,15 +113,17 @@ export default async function RoomsPage({ searchParams }: { searchParams: Promis
                 </div>
                 <p className="text-lg">{t('hotel.rooms.emptyTitle')}</p>
                 <p className="text-sm mt-2 mb-6">{t('hotel.rooms.emptyText')}</p>
-                <Link href="/rooms/new">
-                  <Button variant="outline" className="border-slate-600 text-blue-400 hover:bg-slate-700 hover:text-blue-300">
-                    <Plus className="w-4 h-4 mr-2" />
-                    {t('hotel.rooms.addRoom')}
-                  </Button>
-                </Link>
+                {canManage && (
+                  <Link href="/rooms/new">
+                    <Button variant="outline" className="border-slate-600 text-blue-400 hover:bg-slate-700 hover:text-blue-300">
+                      <Plus className="w-4 h-4 mr-2" />
+                      {t('hotel.rooms.addRoom')}
+                    </Button>
+                  </Link>
+                )}
               </div>
             ) : (
-              <RoomsList rooms={rooms} meta={meta} />
+              <RoomsList rooms={rooms} meta={meta} canManage={canManage} />
             )}
           </CardContent>
         </Card>

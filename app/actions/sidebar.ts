@@ -2,6 +2,7 @@
 
 import { getSession } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
+import { ACCOMPANIMENT_RECIPE_SELECT, PRODUCT_RECIPE_SELECT, isMadeFromRecipe } from '@/lib/stock';
 
 export type SidebarCounts = {
   /** Nouvelles commandes (PENDING). */
@@ -161,21 +162,23 @@ export async function getSidebarCounts(): Promise<SidebarCounts> {
 }
 
 /**
- * Produits et accompagnements dont le stock est sous le seuil.
+ * Produits et accompagnements dont le stock est sous le seuil (hors fiche recette : leurs
+ * ingrédients sont suivis à leur place).
  * Un article sans ligne dans `stocks` compte comme quantité 0 (sous n'importe quel seuil).
  */
 async function countLowStock(structureId: string) {
   const admin = getAdminSupabase();
   const [{ data: productsData }, { data: accompData }] = await Promise.all([
-    admin.from('products').select('id, stocks(quantity, threshold)').eq('structure_id', structureId).eq('is_deleted', false),
+    admin.from('products').select(`id, stocks(quantity, threshold), ${PRODUCT_RECIPE_SELECT}`).eq('structure_id', structureId).eq('is_deleted', false),
     admin
       .from('accompaniments')
-      .select('id, stocks(quantity, threshold)')
+      .select(`id, stocks(quantity, threshold), ${ACCOMPANIMENT_RECIPE_SELECT}`)
       .eq('structure_id', structureId)
       .eq('is_deleted', false)
       .eq('is_available', true),
   ]);
   return [...(productsData || []), ...(accompData || [])].filter((item: any) => {
+    if (isMadeFromRecipe(item)) return false;
     const stock = item.stocks?.[0];
     return (stock?.quantity ?? 0) <= (stock?.threshold ?? 5);
   }).length;
