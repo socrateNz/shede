@@ -1079,6 +1079,34 @@ BEGIN
   UPDATE promotions p SET used_count = (SELECT count(*) FROM orders o WHERE o.promotion_id = p.id AND o.status = 'COMPLETED') WHERE p.structure_id = c.sid;
 END $$;
 
+-- ── Bon de commande SABC en attente de livraison (la formation le réceptionne) ─
+-- La simulation réceptionne les bons le mercredi : lancée un mercredi ou plus tard, il n'en reste aucun.
+
+DO $$
+DECLARE c demo_ctx%ROWTYPE; v_po uuid; v_lines jsonb;
+BEGIN
+  SELECT * INTO c FROM demo_ctx;
+  IF EXISTS (SELECT 1 FROM purchase_orders WHERE structure_id = c.sid AND supplier_id = pg_temp.sup('sabc') AND status = 'SENT') THEN
+    RETURN;
+  END IF;
+  v_lines := pg_temp.reorder_lines('sabc', 12, 1.2);
+  IF jsonb_array_length(v_lines) = 0 THEN
+    SELECT jsonb_agg(jsonb_build_object('product_id', p.id, 'label', p.name, 'pack_label', p.pack_label, 'pack_size', p.pack_size,
+                                        'quantity', 3, 'unit_price', round(p.cost * p.pack_size)))
+    INTO v_lines FROM demo_prod p WHERE p.sup = 'sabc';
+  END IF;
+  v_po := gen_random_uuid();
+  INSERT INTO purchase_orders (id, structure_id, supplier_id, number, status, expected_date, note, total_ht, created_by, sent_at, created_at, updated_at)
+  VALUES (v_po, c.sid, pg_temp.sup('sabc'), next_purchase_number(c.sid, 'BC'), 'SENT', c.t_end, 'Commande hebdomadaire du bar',
+          (SELECT round(sum((l->>'quantity')::numeric * (l->>'unit_price')::numeric)) FROM jsonb_array_elements(v_lines) l),
+          pg_temp.uid('magasin'), pg_temp.at(c.t_end - 1, 600), pg_temp.at(c.t_end - 1, 590), pg_temp.at(c.t_end - 1, 600));
+  INSERT INTO purchase_order_lines (purchase_order_id, product_id, ingredient_id, supplier_item_id, label, pack_label, pack_size, quantity, unit_price)
+  SELECT v_po, NULLIF(l->>'product_id', '')::uuid, NULL,
+         (SELECT si.id FROM supplier_items si WHERE si.structure_id = c.sid AND si.supplier_id = pg_temp.sup('sabc') AND si.product_id = NULLIF(l->>'product_id', '')::uuid LIMIT 1),
+         l->>'label', l->>'pack_label', (l->>'pack_size')::numeric, (l->>'quantity')::numeric, (l->>'unit_price')::numeric
+  FROM jsonb_array_elements(v_lines) l;
+END $$;
+
 -- ── Commandes en cours (écrans cuisine, bar, caisse au moment de la démo) ────
 
 DO $$
