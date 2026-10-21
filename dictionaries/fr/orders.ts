@@ -91,6 +91,7 @@ const orders = {
     discountReason: 'Raison de la remise',
     discountReasonPlaceholder: 'Ex : geste commercial',
     catalogue: 'Catalogue des produits',
+    details: 'Informations',
     moreOptions: 'Plus d’options',
     moreOptionsHint: 'chambre, table libre, notes, promotion, pourboire, remise',
     searchProduct: 'Rechercher un produit…',

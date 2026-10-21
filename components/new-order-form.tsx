@@ -247,187 +247,188 @@ export function NewOrderForm({
         <CardTitle className="text-slate-50">{t('orders.create.title')}</CardTitle>
       </CardHeader>
       <CardContent>
-        <form action={formAction} className="space-y-4">
-          {/* L'essentiel sur une ligne ; le reste dans « Plus d'options » pour laisser la place au catalogue */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="space-y-1">
-              <label className={labelClass}>{t('orders.create.crmClient')}</label>
-              <select name="clientId" className={selectClass}>
-                <option value="">{t('orders.create.selectClient')}</option>
-                {clients.map(c => (
-                  <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className={labelClass}>{t('orders.create.phone')}</label>
-              <Input
-                type="tel"
-                name="phone"
-                placeholder={t('orders.create.phonePlaceholder')}
-                className={inputClass}
-              />
-            </div>
-            <div className="space-y-1">
-              <label className={labelClass}>{t('orders.create.table')}</label>
-              <select name="tableId" className={selectClass}>
-                <option value="">{t('orders.create.selectTable')}</option>
-                {tables.map((table) => (
-                  <option key={table.id} value={table.id}>{table.name} ({table.floor_name})</option>
-                ))}
-              </select>
-            </div>
-            {deliveryZones.length > 0 && (
-              <label className="flex items-center gap-2 self-end h-9 rounded-md border border-slate-600 px-3 text-sm text-slate-200 cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="isDelivery"
-                  value="true"
-                  checked={isDelivery}
-                  onChange={(e) => setIsDelivery(e.target.checked)}
-                  className="h-4 w-4"
+        {/* Trois colonnes : informations à gauche, catalogue au milieu, panier à droite (empilés sur téléphone) */}
+        <form action={formAction} className="grid grid-cols-1 lg:grid-cols-[17rem_minmax(0,1fr)_21rem] gap-4 items-start">
+          <section className="space-y-3 rounded-lg border border-slate-700 bg-slate-800/50 p-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600">
+            <p className="text-slate-100 font-medium">{t('orders.create.details')}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
+              <div className="space-y-1">
+                <label className={labelClass}>{t('orders.create.crmClient')}</label>
+                <select name="clientId" className={selectClass}>
+                  <option value="">{t('orders.create.selectClient')}</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className={labelClass}>{t('orders.create.phone')}</label>
+                <Input
+                  type="tel"
+                  name="phone"
+                  placeholder={t('orders.create.phonePlaceholder')}
+                  className={inputClass}
                 />
-                <span className="truncate" title={t('orders.create.isDelivery')}>{t('orders.create.isDeliveryShort')}</span>
-              </label>
+              </div>
+              <div className="space-y-1">
+                <label className={labelClass}>{t('orders.create.table')}</label>
+                <select name="tableId" className={selectClass}>
+                  <option value="">{t('orders.create.selectTable')}</option>
+                  {tables.map((table) => (
+                    <option key={table.id} value={table.id}>{table.name} ({table.floor_name})</option>
+                  ))}
+                </select>
+              </div>
+              {deliveryZones.length > 0 && (
+                <label className="flex items-center gap-2 sm:self-end lg:self-auto h-9 rounded-md border border-slate-600 px-3 text-sm text-slate-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="isDelivery"
+                    value="true"
+                    checked={isDelivery}
+                    onChange={(e) => setIsDelivery(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  <span className="truncate" title={t('orders.create.isDelivery')}>{t('orders.create.isDeliveryShort')}</span>
+                </label>
+              )}
+            </div>
+
+            {deliveryZones.length > 0 && isDelivery && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-3 rounded-lg border border-slate-600 p-3">
+                <div className="space-y-1">
+                  <label htmlFor="deliveryZoneId" className={labelClass}>{t('orders.create.zone')}</label>
+                  <select id="deliveryZoneId" name="deliveryZoneId" required className={selectClass}>
+                    <option value="">{t('orders.create.selectZone')}</option>
+                    {deliveryZones.map((z) => (
+                      <option key={z.id} value={z.id}>
+                        {z.name} — {format.money(z.fee)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="deliveryDistrict" className={labelClass}>{t('orders.create.district')}</label>
+                  <Input
+                    id="deliveryDistrict"
+                    name="deliveryDistrict"
+                    placeholder={t('orders.create.districtPlaceholder')}
+                    className={inputClass}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="deliveryLandmark" className={labelClass}>{t('orders.create.landmark')}</label>
+                  <Input
+                    id="deliveryLandmark"
+                    name="deliveryLandmark"
+                    required
+                    placeholder={t('orders.create.landmarkPlaceholder')}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
             )}
-          </div>
 
-          {deliveryZones.length > 0 && isDelivery && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 rounded-lg border border-slate-600 p-3">
-              <div className="space-y-1">
-                <label htmlFor="deliveryZoneId" className={labelClass}>{t('orders.create.zone')}</label>
-                <select id="deliveryZoneId" name="deliveryZoneId" required className={selectClass}>
-                  <option value="">{t('orders.create.selectZone')}</option>
-                  {deliveryZones.map((z) => (
-                    <option key={z.id} value={z.id}>
-                      {z.name} — {format.money(z.fee)}
-                    </option>
-                  ))}
-                </select>
+            {/* Champs occasionnels : repliés par défaut (ils restent envoyés avec le formulaire) */}
+            <details className="group rounded-lg border border-slate-700">
+              <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-slate-50">
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" />
+                <span className="font-medium">{t('orders.create.moreOptions')}</span>
+                <span className="truncate text-xs text-slate-500 lg:hidden">{t('orders.create.moreOptionsHint')}</span>
+              </summary>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 border-t border-slate-700 p-3">
+                <div className="space-y-1">
+                  <label className={labelClass}>{t('orders.create.room')}</label>
+                  <select name="roomId" className={selectClass}>
+                    <option value="">{t('orders.create.selectRoom')}</option>
+                    {rooms.map(room => (
+                      <option key={room.id} value={room.id}>{t('orders.create.roomOption', { number: room.number })}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className={labelClass}>{t('orders.create.freeTable')}</label>
+                  <Input
+                    type="number"
+                    name="tableNumber"
+                    placeholder={t('orders.create.freeTablePlaceholder')}
+                    className={inputClass}
+                  />
+                </div>
+                <div className="space-y-1 sm:col-span-2 lg:col-span-1">
+                  <label className={labelClass}>{t('orders.create.notes')}</label>
+                  <Input
+                    type="text"
+                    name="notes"
+                    placeholder={t('orders.create.notesPlaceholder')}
+                    className={inputClass}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className={labelClass}>{t('orders.create.manualPromo')}</label>
+                  <select
+                    className={selectClass}
+                    value={selectedPromotionId}
+                    onChange={(e) => {
+                      setSelectedPromotionId(e.target.value);
+                      if (e.target.value) setPromoCode(''); // Clear code if manual selected
+                    }}
+                    name="promotionId"
+                  >
+                    <option value="">{t('orders.create.noPromo')}</option>
+                    {promotions.map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.type === 'PERCENTAGE' ? `${p.value} %` : format.money(p.value)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className={labelClass}>{t('orders.create.promoCode')}</label>
+                  <Input
+                    placeholder={t('orders.create.promoCodePlaceholder')}
+                    value={promoCode}
+                    onChange={(e) => {
+                      setPromoCode(e.target.value.toUpperCase());
+                      if (e.target.value) setSelectedPromotionId(''); // Clear manual if code entered
+                    }}
+                    name="promoCode"
+                    className={`${inputClass} uppercase font-mono`}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-amber-400">{t('orders.create.tip')}</label>
+                  <Input
+                    type="number"
+                    name="tipAmount"
+                    defaultValue={0}
+                    min={0}
+                    className="h-9 bg-slate-700 border-amber-500/50 text-slate-50 focus:border-amber-400"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-red-400">{t('orders.create.manualDiscount')}</label>
+                  <Input
+                    type="number"
+                    name="discountAmount"
+                    defaultValue={0}
+                    min={0}
+                    className="h-9 bg-slate-700 border-red-500/50 text-slate-50 focus:border-red-400"
+                  />
+                </div>
+                <div className="space-y-1 sm:col-span-2 lg:col-span-1">
+                  <label className="text-xs font-medium text-red-400">{t('orders.create.discountReason')}</label>
+                  <Input
+                    type="text"
+                    name="discountReason"
+                    placeholder={t('orders.create.discountReasonPlaceholder')}
+                    className="h-9 bg-slate-700 border-red-500/50 text-slate-50 focus:border-red-400"
+                  />
+                </div>
               </div>
-              <div className="space-y-1">
-                <label htmlFor="deliveryDistrict" className={labelClass}>{t('orders.create.district')}</label>
-                <Input
-                  id="deliveryDistrict"
-                  name="deliveryDistrict"
-                  placeholder={t('orders.create.districtPlaceholder')}
-                  className={inputClass}
-                />
-              </div>
-              <div className="space-y-1">
-                <label htmlFor="deliveryLandmark" className={labelClass}>{t('orders.create.landmark')}</label>
-                <Input
-                  id="deliveryLandmark"
-                  name="deliveryLandmark"
-                  required
-                  placeholder={t('orders.create.landmarkPlaceholder')}
-                  className={inputClass}
-                />
-              </div>
-            </div>
-          )}
+            </details>
+          </section>
 
-          {/* Champs occasionnels : repliés par défaut (ils restent envoyés avec le formulaire) */}
-          <details className="group rounded-lg border border-slate-700">
-            <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-slate-50">
-              <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" />
-              <span className="font-medium">{t('orders.create.moreOptions')}</span>
-              <span className="truncate text-xs text-slate-500">{t('orders.create.moreOptionsHint')}</span>
-            </summary>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 border-t border-slate-700 p-3">
-              <div className="space-y-1">
-                <label className={labelClass}>{t('orders.create.room')}</label>
-                <select name="roomId" className={selectClass}>
-                  <option value="">{t('orders.create.selectRoom')}</option>
-                  {rooms.map(room => (
-                    <option key={room.id} value={room.id}>{t('orders.create.roomOption', { number: room.number })}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className={labelClass}>{t('orders.create.freeTable')}</label>
-                <Input
-                  type="number"
-                  name="tableNumber"
-                  placeholder={t('orders.create.freeTablePlaceholder')}
-                  className={inputClass}
-                />
-              </div>
-              <div className="space-y-1 sm:col-span-2">
-                <label className={labelClass}>{t('orders.create.notes')}</label>
-                <Input
-                  type="text"
-                  name="notes"
-                  placeholder={t('orders.create.notesPlaceholder')}
-                  className={inputClass}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className={labelClass}>{t('orders.create.manualPromo')}</label>
-                <select
-                  className={selectClass}
-                  value={selectedPromotionId}
-                  onChange={(e) => {
-                    setSelectedPromotionId(e.target.value);
-                    if (e.target.value) setPromoCode(''); // Clear code if manual selected
-                  }}
-                  name="promotionId"
-                >
-                  <option value="">{t('orders.create.noPromo')}</option>
-                  {promotions.map((p: any) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.type === 'PERCENTAGE' ? `${p.value} %` : format.money(p.value)})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className={labelClass}>{t('orders.create.promoCode')}</label>
-                <Input
-                  placeholder={t('orders.create.promoCodePlaceholder')}
-                  value={promoCode}
-                  onChange={(e) => {
-                    setPromoCode(e.target.value.toUpperCase());
-                    if (e.target.value) setSelectedPromotionId(''); // Clear manual if code entered
-                  }}
-                  name="promoCode"
-                  className={`${inputClass} uppercase font-mono`}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-amber-400">{t('orders.create.tip')}</label>
-                <Input
-                  type="number"
-                  name="tipAmount"
-                  defaultValue={0}
-                  min={0}
-                  className="h-9 bg-slate-700 border-amber-500/50 text-slate-50 focus:border-amber-400"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-red-400">{t('orders.create.manualDiscount')}</label>
-                <Input
-                  type="number"
-                  name="discountAmount"
-                  defaultValue={0}
-                  min={0}
-                  className="h-9 bg-slate-700 border-red-500/50 text-slate-50 focus:border-red-400"
-                />
-              </div>
-              <div className="space-y-1 sm:col-span-2 lg:col-span-4">
-                <label className="text-xs font-medium text-red-400">{t('orders.create.discountReason')}</label>
-                <Input
-                  type="text"
-                  name="discountReason"
-                  placeholder={t('orders.create.discountReasonPlaceholder')}
-                  className="h-9 bg-slate-700 border-red-500/50 text-slate-50 focus:border-red-400"
-                />
-              </div>
-            </div>
-          </details>
-
-          {/* Catalogue à gauche, panier fixé à droite (sous le catalogue sur téléphone) */}
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_22rem] gap-4 items-start">
             <div className="rounded-lg border border-slate-700 p-4 space-y-3 bg-slate-800/50 min-w-0">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <p className="text-slate-100 font-medium shrink-0">{t('orders.create.catalogue')}</p>
@@ -463,7 +464,7 @@ export function NewOrderForm({
               {visibleProducts.length === 0 && search.trim() ? (
                 <p className="py-8 text-center text-sm text-slate-400">{t('orders.create.noProductFound', { query: search.trim() })}</p>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 max-h-130 lg:max-h-[calc(100vh-17rem)] overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-slate-600">
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 max-h-130 lg:max-h-[calc(100vh-15rem)] overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-slate-600">
                   {visibleProducts.map((product) => {
                     const out = product.stock === 0;
                     const inCart = items.find((i) => i.productId === product.id)?.quantity ?? 0;
@@ -476,7 +477,7 @@ export function NewOrderForm({
                       disabled={out || maxed}
                       aria-label={out ? `${product.name} — ${t('common.stock.outLong')}` : undefined}
                       title={out ? t('common.stock.outLong') : maxed ? t('common.stock.maxReached', { count: product.stock! }) : undefined}
-                      className={`relative text-left border rounded-xl overflow-hidden transition-all bg-slate-900 group ${
+                      className={`relative flex flex-col justify-start text-left border rounded-xl overflow-hidden transition-all bg-slate-900 group ${
                         out
                           ? 'cursor-not-allowed border-slate-800 opacity-50 grayscale'
                           : maxed
@@ -491,7 +492,7 @@ export function NewOrderForm({
                           {inCart}
                         </span>
                       )}
-                      <div className="h-24 relative bg-slate-800/50">
+                      <div className="h-24 w-full shrink-0 relative bg-slate-800/50">
                         {out && (
                           <span className="absolute left-2 top-2 z-10 rounded-md bg-red-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white shadow">
                             {t('common.stock.out')}
@@ -511,7 +512,7 @@ export function NewOrderForm({
                         )}
                       </div>
                       <div className="p-2.5">
-                        <p className="text-sm font-semibold text-slate-200 truncate" title={product.name}>
+                        <p className="text-sm font-semibold leading-snug text-slate-200 line-clamp-2 min-h-[2.5em]" title={product.name}>
                           {product.name}
                         </p>
                         <p className="text-xs text-blue-400 font-medium mt-0.5">
@@ -686,7 +687,6 @@ export function NewOrderForm({
                 </Link>
               </div>
             </aside>
-          </div>
         </form>
       </CardContent>
     </Card>

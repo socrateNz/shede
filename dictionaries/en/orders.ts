@@ -92,6 +92,7 @@ const orders: typeof fr = {
     discountReason: 'Discount reason',
     discountReasonPlaceholder: 'e.g. goodwill gesture',
     catalogue: 'Product catalogue',
+    details: 'Details',
     moreOptions: 'More options',
     moreOptionsHint: 'room, free table, notes, promotion, tip, discount',
     searchProduct: 'Search a product…',
