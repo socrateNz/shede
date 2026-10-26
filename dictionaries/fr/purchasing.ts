@@ -198,7 +198,7 @@ const purchasing = {
     expected: 'Livraison souhaitée : {date}.',
     contact: 'Contact : {point} — {phone} — {address}',
     total: 'Total HT',
-    footer: 'Bon de commande envoyé avec Shede.',
+    footer: 'Bon de commande envoyé avec Tavola.',
   },
   errors: {
     supplierNameRequired: 'Saisissez le nom du fournisseur.',

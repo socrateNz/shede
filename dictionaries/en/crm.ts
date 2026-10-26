@@ -2,9 +2,9 @@ import type fr from '../fr/crm';
 
 const crm: typeof fr = {
   meta: {
-    listTitle: 'Customers — Shede',
+    listTitle: 'Customers — Tavola',
     listDescription: 'Manage your customers (CRM)',
-    detailTitle: 'Customer profile — Shede',
+    detailTitle: 'Customer profile — Tavola',
     detailDescription: 'Customer details',
   },
   list: {

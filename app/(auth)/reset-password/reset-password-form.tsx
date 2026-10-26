@@ -48,7 +48,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
       <Button
         type="submit"
         disabled={isPending}
-        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-5 rounded-xl disabled:opacity-50"
+        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-5 rounded-xl disabled:opacity-50"
       >
         {isPending ? t('auth.reset.submitting') : t('auth.reset.submit')}
       </Button>

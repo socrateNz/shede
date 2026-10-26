@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { TavolaLogo } from '@/components/brand/tavola-logo';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import {
   ArrowRight,
@@ -54,13 +55,12 @@ export default async function HomePage() {
   ];
 
   return (
-    <main className={`${jakarta.className} min-h-screen bg-slate-50 text-slate-900 antialiased`}>
+    <main className={`${jakarta.className} tavola-marque min-h-screen bg-slate-50 text-slate-900 antialiased`}>
       {/* Navigation */}
       <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/70 bg-white/80 backdrop-blur-xl">
         <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-violet-600">
-            <img src="/logo.webp" alt="" width={32} height={32} className="h-8 w-8 rounded-lg ring-2 ring-violet-600" />
-            <span className="text-xl font-extrabold tracking-tight">Shede</span>
+            <TavolaLogo tone="light" size={30} />
           </Link>
 
           <div className="hidden items-center gap-1 lg:flex">
@@ -162,7 +162,7 @@ function Hero({ t }: { t: T }) {
         <div>
           <h1 className="landing-rise text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl [animation-delay:80ms]">
             <span className="block">{t('landing.hero.titleBefore')}</span>
-            <span className="block bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">{t('landing.hero.titleMiddle')}</span>
+            <span className="block bg-gradient-to-r from-violet-700 to-violet-400 bg-clip-text text-transparent">{t('landing.hero.titleMiddle')}</span>
             <span className="block">{t('landing.hero.titleAfter')}</span>
           </h1>
           <p className="landing-rise mt-6 max-w-xl text-pretty text-lg leading-relaxed text-slate-600 [animation-delay:160ms]">{t('landing.hero.text')}</p>
@@ -221,7 +221,7 @@ function HeroMockup({ t }: { t: T }) {
           <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
           <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
           <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-          <span className="ml-3 rounded-md bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200">shede.app/forecasts</span>
+          <span className="ml-3 rounded-md bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200">Tavola · /forecasts</span>
         </div>
 
         <div className="p-5 sm:p-6">
@@ -645,8 +645,7 @@ function Footer({ t }: { t: T }) {
         <div className="mb-12 grid gap-10 sm:grid-cols-2 md:grid-cols-4">
           <div>
             <div className="mb-4 flex items-center gap-2.5">
-              <img src="/logo.webp" alt="" width={32} height={32} className="h-8 w-8 rounded-lg ring-2 ring-violet-500" />
-              <span className="text-xl font-extrabold text-white">Shede</span>
+              <TavolaLogo tone="dark" size={30} />
             </div>
             <p className="text-sm leading-relaxed">{t('landing.footer.tagline')}</p>
           </div>

@@ -168,7 +168,7 @@ export default async function EditOrganizationPage({
               <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-slate-700">
                 <Button
                   type="submit"
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 font-semibold"
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 font-semibold"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {t('business.edit.saveChanges')}

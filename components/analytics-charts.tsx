@@ -173,7 +173,7 @@ export function AnalyticsCharts({
                       borderRadius: '6px',
                     }}
                   />
-                  <Bar dataKey="count" name={t('analytics.charts.count')} fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="count" name={t('analytics.charts.count')} fill="var(--color-blue-500)" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TavolaLogo } from "@/components/brand/tavola-logo";
 import { CartBadge } from "@/components/cart-badge";
 import { ClientLogout } from "@/components/client-logout";
 import { getSession } from "@/lib/auth";
@@ -12,20 +13,14 @@ export default async function ClientLayout({ children }: { children: React.React
   const { t } = await getT();
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col overflow-y-auto selection:bg-blue-200">
+    <div className="tavola-marque min-h-screen bg-slate-50 flex flex-col overflow-y-auto selection:bg-blue-200">
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-2xl border-b border-slate-200/60 px-4 lg:px-8 h-20 flex items-center justify-between transition-all duration-300 shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
         {/* Logo avec effet moderne */}
         <Link
           href="/"
           className="group flex items-center gap-3 px-2 py-2 rounded-2xl transition-all duration-300 hover:bg-slate-50"
         >
-          <div className="relative">
-            <img src="/logo.webp" alt="Shede" className="w-10 h-10 rounded-xl shadow-sm transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-3" />
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          </div>
-          <h1 className="text-2xl font-black bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent tracking-tight group-hover:from-blue-700 group-hover:to-purple-700 transition-all duration-500">
-            Shede
-          </h1>
+          <TavolaLogo tone="light" size={32} />
         </Link>
 
         {/* Actions principales */}

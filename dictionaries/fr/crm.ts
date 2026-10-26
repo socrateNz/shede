@@ -1,9 +1,9 @@
 /** CRM : fichier clients d'un point. */
 const crm = {
   meta: {
-    listTitle: 'Clients — Shede',
+    listTitle: 'Clients — Tavola',
     listDescription: 'Gestion de vos clients (CRM)',
-    detailTitle: 'Fiche client — Shede',
+    detailTitle: 'Fiche client — Tavola',
     detailDescription: 'Détails du client',
   },
   list: {

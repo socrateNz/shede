@@ -1,7 +1,7 @@
 /** Livraisons : tableau des courses et zones tarifaires (back-office). */
 const delivery = {
   meta: {
-    title: 'Livraisons — Shede',
+    title: 'Livraisons — Tavola',
     description: 'Suivi des livraisons',
   },
   status: {

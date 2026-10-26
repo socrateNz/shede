@@ -16,7 +16,7 @@ const client = {
     MIXTE: 'Hôtel & Restaurant',
   },
   home: {
-    welcome: 'Bienvenue sur Shede',
+    welcome: 'Bienvenue sur Tavola',
     heroLine1: 'Commandez chez vos',
     heroLine2: 'établissements préférés',
     heroText: 'Découvrez une sélection d’établissements de qualité et profitez d’offres exclusives',
@@ -35,7 +35,7 @@ const client = {
     noneTitle: 'Aucun établissement disponible',
     noneText: 'Revenez bientôt, de nouveaux établissements arrivent !',
     weeklyTitle: 'Nouveautés chaque semaine',
-    weeklyText: 'De nouveaux établissements rejoignent Shede régulièrement. Restez connecté !',
+    weeklyText: 'De nouveaux établissements rejoignent Tavola régulièrement. Restez connecté !',
   },
   dashboard: {
     hello: 'Bonjour,',

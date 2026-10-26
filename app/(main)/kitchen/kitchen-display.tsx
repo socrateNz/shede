@@ -282,7 +282,7 @@ export function KitchenDisplay({ initialOrders, structureId }: KitchenDisplayPro
             {/* Colonne IN_PROGRESS */}
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6] animate-pulse" />
+                <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_var(--color-blue-500)] animate-pulse" />
                 <h2 className="text-sm font-bold text-blue-400 uppercase tracking-wider">
                   {t('displays.kitchen.inProgressColumn', { count: inProgress.length })}
                 </h2>

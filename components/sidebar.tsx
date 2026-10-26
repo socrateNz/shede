@@ -41,6 +41,7 @@ import { ShiftStatusIndicator } from './shift-status-indicator';
 import { InstallAppButton } from './install-app-button';
 import { logout } from '@/app/actions/auth';
 import { cn } from '@/lib/utils';
+import { TavolaLogo } from '@/components/brand/tavola-logo';
 import { Structure } from '@/lib/supabase';
 import { useState, useEffect, useCallback } from 'react';
 import { useLiveRefresh } from '@/components/displays/use-live-refresh';
@@ -277,8 +278,7 @@ export function Sidebar({ session, structure, mobileOpen = false, onMobileClose 
       {/* Logo */}
       <div className="p-6 border-b border-slate-700">
         <Link href={homeHref} className="flex items-center gap-2">
-          <img src="/logo.webp" alt="Shede" className="w-8 h-8 rounded-lg" />
-          <h1 className="text-xl font-bold text-slate-50">Shede</h1>
+          <TavolaLogo size={30} />
         </Link>
       </div>
 

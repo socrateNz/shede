@@ -113,7 +113,7 @@ export function UsersList({ users, meta }: UsersListProps) {
               >
                 <TableCell className="text-slate-50 font-medium">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/20 flex items-center justify-center">
                       <span className="text-sm font-bold text-blue-400">
                         {getInitials(user.first_name!, user.last_name!)}
                       </span>

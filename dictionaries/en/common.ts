@@ -63,7 +63,7 @@ const common: typeof fr = {
   error: 'Error',
   genericError: 'Something went wrong. Please try again.',
   unauthorized: 'Access denied',
-  copyright: '© {year} Shede — All rights reserved',
+  copyright: '© {year} Tavola by Tacynt — All rights reserved',
   paymentMethods: {
     CASH: 'Cash',
     CARD: 'Bank card',
@@ -93,7 +93,7 @@ const common: typeof fr = {
     installed: 'App installed',
     iosHint: 'On iPhone: tap Share, then “Add to Home Screen”.',
     offlineTitle: 'No connection',
-    offlineText: 'Shede cannot reach the server. Check Wi-Fi or mobile data, then try again.',
+    offlineText: 'Tavola cannot reach the server. Check Wi-Fi or mobile data, then try again.',
     retry: 'Try again',
   },
 };

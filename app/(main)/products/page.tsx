@@ -52,7 +52,7 @@ export default async function ProductsPage({
           </div>
 
           <Link href="/products/new">
-            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-300 transform hover:scale-105 border-none">
+            <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-300 transform hover:scale-105 border-none">
               <Plus className="w-4 h-4 mr-2" />
               {t('products.list.newProduct')}
             </Button>
@@ -116,7 +116,7 @@ export default async function ProductsPage({
 
         {/* Main Content Card */}
         <Card className="bg-slate-800/40 backdrop-blur-md border-slate-700/50 shadow-2xl overflow-hidden rounded-2xl">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-blue-500/5 pointer-events-none" />
           <CardHeader className="border-b border-slate-700/50 bg-slate-800/40 px-6 py-5">
             <div className="flex items-center justify-between">
               <CardTitle className="text-slate-50 flex items-center gap-3 text-xl">
@@ -156,7 +156,7 @@ export default async function ProductsPage({
         <div className="mt-8 flex flex-col items-center gap-2">
           <div className="h-px w-24 bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
           <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-medium">
-            Shede SaaS v2.0 - Gestion d'Inventaire
+            Tavola by Tacynt
           </p>
         </div>
       </div>

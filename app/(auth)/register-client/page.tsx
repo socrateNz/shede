@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useActionState, useEffect } from 'react';
 import Link from 'next/link';
+import { TavolaLogo } from '@/components/brand/tavola-logo';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -38,7 +39,7 @@ export default function RegisterClientPage() {
   }, [state.success, router]);
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-2">
+    <div className="tavola-marque min-h-screen lg:grid lg:grid-cols-2">
       {/* Panneau branding */}
       <div className="relative hidden overflow-hidden bg-gradient-to-br from-purple-700 via-purple-600 to-violet-800 lg:flex lg:flex-col lg:justify-between">
         <div className="pointer-events-none absolute inset-0">
@@ -57,11 +58,8 @@ export default function RegisterClientPage() {
           </Link>
 
           <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 shadow-lg backdrop-blur-sm">
-              <img src="/logo.webp" alt="Shede" className="h-8 w-8 rounded-lg" />
-            </div>
+            <TavolaLogo tone="dark" size={34} withSignature={false} />
             <div>
-              <p className="text-lg font-bold text-white">Shede</p>
               <p className="text-sm text-purple-100/80">{t('auth.registerClient.clientSpace')}</p>
             </div>
           </div>
@@ -231,7 +229,7 @@ export default function RegisterClientPage() {
               <Button
                 type="submit"
                 disabled={isPending}
-                className="h-12 w-full cursor-pointer rounded-xl bg-gradient-to-r from-purple-600 to-violet-600 text-base font-semibold text-white shadow-lg shadow-purple-500/25 transition-all hover:from-purple-700 hover:to-violet-700 hover:shadow-xl hover:shadow-purple-500/30 disabled:opacity-60"
+                className="h-12 w-full cursor-pointer rounded-xl bg-gradient-to-r from-blue-700 to-violet-600 text-base font-semibold text-white shadow-lg shadow-purple-500/25 transition-all hover:from-blue-800 hover:to-violet-700 hover:shadow-xl hover:shadow-purple-500/30 disabled:opacity-60"
               >
                 {isPending ? (
                   <span className="flex items-center justify-center gap-2">

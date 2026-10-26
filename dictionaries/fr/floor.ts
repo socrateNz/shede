@@ -1,7 +1,7 @@
 /** Plan de salle : salles, tables et QR codes. */
 const floor = {
   meta: {
-    title: 'Plan de salle — Shede',
+    title: 'Plan de salle — Tavola',
     description: 'Gestion interactive des tables',
   },
   shapes: {

@@ -156,7 +156,7 @@ export function PointForm({
         <Button
           type="submit"
           disabled={isPending}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 font-semibold disabled:opacity-50"
+          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 font-semibold disabled:opacity-50"
         >
           <Save className="w-4 h-4 mr-2" />
           {isPending ? t('org.pointForm.saving') : submitLabel}

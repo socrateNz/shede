@@ -144,10 +144,10 @@ export default function AccompanimentsPage() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Creation Form */}
           <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-xl h-fit overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/5 opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
             <CardHeader className="border-b border-slate-700/50">
               <CardTitle className="text-slate-50 flex items-center gap-2">
-                <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                <div className="p-1.5 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg">
                   <Plus className="w-4 h-4 text-white" />
                 </div>
                 {t('products.accompaniments.newTitle')}
@@ -194,7 +194,7 @@ export default function AccompanimentsPage() {
                 <Button
                   type="submit"
                   disabled={isPending}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
                 >
                   {isPending ? (
                     <div className="flex items-center gap-2">

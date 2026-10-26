@@ -1,7 +1,7 @@
 /** Comptabilité SYSCOHADA. */
 const accounting = {
   meta: {
-    title: 'Comptabilité — Shede',
+    title: 'Comptabilité — Tavola',
     description: 'Comptabilité SYSCOHADA du point de vente',
   },
   nav: {
@@ -279,7 +279,7 @@ const accounting = {
     equityResult: 'Résultat de l’exercice (non affecté)',
     totalAssets: 'Total actif',
     totalLiabilities: 'Total passif',
-    note: 'Bilan simplifié établi à partir des écritures enregistrées dans Shede. Saisissez les soldes d’ouverture (capital, immobilisations, emprunts…) au journal des à-nouveaux pour un bilan complet.',
+    note: 'Bilan simplifié établi à partir des écritures enregistrées dans Tavola. Saisissez les soldes d’ouverture (capital, immobilisations, emprunts…) au journal des à-nouveaux pour un bilan complet.',
     exportFile: 'etats-financiers_{from}_{to}',
   },
   vat: {

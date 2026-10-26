@@ -1,4 +1,6 @@
-// Service worker de Shede : notifications push, application installable (PWA) et hors ligne.
+// Service worker de Tavola : notifications push, application installable (PWA) et hors ligne.
+// Les noms de caches « shede-… » et le message « shede:refresh » sont gardés : les changer
+// viderait les caches des téléphones déjà installés sans rien apporter à l'utilisateur.
 // Le mise en cache n'est active que si la page l'a demandé (?cache=1, en production) :
 // en développement, les fichiers changent sans changer d'adresse.
 // Les pages du back-office ne sont jamais gardées (données sensibles) : sans réseau, on affiche /offline.

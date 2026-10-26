@@ -16,7 +16,7 @@ const landing: typeof fr = {
     titleBefore: 'Sell.',
     titleMiddle: 'Anticipate.',
     titleAfter: 'Manage.',
-    text: 'Shede brings point of sale, kitchen, hotel, stock, supplier purchasing, forecasts and accounting into a single app, for one venue or a whole chain.',
+    text: 'Tavola brings point of sale, kitchen, hotel, stock, supplier purchasing, forecasts and accounting into a single app, for one venue or a whole chain.',
     cta: 'Set up my business',
     ctaSecondary: 'Talk to an expert',
     chipSyscohada: 'SYSCOHADA accounting',
@@ -88,7 +88,7 @@ const landing: typeof fr = {
   anticipate: {
     titleBefore: 'Anticipate instead of',
     highlight: 'reacting',
-    text: 'Shede no longer just records your sales: it tells you what to order and what to prep, then checks what really happened.',
+    text: 'Tavola no longer just records your sales: it tells you what to order and what to prep, then checks what really happened.',
     step1Title: 'Forecast',
     step1Text: 'Daily sales, product by product, from your history, public holidays and your events.',
     step2Title: 'Order',
@@ -145,10 +145,10 @@ const landing: typeof fr = {
   },
   cta: {
     title: 'Ready to switch to a single app?',
-    text: 'We show you Shede with your own products and help you get up and running.',
+    text: 'We show you Tavola with your own products and help you get up and running.',
     start: 'Set up my business',
     demo: 'Request a demo on WhatsApp',
-    demoMessage: 'Hello, I would like a demo of Shede for my business.',
+    demoMessage: 'Hello, I would like a demo of Tavola for my business.',
   },
   footer: {
     tagline: 'The all-in-one platform for restaurants and hotels.',
@@ -160,7 +160,7 @@ const landing: typeof fr = {
     docs: 'Documentation',
     api: 'Marketplace API',
     contact: 'Contact',
-    rights: '© {year} Shede Tech. All rights reserved.',
+    rights: '© {year} Tacynt. All rights reserved.',
     designBy: 'Design by',
   },
 };

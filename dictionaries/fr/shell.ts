@@ -1,8 +1,8 @@
 /** Métadonnées, rôles, navigation et pages système. */
 const shell = {
   meta: {
-    title: 'Shede — Gestion de restaurants et d’hôtels',
-    description: 'Caisse, commandes, stock, hôtel et livraison pour les établissements au Cameroun.',
+    title: 'Tavola — Gestion de restaurants et d’hôtels',
+    description: 'L’art de gérer l’art de recevoir. Caisse, cuisine, stock, hôtel et comptabilité pour restaurants, bars, hôtels et cafés.',
   },
   roles: {
     SUPER_ADMIN: 'Super admin',

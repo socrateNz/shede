@@ -88,7 +88,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
             <p className="text-slate-400">{t('hotel.bookings.subtitle')}</p>
           </div>
           <Link href="/bookings/new">
-            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
               <Plus className="w-4 h-4 mr-2" />
               {t('hotel.bookings.newBooking')}
             </Button>

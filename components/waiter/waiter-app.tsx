@@ -39,7 +39,7 @@ type Active = {
   queuedRef?: string;
 };
 
-const ACCENT = '#6d28d9';
+const ACCENT = '#8a6b36';
 const REFRESH_MS = 10_000;
 
 /** Identifiant d'envoi : randomUUID n'existe qu'en HTTPS, d'où le repli (réseau local en http). */
@@ -488,7 +488,7 @@ export function WaiterApp({
                 title={alerts === 'granted' ? t('waiter.alerts.turnOff') : t('waiter.alerts.turnOn')}
                 className={cn(
                   'relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full border transition-colors disabled:opacity-60',
-                  alerts === 'granted' ? 'border-[#4c1d95] bg-[#4c1d95] text-white' : 'border-[#e7e5df] bg-white text-[#5b5e66]'
+                  alerts === 'granted' ? 'border-[#7a5e2c] bg-[#7a5e2c] text-white' : 'border-[#e7e5df] bg-white text-[#5b5e66]'
                 )}
               >
                 {alertsBusy ? (
@@ -507,7 +507,7 @@ export function WaiterApp({
                     type="submit"
                     aria-label={t('waiter.pin.switch')}
                     title={t('waiter.pin.switch')}
-                    className="flex h-12 items-center gap-2 rounded-full bg-[#ede9fe] pl-1.5 pr-3 text-sm font-bold text-[#4c1d95]"
+                    className="flex h-12 items-center gap-2 rounded-full bg-[#f1e7d3] pl-1.5 pr-3 text-sm font-bold text-[#7a5e2c]"
                   >
                     <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-base font-extrabold">{me.initials}</span>
                     <LogOut className="h-4 w-4" aria-hidden />
@@ -517,7 +517,7 @@ export function WaiterApp({
                 <Link
                   href="/dashboard"
                   aria-label={t('waiter.nav.backOffice')}
-                  className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ede9fe] text-base font-extrabold text-[#4c1d95]"
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f1e7d3] text-base font-extrabold text-[#7a5e2c]"
                 >
                   {me.initials}
                 </Link>
@@ -539,10 +539,10 @@ export function WaiterApp({
             </div>
           )}
           {alerts === 'default' && (
-            <div className="mx-4 mt-3 flex items-center gap-3 rounded-2xl bg-[#ede9fe] px-4 py-3 text-sm font-semibold text-[#4c1d95]">
+            <div className="mx-4 mt-3 flex items-center gap-3 rounded-2xl bg-[#f1e7d3] px-4 py-3 text-sm font-semibold text-[#7a5e2c]">
               <Bell className="h-5 w-5 shrink-0" aria-hidden />
               <span className="flex-1">{t('waiter.alerts.prompt')}</span>
-              <button type="button" onClick={toggleAlerts} disabled={alertsBusy} className="h-10 rounded-xl bg-[#4c1d95] px-3 font-bold text-white">
+              <button type="button" onClick={toggleAlerts} disabled={alertsBusy} className="h-10 rounded-xl bg-[#7a5e2c] px-3 font-bold text-white">
                 {t('waiter.alerts.enable')}
               </button>
             </div>
@@ -587,7 +587,7 @@ export function WaiterApp({
                   type="button"
                   aria-pressed={view === v}
                   onClick={() => setView(v)}
-                  className={cn('h-9 rounded-full px-3 text-sm font-bold', view === v ? 'bg-[#ede9fe] text-[#4c1d95]' : 'text-[#5b5e66]')}
+                  className={cn('h-9 rounded-full px-3 text-sm font-bold', view === v ? 'bg-[#f1e7d3] text-[#7a5e2c]' : 'text-[#5b5e66]')}
                 >
                   {t(v === 'plan' ? 'waiter.floor.planView' : 'waiter.floor.listView')}
                 </button>
@@ -641,7 +641,7 @@ export function WaiterApp({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={t('waiter.order.search')}
-                className="h-12 w-full rounded-[14px] border border-[#d9d6ce] bg-[#f6f5f2] pl-10 pr-4 text-base outline-none focus-visible:ring-2 focus-visible:ring-[#a78bfa]"
+                className="h-12 w-full rounded-[14px] border border-[#d9d6ce] bg-[#f6f5f2] pl-10 pr-4 text-base outline-none focus-visible:ring-2 focus-visible:ring-[#c6a56b]"
               />
             </div>
           </div>
@@ -791,7 +791,7 @@ export function WaiterApp({
                     </button>
                   </div>
                   {!editing && !l.note && (
-                    <button type="button" onClick={() => setNoteFor(l.key)} className="min-h-9 self-start text-sm font-semibold text-[#5b21b6]">
+                    <button type="button" onClick={() => setNoteFor(l.key)} className="min-h-9 self-start text-sm font-semibold text-[#6b5226]">
                       {t('waiter.review.addNote')}
                     </button>
                   )}
@@ -824,7 +824,7 @@ export function WaiterApp({
                         onChange={(e) => setLine(l.key, { note: e.target.value })}
                         onBlur={() => setNoteFor(null)}
                         placeholder={t('waiter.review.notePlaceholder')}
-                        className="h-11 rounded-xl border border-[#d9d6ce] bg-[#f6f5f2] px-3 text-[15px] outline-none focus-visible:ring-2 focus-visible:ring-[#a78bfa]"
+                        className="h-11 rounded-xl border border-[#d9d6ce] bg-[#f6f5f2] px-3 text-[15px] outline-none focus-visible:ring-2 focus-visible:ring-[#c6a56b]"
                       />
                     </div>
                   )}
@@ -843,7 +843,7 @@ export function WaiterApp({
                         type="button"
                         aria-pressed={sendMode === m}
                         onClick={() => setSendMode(m)}
-                        className={cn('min-h-16 rounded-[14px] border-2 p-2.5 text-left', sendMode === m ? 'bg-[#f5f3ff]' : 'border-[#e7e5df] bg-white')}
+                        className={cn('min-h-16 rounded-[14px] border-2 p-2.5 text-left', sendMode === m ? 'bg-[#f8f2e6]' : 'border-[#e7e5df] bg-white')}
                         style={sendMode === m ? { borderColor: ACCENT } : undefined}
                       >
                         <span className="block text-sm font-bold">{t(m === 'all' ? 'waiter.review.sendAll' : 'waiter.review.sendStaged')}</span>
@@ -952,7 +952,7 @@ export function WaiterApp({
                       .join(', ')}
                   </p>
                   {held.length > 0 && (
-                    <p className="rounded-[10px] bg-[#f5f3ff] px-2.5 py-1.5 text-sm font-semibold text-[#4c1d95]">
+                    <p className="rounded-[10px] bg-[#f8f2e6] px-2.5 py-1.5 text-sm font-semibold text-[#7a5e2c]">
                       {t('waiter.orders.held', { count: held.reduce((n, l) => n + l.quantity, 0) })} : {held.map((l) => `${l.quantity} × ${l.name}`).join(', ')}
                     </p>
                   )}
@@ -1115,7 +1115,7 @@ export function WaiterApp({
                       {[g.mine ? t('waiter.floor.you') : g.waiterName, t(`waiter.orders.status.${g.status as 'PENDING'}`), format.money(g.total)].filter(Boolean).join(' · ')}
                     </span>
                   </span>
-                  <span className="shrink-0 text-sm font-bold text-[#5b21b6]">{t('waiter.orders.addMore')}</span>
+                  <span className="shrink-0 text-sm font-bold text-[#6b5226]">{t('waiter.orders.addMore')}</span>
                 </button>
               ))}
               {queuedGroups(tableSheet.id).map((q) => (
@@ -1136,7 +1136,7 @@ export function WaiterApp({
                     </span>
                     <span className="block text-sm text-[#5b5e66]">{t('waiter.offline.waiting')}</span>
                   </span>
-                  <span className="shrink-0 text-sm font-bold text-[#5b21b6]">{t('waiter.orders.addMore')}</span>
+                  <span className="shrink-0 text-sm font-bold text-[#6b5226]">{t('waiter.orders.addMore')}</span>
                 </button>
               ))}
             </div>
@@ -1199,7 +1199,7 @@ export function WaiterApp({
                         onClick={() => setAccSheet({ ...accSheet, selected: on ? accSheet.selected.filter((x) => x !== a.id) : [...accSheet.selected, a.id] })}
                         className={cn(
                           'flex min-h-14 items-center justify-between rounded-2xl border-2 px-4 text-left font-bold',
-                          on ? 'bg-[#f5f3ff]' : 'border-[#e7e5df]',
+                          on ? 'bg-[#f8f2e6]' : 'border-[#e7e5df]',
                           aOut && 'cursor-not-allowed bg-[#f1efe9] text-[#8a8d94]',
                         )}
                         style={on ? { borderColor: ACCENT } : undefined}

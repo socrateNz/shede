@@ -1,14 +1,14 @@
 {
-  "name": "Shede Serveur",
-  "short_name": "Shede Serveur",
+  "name": "Tavola Serveur",
+  "short_name": "Tavola Serveur",
   "description": "Prise de commande sur téléphone pour les serveurs.",
   "id": "/serveur",
   "start_url": "/serveur",
   "scope": "/serveur",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f6f5f2",
-  "theme_color": "#f6f5f2",
+  "background_color": "#f4f1ea",
+  "theme_color": "#f4f1ea",
   "lang": "fr",
   "icons": [
     { "src": "/icons/waiter-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

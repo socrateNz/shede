@@ -2,14 +2,16 @@ import type fr from '../fr/auth';
 
 const auth: typeof fr = {
   login: {
-    brand: 'Shede POS',
+    brand: 'Tavola',
     tagline: 'Professional management platform',
+    slogan: 'The art of managing the art of hospitality.',
+    sectors: 'Restaurants · Bars · Hotels · Cafés',
     title: 'Sign in',
     subtitle: 'Access your business workspace',
     licenseExpired: 'Your license has expired. Contact support to renew your subscription.',
     pointInactive: 'This outlet has been deactivated. Contact your organization administrator.',
     passwordReset: 'Password saved. You can now sign in.',
-    emailPlaceholder: 'example@shede.com',
+    emailPlaceholder: 'you@yourvenue.com',
     forgotPassword: 'Forgot password?',
     submitting: 'Signing in…',
     submit: 'Sign in',
@@ -48,7 +50,7 @@ const auth: typeof fr = {
     shortOffers: 'Offers',
     badge: 'Free sign-up',
     title: 'Create my customer account',
-    subtitle: 'A few details are all you need to use the Shede app.',
+    subtitle: 'A few details are all you need to use the Tavola app.',
     firstNamePlaceholder: 'John',
     lastNamePlaceholder: 'Doe',
     emailPlaceholder: 'john.doe@example.com',

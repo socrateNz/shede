@@ -1,14 +1,16 @@
 /** Connexion, inscription client, mot de passe. */
 const auth = {
   login: {
-    brand: 'Shede POS',
+    brand: 'Tavola',
     tagline: 'Plateforme de gestion professionnelle',
+    slogan: 'L’art de gérer l’art de recevoir.',
+    sectors: 'Restaurants · Bars · Hôtels · Cafés',
     title: 'Connexion',
     subtitle: 'Accédez à votre espace professionnel',
     licenseExpired: 'Votre licence a expiré. Contactez le support pour prolonger votre abonnement.',
     pointInactive: 'Ce point a été désactivé. Contactez l’administrateur de votre organisation.',
     passwordReset: 'Mot de passe enregistré. Vous pouvez vous connecter.',
-    emailPlaceholder: 'exemple@shede.com',
+    emailPlaceholder: 'vous@etablissement.com',
     forgotPassword: 'Mot de passe oublié ?',
     submitting: 'Connexion…',
     submit: 'Se connecter',
@@ -47,7 +49,7 @@ const auth = {
     shortOffers: 'Offres',
     badge: 'Inscription gratuite',
     title: 'Créer mon compte client',
-    subtitle: 'Quelques informations suffisent pour accéder à l’application Shede.',
+    subtitle: 'Quelques informations suffisent pour accéder à l’application Tavola.',
     firstNamePlaceholder: 'Jean',
     lastNamePlaceholder: 'Dupont',
     emailPlaceholder: 'jean.dupont@example.com',

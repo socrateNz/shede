@@ -27,7 +27,7 @@ function EnrollDevice() {
     <main className="mx-auto flex min-h-[100dvh] max-w-md flex-col items-center justify-center gap-5 bg-[#f6f5f2] px-6 text-center">
       {state.status === 'pending' && (
         <>
-          <Loader2 className="h-12 w-12 animate-spin text-[#6d28d9]" aria-hidden />
+          <Loader2 className="h-12 w-12 animate-spin text-[#8a6b36]" aria-hidden />
           <p className="text-lg font-bold">{t('waiter.devices.enrolling')}</p>
         </>
       )}
@@ -36,7 +36,7 @@ function EnrollDevice() {
           <CheckCircle2 className="h-14 w-14 text-[#0f7a3f]" aria-hidden />
           <h1 className="text-2xl font-extrabold">{t('waiter.devices.enrolledTitle')}</h1>
           <p className="text-[15px] text-[#3d4048]">{t('waiter.devices.enrolledText', { name: state.name })}</p>
-          <Link href="/serveur/connexion" className="mt-2 flex h-14 w-full items-center justify-center rounded-[18px] bg-[#6d28d9] text-base font-extrabold text-white">
+          <Link href="/serveur/connexion" className="mt-2 flex h-14 w-full items-center justify-center rounded-[18px] bg-[#8a6b36] text-base font-extrabold text-white">
             {t('waiter.devices.continue')}
           </Link>
         </>

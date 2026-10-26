@@ -57,9 +57,9 @@ export function PinLogin({
   return (
     <main className="mx-auto flex min-h-[100dvh] max-w-md flex-col gap-7 bg-[#f6f5f2] px-6 pb-8 pt-12">
       <div className="flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#6d28d9] text-xl font-extrabold text-white">S</span>
+        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#8a6b36] text-xl font-extrabold text-white">S</span>
         <div className="min-w-0">
-          <p className="truncate text-lg font-extrabold">{pointName || 'Shede'}</p>
+          <p className="truncate text-lg font-extrabold">{pointName || 'Tavola'}</p>
           <p className="text-sm text-[#5b5e66]">{deviceName}</p>
         </div>
         <LanguageSwitcher tone="waiter" className="ml-auto" />
@@ -83,7 +83,7 @@ export function PinLogin({
                   }}
                   className="flex min-h-[120px] flex-col items-center justify-center gap-2.5 rounded-[18px] bg-white px-3 py-4 shadow-[0_1px_2px_rgba(23,24,28,.08)]"
                 >
-                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#ede9fe] text-xl font-extrabold text-[#4c1d95]">{w.initials}</span>
+                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#f1e7d3] text-xl font-extrabold text-[#7a5e2c]">{w.initials}</span>
                   <span className="max-w-full truncate text-base font-bold">{w.name}</span>
                 </button>
               ))}
@@ -92,10 +92,10 @@ export function PinLogin({
         </section>
       ) : (
         <section className="flex flex-1 flex-col items-center gap-5">
-          <button type="button" onClick={() => setWaiter(null)} className="flex min-h-11 items-center gap-1 self-start text-[15px] font-semibold text-[#5b21b6]">
+          <button type="button" onClick={() => setWaiter(null)} className="flex min-h-11 items-center gap-1 self-start text-[15px] font-semibold text-[#6b5226]">
             <ChevronLeft className="h-5 w-5" aria-hidden /> {t('waiter.pin.change')}
           </button>
-          <span className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#ede9fe] text-[26px] font-extrabold text-[#4c1d95]">{waiter.initials}</span>
+          <span className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#f1e7d3] text-[26px] font-extrabold text-[#7a5e2c]">{waiter.initials}</span>
           <div className="text-center">
             <p className="text-[22px] font-extrabold">{waiter.name}</p>
             <p className="mt-1 text-[15px] text-[#5b5e66]">{t('waiter.pin.enter')}</p>

@@ -67,11 +67,11 @@ export function ThermalReceiptPrintButton({ order }: { order: any }) {
               />
             ) : (
               <div className="flex shrink-0 items-center justify-center rounded-md border-2 border-black text-lg font-bold" style={{ width: '16mm', height: '16mm' }}>
-                {initialsOf(structure?.name || 'Shede')}
+                {initialsOf(structure?.name || 'Tavola')}
               </div>
             )}
             <div className="min-w-0 flex-1 text-right">
-              <h1 className="text-sm font-bold uppercase leading-tight">{structure?.name || 'SHEDE ERP'}</h1>
+              <h1 className="text-sm font-bold uppercase leading-tight">{structure?.name || 'TAVOLA'}</h1>
               <div className="mt-0.5 space-y-px">
                 {ticketDetails(structure, t).map((line) => (
                   <p key={line} className="text-[9px] leading-snug">{line}</p>

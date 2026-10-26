@@ -177,7 +177,7 @@ export default function RoomsList({ rooms, meta, canManage = true }: { rooms: an
                   className="border-slate-700 hover:bg-slate-800/50 transition-colors group"
                 >
                   <TableCell className="text-center">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center mx-auto">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/20 flex items-center justify-center mx-auto">
                       <BedDouble className="w-5 h-5 text-blue-400" />
                     </div>
                   </TableCell>
@@ -278,10 +278,10 @@ export default function RoomsList({ rooms, meta, canManage = true }: { rooms: an
       {/* Dialog pour voir les détails de la chambre */}
       <Dialog open={!!viewingRoom} onOpenChange={(open) => !open && setViewingRoom(null)}>
         <DialogContent className="sm:max-w-lg bg-slate-800/95 backdrop-blur-sm border-slate-700/50 text-slate-50 shadow-2xl">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-lg pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/5 rounded-lg pointer-events-none" />
           <DialogHeader>
             <div className="flex items-center gap-2 mb-2">
-              <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+              <div className="p-1.5 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg">
                 <Hotel className="w-4 h-4 text-white" />
               </div>
               <DialogTitle className="text-xl font-bold">{t('hotel.roomDetails.title')}</DialogTitle>
@@ -296,7 +296,7 @@ export default function RoomsList({ rooms, meta, canManage = true }: { rooms: an
               {/* En-tête avec statut */}
               <div className="flex items-center justify-between p-4 rounded-lg bg-slate-900/50 border border-slate-700">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/20 flex items-center justify-center">
                     <BedDouble className="w-6 h-6 text-blue-400" />
                   </div>
                   <div>
@@ -394,7 +394,7 @@ export default function RoomsList({ rooms, meta, canManage = true }: { rooms: an
             <Button
               type="button"
               onClick={() => setViewingRoom(null)}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6"
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6"
             >
               {t('hotel.roomDetails.close')}
             </Button>
@@ -405,10 +405,10 @@ export default function RoomsList({ rooms, meta, canManage = true }: { rooms: an
       {/* Edit Modal */}
       <Dialog open={!!editingRoom} onOpenChange={(open) => !open && setEditingRoom(null)}>
         <DialogContent className="sm:max-w-[425px] bg-slate-800/95 backdrop-blur-sm border-slate-700/50 text-slate-50 shadow-2xl">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-lg pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/5 rounded-lg pointer-events-none" />
           <DialogHeader>
             <div className="flex items-center gap-2 mb-2">
-              <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+              <div className="p-1.5 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg">
                 <Hotel className="w-4 h-4 text-white" />
               </div>
               <DialogTitle className="text-xl font-bold">{t('hotel.roomForm.editTitle')}</DialogTitle>
@@ -504,7 +504,7 @@ export default function RoomsList({ rooms, meta, canManage = true }: { rooms: an
               <Button
                 type="submit"
                 disabled={isUpdating}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 transition-all duration-300"
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 transition-all duration-300"
               >
                 {isUpdating ? (
                   <div className="flex items-center gap-2">

@@ -200,7 +200,7 @@ const purchasing: typeof fr = {
     expected: 'Requested delivery: {date}.',
     contact: 'Contact: {point} — {phone} — {address}',
     total: 'Total excl. VAT',
-    footer: 'Purchase order sent with Shede.',
+    footer: 'Purchase order sent with Tavola.',
   },
   errors: {
     supplierNameRequired: 'Enter the supplier name.',

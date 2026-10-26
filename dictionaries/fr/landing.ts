@@ -15,7 +15,7 @@ const landing = {
     titleBefore: 'Vendez.',
     titleMiddle: 'Anticipez.',
     titleAfter: 'Pilotez.',
-    text: 'Shede réunit la caisse, la cuisine, l’hôtel, le stock, les achats fournisseurs, les prévisions et la comptabilité dans une seule application, pour un établissement comme pour toute une chaîne.',
+    text: 'Tavola réunit la caisse, la cuisine, l’hôtel, le stock, les achats fournisseurs, les prévisions et la comptabilité dans une seule application, pour un établissement comme pour toute une chaîne.',
     cta: 'Créer mon établissement',
     ctaSecondary: 'Parler à un expert',
     chipSyscohada: 'Comptabilité SYSCOHADA',
@@ -87,7 +87,7 @@ const landing = {
   anticipate: {
     titleBefore: 'Anticipez au lieu de',
     highlight: 'subir',
-    text: 'Shede ne se contente plus d’enregistrer vos ventes : il vous dit quoi commander et quoi préparer, puis vérifie ce qui s’est vraiment passé.',
+    text: 'Tavola ne se contente plus d’enregistrer vos ventes : il vous dit quoi commander et quoi préparer, puis vérifie ce qui s’est vraiment passé.',
     step1Title: 'Prévoir',
     step1Text: 'Les ventes de chaque jour, produit par produit, à partir de votre historique, des jours fériés et de vos événements.',
     step2Title: 'Commander',
@@ -144,10 +144,10 @@ const landing = {
   },
   cta: {
     title: 'Prêt à passer à une seule application ?',
-    text: 'Nous vous montrons Shede sur vos propres produits et nous vous accompagnons pour la mise en route.',
+    text: 'Nous vous montrons Tavola sur vos propres produits et nous vous accompagnons pour la mise en route.',
     start: 'Créer mon établissement',
     demo: 'Demander une démo sur WhatsApp',
-    demoMessage: 'Bonjour, je souhaite une démonstration de Shede pour mon établissement.',
+    demoMessage: 'Bonjour, je souhaite une démonstration de Tavola pour mon établissement.',
   },
   footer: {
     tagline: 'La plateforme tout-en-un des restaurants et des hôtels.',
@@ -159,7 +159,7 @@ const landing = {
     docs: 'Documentation',
     api: 'API pour marketplaces',
     contact: 'Contact',
-    rights: '© {year} Shede Tech. Tous droits réservés.',
+    rights: '© {year} Tacynt. Tous droits réservés.',
     designBy: 'Design par',
   },
 };

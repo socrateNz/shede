@@ -15,7 +15,7 @@ export default function MainError({
   const { t } = useT();
 
   useEffect(() => {
-    console.error('[Shede] Erreur globale :', error);
+    console.error('[Tavola] Erreur globale :', error);
   }, [error]);
 
   return (

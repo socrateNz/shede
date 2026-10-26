@@ -50,7 +50,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
           </div>
 
           <Link href="/promotions/new">
-            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-300 transform hover:scale-105 border-none">
+            <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-300 transform hover:scale-105 border-none">
               <Plus className="w-4 h-4 mr-2" />
               {t('promotions.page.newPromotion')}
             </Button>
@@ -162,7 +162,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
         <div className="mt-8 flex flex-col items-center gap-2 pb-8">
           <div className="h-px w-24 bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
           <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-medium">
-            Shede SaaS - Promotion Logic v1.0
+            Tavola by Tacynt
           </p>
         </div>
       </div>

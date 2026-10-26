@@ -1,7 +1,7 @@
 /** Paramètres du point et notifications push. */
 const settings = {
   meta: {
-    title: 'Paramètres — Shede',
+    title: 'Paramètres — Tavola',
     description: 'Paramètres de votre établissement',
   },
   structureTypes: {
@@ -70,7 +70,7 @@ const settings = {
     modulesCount: '{active} actif(s) sur {total}',
     moduleActive: 'Activé',
     moduleInactive: 'Non activé',
-    modulesHint: 'Pour activer ou désactiver des modules, contactez le support Shede.',
+    modulesHint: 'Pour activer ou désactiver des modules, contactez le support Tavola.',
     push: 'Notifications push',
     pushHint: 'Recevez des alertes en temps réel pour les nouvelles commandes et réservations.',
     dangerZone: 'Zone dangereuse',

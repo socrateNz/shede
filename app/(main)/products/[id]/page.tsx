@@ -106,7 +106,7 @@ export default async function EditProductPage({
 
         {/* Info Card */}
         <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-xl overflow-hidden mb-6">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5" />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/5" />
           <CardHeader className="border-b border-slate-700/50 pb-4">
             <CardTitle className="text-slate-50 flex items-center gap-2 text-lg">
 

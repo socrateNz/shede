@@ -57,7 +57,7 @@ const api = {
   },
   webhooks: {
     title: 'Webhook',
-    subtitle: 'Adresse à laquelle Shede prévient la marketplace (statut des commandes, menu, pause). Chaque envoi est signé avec le secret ci-dessous.',
+    subtitle: 'Adresse à laquelle Tavola prévient la marketplace (statut des commandes, menu, pause). Chaque envoi est signé avec le secret ci-dessous.',
     url: 'Adresse du webhook',
     saved: 'Webhook enregistré',
     invalidUrl: 'Adresse invalide : elle doit commencer par https:// et ne pas pointer vers un réseau privé.',

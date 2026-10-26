@@ -263,7 +263,7 @@ export default function AdjustStockPage() {
                 <Button
                   type="submit"
                   disabled={submitting || !selectedItemId || !quantity}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white disabled:opacity-50"
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white disabled:opacity-50"
                 >
                   {submitting ? (
                     <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> {t('stock.adjust.saving')}</span>

@@ -135,7 +135,7 @@ export function ProductsList({ products, meta, categories = [], onProductDeleted
                       />
                     </div>
                   ) : (
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center text-lg border border-slate-700/50">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/20 flex items-center justify-center text-lg border border-slate-700/50">
                       {getCategoryIcon(product.categories?.[0]?.name || product.category || '')}
                     </div>
                   )}

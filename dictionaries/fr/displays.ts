@@ -1,9 +1,9 @@
 /** Écrans cuisine et bar, centre de notifications. */
 const displays = {
   meta: {
-    kitchenTitle: 'Cuisine — Shede',
+    kitchenTitle: 'Cuisine — Tavola',
     kitchenDescription: 'Écran de cuisine',
-    barTitle: 'Bar — Shede',
+    barTitle: 'Bar — Tavola',
     barDescription: 'Écran du bar',
   },
   noStructure: 'Aucun établissement n’est associé à ce compte.',

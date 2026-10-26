@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { TavolaLogo } from '@/components/brand/tavola-logo';
 import { useState } from 'react';
 import {
   Zap,
@@ -130,7 +131,7 @@ export default function DocsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fdfdff] flex flex-col">
+    <div className="tavola-marque min-h-screen bg-[#fdfdff] flex flex-col">
       {/* ── Top Nav ── */}
       <header className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 h-16">
         <div className="mx-auto max-w-screen-xl px-4 h-full flex items-center justify-between gap-4">
@@ -143,8 +144,7 @@ export default function DocsPage() {
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
             <Link href="/" className="flex items-center gap-2 group">
-              <img src="/logo.webp" alt="Shede" className="w-7 h-7 border-2 border-purple-600 rounded-lg" />
-              <span className="font-bold text-slate-900 text-lg">Shede</span>
+              <TavolaLogo tone="light" size={26} withSignature={false} />
             </Link>
             <span className="hidden sm:inline-flex items-center gap-1 text-sm text-slate-400">
               <ChevronRight className="w-4 h-4" /> {c.header.docs}
@@ -256,7 +256,7 @@ export default function DocsPage() {
           {/* ── INTRODUCTION ── */}
           <section id="introduction" className="mb-20 scroll-mt-24">
             <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight mb-4">
-              {c.intro.titleBefore} <span className="text-purple-600">Shede</span>
+              {c.intro.titleBefore} <span className="text-purple-600">Tavola</span>
             </h1>
             <p className="text-lg text-slate-500 mb-6 leading-relaxed">{c.intro.text}</p>
 

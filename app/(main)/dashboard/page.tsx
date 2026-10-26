@@ -193,7 +193,7 @@ export default async function DashboardPage() {
     statCards = [
       { title: t('dashboard.kpi.revenueToday'), value: formatAmount(enrichedData?.todayRevenue || 0, currency), icon: DollarSign, color: 'text-emerald-400', bgColor: 'bg-emerald-500/10', gradient: 'from-emerald-500/20 to-teal-500/20' },
       { title: t('dashboard.kpi.revenueMonth'), value: formatAmount(enrichedData?.monthRevenue || 0, currency), icon: TrendingUp, color: 'text-blue-400', bgColor: 'bg-blue-500/10', gradient: 'from-blue-500/20 to-cyan-500/20' },
-      { title: t('dashboard.kpi.avgTicket30'), value: formatAmount(enrichedData?.avgOrderValue || 0, currency), icon: Ticket, color: 'text-violet-400', bgColor: 'bg-violet-500/10', gradient: 'from-violet-500/20 to-purple-500/20' },
+      { title: t('dashboard.kpi.avgTicket30'), value: formatAmount(enrichedData?.avgOrderValue || 0, currency), icon: Ticket, color: 'text-violet-400', bgColor: 'bg-violet-500/10', gradient: 'from-violet-500/20 to-blue-500/20' },
       { title: t('dashboard.kpi.activeOrders'), value: enrichedData?.activeOrdersCount || 0, icon: Clock, color: 'text-orange-400', bgColor: 'bg-orange-500/10', gradient: 'from-orange-500/20 to-red-500/20' },
       { title: t('dashboard.kpi.totalOrders'), value: stats.data.ordersCount, icon: ShoppingCart, color: 'text-sky-400', bgColor: 'bg-sky-500/10', gradient: 'from-sky-500/20 to-blue-500/20' },
       { title: t('dashboard.kpi.activeProducts'), value: stats.data.productsCount, icon: Package, color: 'text-green-400', bgColor: 'bg-green-500/10', gradient: 'from-green-500/20 to-emerald-500/20' },
@@ -257,7 +257,7 @@ export default async function DashboardPage() {
     quickActions = [{ href: '/stock', label: t('dashboard.actions.manageStock'), icon: Boxes }];
   } else if (stats.type === 'COMPTABLE') {
     statCards = [
-      { title: t('dashboard.kpi.revenueToday'), value: formatAmount(stats.data.todayRevenue || 0, currency), icon: DollarSign, color: 'text-violet-400', bgColor: 'bg-violet-500/10', gradient: 'from-violet-500/20 to-purple-500/20' },
+      { title: t('dashboard.kpi.revenueToday'), value: formatAmount(stats.data.todayRevenue || 0, currency), icon: DollarSign, color: 'text-violet-400', bgColor: 'bg-violet-500/10', gradient: 'from-violet-500/20 to-blue-500/20' },
       { title: t('dashboard.kpi.openShifts'), value: stats.data.shiftsCount, icon: Clock, color: 'text-blue-400', bgColor: 'bg-blue-500/10', gradient: 'from-blue-500/20 to-cyan-500/20' },
     ];
     quickActions = [
@@ -334,7 +334,7 @@ export default async function DashboardPage() {
           <div className="lg:col-span-2">
             {quickActions.length > 0 && (
               <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-xl overflow-hidden h-full">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/5 pointer-events-none" />
                 <CardHeader className="border-b border-slate-700/50">
                   <CardTitle className="text-slate-50 text-lg">{t('dashboard.actions.title')}</CardTitle>
                 </CardHeader>
@@ -383,7 +383,7 @@ export default async function DashboardPage() {
                     {recentNotifications.slice(0, 4).map((notif) => (
                       <div key={notif.id} className="p-4 hover:bg-slate-700/20 transition-colors">
                         <div className="flex gap-3">
-                          <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${!notif.is_read ? 'bg-blue-500 shadow-[0_0_8px_#3b82f6]' : 'bg-slate-600'}`} />
+                          <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${!notif.is_read ? 'bg-blue-500 shadow-[0_0_8px_var(--color-blue-500)]' : 'bg-slate-600'}`} />
                           <div className="min-w-0">
                             <p className={`text-sm font-medium ${!notif.is_read ? 'text-slate-100' : 'text-slate-400'}`}>{notif.title}</p>
                             <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{notif.body}</p>
@@ -404,7 +404,7 @@ export default async function DashboardPage() {
 
         {/* Footer */}
         <div className="mt-8 text-center">
-          <p className="text-xs text-slate-600">Shede ERP SaaS — v1.0 Phase 1</p>
+          <p className="text-xs text-slate-600">Tavola by Tacynt</p>
         </div>
       </div>
     </div>

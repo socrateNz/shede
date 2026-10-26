@@ -54,7 +54,7 @@ export default function RegisterBusinessPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
+    <div className="tavola-sombre min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-purple-500/10 blur-3xl" />
@@ -104,7 +104,7 @@ export default function RegisterBusinessPage() {
         <Card className="overflow-hidden border-slate-700/50 bg-slate-800/50 shadow-2xl backdrop-blur-sm">
           <CardHeader className="border-b border-slate-700/50 pb-6">
             <CardTitle className="flex items-center gap-3 text-2xl font-bold text-white">
-              <div className="rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 p-2">
+              <div className="rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 p-2">
                 <Building2 className="h-5 w-5 text-white" />
               </div>
               {t('business.register.cardTitle')}
@@ -292,7 +292,7 @@ export default function RegisterBusinessPage() {
                 <Button
                   type="submit"
                   disabled={isPending}
-                  className="cursor-pointer rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-2.5 font-semibold text-white transition-all duration-300 hover:scale-105 hover:from-blue-700 hover:to-purple-700 hover:shadow-lg hover:shadow-blue-500/25 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                  className="cursor-pointer rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-2.5 font-semibold text-white transition-all duration-300 hover:scale-105 hover:from-blue-700 hover:to-blue-800 hover:shadow-lg hover:shadow-blue-500/25 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                 >
                   {isPending ? (
                     <span className="flex items-center gap-2">

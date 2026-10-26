@@ -71,7 +71,7 @@ export default async function StructuresPage({ searchParams }: { searchParams: P
             <p className="text-slate-400">{t('business.list.subtitle')}</p>
           </div>
           <Link href="/structures/new">
-            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg">
+            <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg">
               <Plus className="w-4 h-4 mr-2" />
               {t('business.list.newOrganization')}
             </Button>
@@ -129,7 +129,7 @@ export default async function StructuresPage({ searchParams }: { searchParams: P
                       {/* En-tête */}
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20">
+                          <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/20">
                             <Network className="w-5 h-5 text-blue-400" />
                           </div>
                           <div className="min-w-0">
@@ -242,7 +242,7 @@ export default async function StructuresPage({ searchParams }: { searchParams: P
                         </div>
 
                         <div className="flex items-end">
-                          <Button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+                          <Button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white">
                             {t('business.list.update')}
                           </Button>
                         </div>

@@ -140,6 +140,7 @@
 @theme inline {
   --font-sans: 'Geist', 'Geist Fallback';
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-brand: var(--font-marque), 'Cormorant Garamond', Georgia, serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -645,4 +646,270 @@
   --color-rose-400: oklch(71.2% 0.194 13.428);
   --color-rose-900: oklch(41% 0.159 10.272);
   --color-rose-950: oklch(27.1% 0.105 12.094);
+}
+
+/* ===== Identité Tavola — by Tacynt ===================================================
+   Palette officielle : noir profond #0B0B0B, ivoire #F4F1EA, champagne #C6A56B.
+   Les écrans sont dessinés avec les gris « slate » et l'accent « blue » de Tailwind :
+   on les redéfinit ici, une seule fois, pour toute l'application.
+   - gris → neutres chauds, du noir profond à l'ivoire ;
+   - bleu (boutons principaux, liens, éléments actifs) → gamme champagne.
+   Les couleurs de statut (vert, ambre, rouge, ciel…) ne changent pas.
+   Sombre : back-office en sombre (.dark, système en sombre) et pages de connexion (.tavola-sombre).
+   Clair : back-office en clair (.theme-clair, système en clair). Doit rester après les blocs ci-dessus. */
+.dark,
+.tavola-sombre {
+  --color-slate-50: #f4f1ea;
+  --color-slate-100: #ece7dd;
+  --color-slate-200: #dcd5c8;
+  --color-slate-300: #bfb7a8;
+  --color-slate-400: #a0988a;
+  --color-slate-500: #776f63;
+  --color-slate-600: #4f4a43;
+  --color-slate-700: #35312c;
+  --color-slate-800: #1f1d1a;
+  --color-slate-900: #141311;
+  --color-slate-950: #0b0b0b;
+  --color-blue-50: #fbf6ec;
+  --color-blue-100: #f4ead5;
+  --color-blue-200: #e9d6af;
+  --color-blue-300: #dcc08b;
+  --color-blue-400: #cfb07a;
+  --color-blue-500: #c6a56b;
+  --color-blue-600: #8a6b36;
+  --color-blue-700: #735830;
+  --color-blue-800: #5c4724;
+  --color-blue-900: #3d2f18;
+  --color-blue-950: #241c0e;
+  --background: #141311;
+  --foreground: #ece7dd;
+  --card: #1f1d1a;
+  --card-foreground: #ece7dd;
+  --popover: #1f1d1a;
+  --popover-foreground: #ece7dd;
+  --primary: #c6a56b;
+  --primary-foreground: #0b0b0b;
+  --secondary: #35312c;
+  --secondary-foreground: #ece7dd;
+  --muted: #1f1d1a;
+  --muted-foreground: #a0988a;
+  --accent: #35312c;
+  --accent-foreground: #f4f1ea;
+  --border: #35312c;
+  --input: #4f4a43;
+  --ring: #c6a56b;
+  --chart-1: #c6a56b;
+  --sidebar: #1f1d1a;
+  --sidebar-foreground: #ece7dd;
+  --sidebar-primary: #c6a56b;
+  --sidebar-primary-foreground: #0b0b0b;
+  --sidebar-accent: #35312c;
+  --sidebar-accent-foreground: #f4f1ea;
+  --sidebar-border: #35312c;
+  --sidebar-ring: #c6a56b;
+}
+
+.theme-clair {
+  --color-slate-50: #0b0b0b;
+  --color-slate-100: #1c1a17;
+  --color-slate-200: #2b2824;
+  --color-slate-300: #3f3b35;
+  --color-slate-400: #5c564d;
+  --color-slate-500: #776f63;
+  --color-slate-600: #d8d1c3;
+  --color-slate-700: #e6e0d5;
+  --color-slate-800: #fffdf9;
+  --color-slate-900: #f4f1ea;
+  --color-slate-950: #f4f1ea;
+  --color-blue-50: #3d2f18;
+  --color-blue-100: #4f3d1f;
+  --color-blue-200: #6b5226;
+  --color-blue-300: #7a5e2c;
+  --color-blue-400: #846530;
+  --color-blue-500: #c6a56b;
+  --color-blue-600: #8a6b36;
+  --color-blue-700: #735830;
+  --color-blue-800: #5c4724;
+  --color-blue-900: #f1e7d3;
+  --color-blue-950: #f8f2e6;
+  --background: #f4f1ea;
+  --foreground: #0b0b0b;
+  --card: #fffdf9;
+  --card-foreground: #0b0b0b;
+  --popover: #fffdf9;
+  --popover-foreground: #0b0b0b;
+  --primary: #c6a56b;
+  --primary-foreground: #0b0b0b;
+  --secondary: #ece7dd;
+  --secondary-foreground: #0b0b0b;
+  --muted: #ece7dd;
+  --muted-foreground: #5c564d;
+  --accent: #ece7dd;
+  --accent-foreground: #0b0b0b;
+  --border: #e6e0d5;
+  --input: #d8d1c3;
+  --ring: #c6a56b;
+  --chart-1: #a8874f;
+}
+
+@media (prefers-color-scheme: dark) {
+  .theme-auto {
+    --color-slate-50: #f4f1ea;
+    --color-slate-100: #ece7dd;
+    --color-slate-200: #dcd5c8;
+    --color-slate-300: #bfb7a8;
+    --color-slate-400: #a0988a;
+    --color-slate-500: #776f63;
+    --color-slate-600: #4f4a43;
+    --color-slate-700: #35312c;
+    --color-slate-800: #1f1d1a;
+    --color-slate-900: #141311;
+    --color-slate-950: #0b0b0b;
+    --color-blue-50: #fbf6ec;
+    --color-blue-100: #f4ead5;
+    --color-blue-200: #e9d6af;
+    --color-blue-300: #dcc08b;
+    --color-blue-400: #cfb07a;
+    --color-blue-500: #c6a56b;
+    --color-blue-600: #8a6b36;
+    --color-blue-700: #735830;
+    --color-blue-800: #5c4724;
+    --color-blue-900: #3d2f18;
+    --color-blue-950: #241c0e;
+    --background: #141311;
+    --foreground: #ece7dd;
+    --card: #1f1d1a;
+    --card-foreground: #ece7dd;
+    --popover: #1f1d1a;
+    --popover-foreground: #ece7dd;
+    --primary: #c6a56b;
+    --primary-foreground: #0b0b0b;
+    --secondary: #35312c;
+    --secondary-foreground: #ece7dd;
+    --muted: #1f1d1a;
+    --muted-foreground: #a0988a;
+    --accent: #35312c;
+    --accent-foreground: #f4f1ea;
+    --border: #35312c;
+    --input: #4f4a43;
+    --ring: #c6a56b;
+    --chart-1: #c6a56b;
+    --sidebar: #1f1d1a;
+    --sidebar-foreground: #ece7dd;
+    --sidebar-primary: #c6a56b;
+    --sidebar-primary-foreground: #0b0b0b;
+    --sidebar-accent: #35312c;
+    --sidebar-accent-foreground: #f4f1ea;
+    --sidebar-border: #35312c;
+    --sidebar-ring: #c6a56b;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .theme-auto {
+    --color-slate-50: #0b0b0b;
+    --color-slate-100: #1c1a17;
+    --color-slate-200: #2b2824;
+    --color-slate-300: #3f3b35;
+    --color-slate-400: #5c564d;
+    --color-slate-500: #776f63;
+    --color-slate-600: #d8d1c3;
+    --color-slate-700: #e6e0d5;
+    --color-slate-800: #fffdf9;
+    --color-slate-900: #f4f1ea;
+    --color-slate-950: #f4f1ea;
+    --color-blue-50: #3d2f18;
+    --color-blue-100: #4f3d1f;
+    --color-blue-200: #6b5226;
+    --color-blue-300: #7a5e2c;
+    --color-blue-400: #846530;
+    --color-blue-500: #c6a56b;
+    --color-blue-600: #8a6b36;
+    --color-blue-700: #735830;
+    --color-blue-800: #5c4724;
+    --color-blue-900: #f1e7d3;
+    --color-blue-950: #f8f2e6;
+    --background: #f4f1ea;
+    --foreground: #0b0b0b;
+    --card: #fffdf9;
+    --card-foreground: #0b0b0b;
+    --popover: #fffdf9;
+    --popover-foreground: #0b0b0b;
+    --primary: #c6a56b;
+    --primary-foreground: #0b0b0b;
+    --secondary: #ece7dd;
+    --secondary-foreground: #0b0b0b;
+    --muted: #ece7dd;
+    --muted-foreground: #5c564d;
+    --accent: #ece7dd;
+    --accent-foreground: #0b0b0b;
+    --border: #e6e0d5;
+    --input: #d8d1c3;
+    --ring: #c6a56b;
+    --chart-1: #a8874f;
+  }
+}
+
+/* Marque Tavola sur les pages claires hors back-office (accueil, documentation, mode serveur, espace client) :
+   le violet de l'ancienne identité devient champagne / bronze lisible sur fond clair. */
+.tavola-marque {
+  --color-violet-50: #f8f2e6;
+  --color-violet-100: #f1e7d3;
+  --color-violet-200: #e5d3ad;
+  --color-violet-300: #d4b987;
+  --color-violet-400: #c6a56b;
+  --color-violet-500: #a8874f;
+  --color-violet-600: #8a6b36;
+  --color-violet-700: #735830;
+  --color-violet-800: #5c4724;
+  --color-violet-900: #3d2f18;
+  --color-violet-950: #241c0e;
+  --color-purple-50: #f8f2e6;
+  --color-purple-100: #f1e7d3;
+  --color-purple-200: #e5d3ad;
+  --color-purple-300: #d4b987;
+  --color-purple-400: #c6a56b;
+  --color-purple-500: #a8874f;
+  --color-purple-600: #8a6b36;
+  --color-purple-700: #735830;
+  --color-purple-800: #5c4724;
+  --color-purple-900: #3d2f18;
+  --color-purple-950: #241c0e;
+  --color-blue-50: #f8f2e6;
+  --color-blue-100: #f1e7d3;
+  --color-blue-200: #e5d3ad;
+  --color-blue-300: #d4b987;
+  --color-blue-400: #a8874f;
+  --color-blue-500: #a8874f;
+  --color-blue-600: #8a6b36;
+  --color-blue-700: #735830;
+  --color-blue-800: #5c4724;
+  --color-blue-900: #3d2f18;
+  --color-blue-950: #241c0e;
+  --color-indigo-50: #f8f2e6;
+  --color-indigo-100: #f1e7d3;
+  --color-indigo-200: #e5d3ad;
+  --color-indigo-300: #d4b987;
+  --color-indigo-400: #a8874f;
+  --color-indigo-500: #a8874f;
+  --color-indigo-600: #8a6b36;
+  --color-indigo-700: #735830;
+  --color-indigo-800: #5c4724;
+  --color-indigo-900: #3d2f18;
+  --color-indigo-950: #241c0e;
+}
+
+/* Impression : toujours noir sur blanc (répété après l'identité Tavola, qui redéfinit ces couleurs). */
+@media print {
+  .dark,
+  .theme-auto,
+  .theme-clair,
+  .tavola-sombre {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --muted-foreground: oklch(0.45 0 0);
+    --border: oklch(0.85 0 0);
+  }
 }

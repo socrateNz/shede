@@ -2,7 +2,7 @@ import type fr from '../fr/settings';
 
 const settings: typeof fr = {
   meta: {
-    title: 'Settings — Shede',
+    title: 'Settings — Tavola',
     description: 'Your establishment settings',
   },
   structureTypes: {
@@ -71,7 +71,7 @@ const settings: typeof fr = {
     modulesCount: '{active} of {total} active',
     moduleActive: 'Active',
     moduleInactive: 'Not active',
-    modulesHint: 'To enable or disable modules, contact Shede support.',
+    modulesHint: 'To enable or disable modules, contact Tavola support.',
     push: 'Push notifications',
     pushHint: 'Get real-time alerts for new orders and bookings.',
     dangerZone: 'Danger zone',

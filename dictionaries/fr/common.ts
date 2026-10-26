@@ -62,7 +62,7 @@ const common = {
   error: 'Erreur',
   genericError: 'Une erreur est survenue. Veuillez réessayer.',
   unauthorized: 'Accès non autorisé',
-  copyright: '© {year} Shede — Tous droits réservés',
+  copyright: '© {year} Tavola by Tacynt — Tous droits réservés',
   paymentMethods: {
     CASH: 'Espèces',
     CARD: 'Carte bancaire',
@@ -92,7 +92,7 @@ const common = {
     installed: 'Application installée',
     iosHint: 'Sur iPhone : touchez Partager, puis « Sur l’écran d’accueil ».',
     offlineTitle: 'Pas de connexion',
-    offlineText: 'Shede n’arrive pas à joindre le serveur. Vérifiez le Wi-Fi ou les données mobiles, puis réessayez.',
+    offlineText: 'Tavola n’arrive pas à joindre le serveur. Vérifiez le Wi-Fi ou les données mobiles, puis réessayez.',
     retry: 'Réessayer',
   },
 };

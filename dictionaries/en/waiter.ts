@@ -1,7 +1,7 @@
 import type fr from '../fr/waiter';
 
 const waiter: typeof fr = {
-  meta: { title: 'Shede Waiter' },
+  meta: { title: 'Tavola Waiter' },
   nav: { floor: 'Floor', orders: 'Orders', backOffice: 'Back to dashboard' },
   floor: {
     partial: 'Seats free',

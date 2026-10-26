@@ -2,7 +2,7 @@ import type fr from '../fr/delivery';
 
 const delivery: typeof fr = {
   meta: {
-    title: 'Deliveries — Shede',
+    title: 'Deliveries — Tavola',
     description: 'Delivery tracking',
   },
   status: {

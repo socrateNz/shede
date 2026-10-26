@@ -17,7 +17,7 @@ const client: typeof fr = {
     MIXTE: 'Hotel & Restaurant',
   },
   home: {
-    welcome: 'Welcome to Shede',
+    welcome: 'Welcome to Tavola',
     heroLine1: 'Order from your',
     heroLine2: 'favourite places',
     heroText: 'Discover a selection of quality places and enjoy exclusive offers',
@@ -36,7 +36,7 @@ const client: typeof fr = {
     noneTitle: 'No places available',
     noneText: 'Come back soon, new places are on their way!',
     weeklyTitle: 'New places every week',
-    weeklyText: 'New places join Shede regularly. Stay tuned!',
+    weeklyText: 'New places join Tavola regularly. Stay tuned!',
   },
   dashboard: {
     hello: 'Hello,',

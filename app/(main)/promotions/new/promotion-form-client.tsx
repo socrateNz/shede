@@ -132,7 +132,7 @@ export function PromotionFormClient({
         <div className="space-y-6">
           
           <Card className="bg-slate-900 border-slate-800 shadow-xl overflow-hidden">
-            <div className={`h-1 bg-gradient-to-r ${promoMode === 'STANDARD' ? 'from-blue-600 to-indigo-600' : promoMode === 'CODE' ? 'from-purple-600 to-fuchsia-600' : 'from-emerald-600 to-teal-600'}`} />
+            <div className={`h-1 bg-gradient-to-r ${promoMode === 'STANDARD' ? 'from-blue-600 to-blue-700' : promoMode === 'CODE' ? 'from-blue-700 to-fuchsia-600' : 'from-emerald-600 to-teal-600'}`} />
             <CardHeader>
               <CardTitle className="text-xl text-slate-100 flex items-center gap-2">
                 <Tag className={`w-5 h-5 ${promoMode === 'STANDARD' ? 'text-blue-400' : promoMode === 'CODE' ? 'text-purple-400' : 'text-emerald-400'}`} />
@@ -326,7 +326,7 @@ export function PromotionFormClient({
             <Link href="/promotions">
               <Button type="button" variant="ghost" className="text-slate-400 hover:text-slate-50 hover:bg-slate-800 rounded-xl px-8">{t('common.cancel')}</Button>
             </Link>
-            <Button type="submit" disabled={loading} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-12 rounded-xl h-12 shadow-lg hover:shadow-xl transition-all hover:scale-105">
+            <Button type="submit" disabled={loading} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-12 rounded-xl h-12 shadow-lg hover:shadow-xl transition-all hover:scale-105">
               <Save className="w-4 h-4 mr-2" /> {initialData ? t('promotions.form.update') : t('promotions.form.save')}
             </Button>
           </div>

@@ -25,5 +25,5 @@ export const viewport: Viewport = {
 
 /** Mode serveur : plein écran, sans la barre latérale du back-office, thème clair. */
 export default function WaiterLayout({ children }: { children: React.ReactNode }) {
-  return <div className={`${jakarta.className} min-h-[100dvh] bg-[#e9e7e1] text-[#17181c] antialiased`}>{children}</div>;
+  return <div className={`${jakarta.className} tavola-marque min-h-[100dvh] bg-[#e9e7e1] text-[#17181c] antialiased`}>{children}</div>;
 }

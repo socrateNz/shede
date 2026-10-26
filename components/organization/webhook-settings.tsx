@@ -71,7 +71,7 @@ export function WebhookSettings({ pointId, webhook }: { pointId: string; webhook
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://marketplace.example/webhooks/shede"
+          placeholder="https://marketplace.example/webhooks/tavola"
           aria-label={t('api.webhooks.url')}
           className="flex-1 border-slate-600 bg-slate-900/50 font-mono text-sm text-slate-100"
         />

@@ -5,8 +5,8 @@ import type { Locale } from '@/lib/i18n/config';
 
 const fr = {
   meta: {
-    title: 'API Shede v1 — Documentation',
-    description: 'Intégrez les restaurants Shede à votre marketplace de livraison : menu, commandes, livraison et webhooks.',
+    title: 'API Tavola v1 — Documentation',
+    description: 'Intégrez les restaurants Tavola à votre marketplace de livraison : menu, commandes, livraison et webhooks.',
   },
   header: {
     docs: 'Documentation',
@@ -21,7 +21,7 @@ const fr = {
   },
   prompt: {
     intro:
-      'Tu es un développeur chargé d’intégrer l’API Shede (logiciel de restaurant) dans une plateforme de livraison. Voici la documentation complète de l’API v1 (adresse de base : {api}). Appuie-toi uniquement sur cette documentation : n’invente ni point d’accès, ni champ, ni code d’erreur. Si une information manque, dis-le et pose la question.',
+      'Tu es un développeur chargé d’intégrer l’API Tavola (logiciel de restaurant) dans une plateforme de livraison. Voici la documentation complète de l’API v1 (adresse de base : {api}). Appuie-toi uniquement sur cette documentation : n’invente ni point d’accès, ni champ, ni code d’erreur. Si une information manque, dis-le et pose la question.',
   },
   nav: {
     intro: 'Introduction',
@@ -45,20 +45,20 @@ const fr = {
   groups: { start: 'Démarrage', resources: 'Point, menu et livraison', orders: 'Commandes', webhooks: 'Webhooks' },
   intro: {
     badge: 'API v1',
-    title: 'Intégrer Shede à votre marketplace',
-    text: 'L’API Shede permet à une marketplace de livraison de récupérer le menu d’un restaurant, de lui transmettre des commandes et de suivre leur préparation en temps réel. Toutes les requêtes et réponses sont en JSON, sur HTTPS.',
+    title: 'Intégrer Tavola à votre marketplace',
+    text: 'L’API Tavola permet à une marketplace de livraison de récupérer le menu d’un restaurant, de lui transmettre des commandes et de suivre leur préparation en temps réel. Toutes les requêtes et réponses sont en JSON, sur HTTPS.',
     baseUrl: 'Adresse de base',
     flow: [
       'Le restaurant vous transmet sa clé d’API.',
       'Vous synchronisez son menu avec GET /menu.',
       'Vous envoyez chaque commande avec POST /orders.',
-      'Le restaurant l’accepte ou la refuse dans Shede ; vous êtes prévenu par webhook.',
+      'Le restaurant l’accepte ou la refuse dans Tavola ; vous êtes prévenu par webhook.',
       'Votre livreur la récupère : vous l’indiquez avec POST /orders/{id}/delivery-events.',
     ],
   },
   auth: {
     title: 'Authentification',
-    text: 'Chaque point de vente possède sa propre clé (shd_live_…), générée par l’administrateur de l’organisation dans Shede (Points & licence → fiche du point → API). La clé identifie le point : aucun autre identifiant n’est nécessaire. Une clé de test (shd_test_…) permet d’essayer l’API sans rien enregistrer (voir Mode test).',
+    text: 'Chaque point de vente possède sa propre clé (shd_live_…), générée par l’administrateur de l’organisation dans Tavola (Points & licence → fiche du point → API). La clé identifie le point : aucun autre identifiant n’est nécessaire. Une clé de test (shd_test_…) permet d’essayer l’API sans rien enregistrer (voir Mode test).',
     header: 'Envoyez-la dans l’en-tête Authorization (l’en-tête X-Api-Key est aussi accepté) :',
     warning: 'Gardez la clé côté serveur : ne l’intégrez jamais dans une application mobile ou une page web. Une clé régénérée ou révoquée cesse immédiatement de fonctionner.',
   },
@@ -129,15 +129,15 @@ const fr = {
     modes: 'Deux façons de livrer une commande (champ delivery_by de POST /orders) :',
     modeList: [
       ['marketplace', 'Par défaut. Votre livreur récupère la commande au restaurant ; vous suivez la course avec POST /orders/{id}/delivery-events.'],
-      ['restaurant', 'Un livreur du restaurant livre le client dans la zone choisie (delivery.zone_id). Les frais de la zone s’ajoutent au total. Le suivi se fait dans Shede : delivery.status passe de to_assign à assigned, in_transit puis delivered (ou failed). La vente est clôturée à la livraison.'],
+      ['restaurant', 'Un livreur du restaurant livre le client dans la zone choisie (delivery.zone_id). Les frais de la zone s’ajoutent au total. Le suivi se fait dans Tavola : delivery.status passe de to_assign à assigned, in_transit puis delivered (ou failed). La vente est clôturée à la livraison.'],
     ],
   },
   lifecycle: {
     title: 'Cycle de vie d’une commande',
     rules: [
-      'Le restaurant accepte ou refuse chaque commande dans Shede, et annonce un temps de préparation (prep_minutes, estimated_ready_at).',
-      'Shede fait foi pour les prix : le total (TVA incluse) est calculé à partir des prix du restaurant et renvoyé dans amounts.',
-      'Vous encaissez le client et reversez le montant au restaurant : la vente est clôturée dans Shede quand votre livreur récupère la commande (PICKED_UP).',
+      'Le restaurant accepte ou refuse chaque commande dans Tavola, et annonce un temps de préparation (prep_minutes, estimated_ready_at).',
+      'Tavola fait foi pour les prix : le total (TVA incluse) est calculé à partir des prix du restaurant et renvoyé dans amounts.',
+      'Vous encaissez le client et reversez le montant au restaurant : la vente est clôturée dans Tavola quand votre livreur récupère la commande (PICKED_UP).',
     ],
     statuses: 'Statuts',
     statusList: [
@@ -181,7 +181,7 @@ const fr = {
     idempotency: 'Idempotence : renvoyer la même requête (même external_id) ne crée pas de doublon ; la commande existante est renvoyée avec le code 200. En cas de coupure réseau, renvoyez simplement la requête.',
     validation: 'Erreurs de validation (422) — details[].code :',
   },
-  getOrder: { title: 'Consulter une commande', text: '{id} est l’id Shede ou votre external_id.' },
+  getOrder: { title: 'Consulter une commande', text: '{id} est l’id Tavola ou votre external_id.' },
   listOrders: {
     title: 'Lister les commandes',
     text: 'Deux usages : se resynchroniser après une coupure (updated_since) et rapprocher vos reversements (période de création et statut). Les filtres se combinent.',
@@ -207,7 +207,7 @@ const fr = {
   },
   webhooks: {
     title: 'Webhooks',
-    text: 'Shede prévient votre serveur dès qu’il se passe quelque chose sur le point. L’adresse (HTTPS) et le secret de signature sont configurés par le restaurant dans Shede : demandez-lui de vous transmettre le secret.',
+    text: 'Tavola prévient votre serveur dès qu’il se passe quelque chose sur le point. L’adresse (HTTPS) et le secret de signature sont configurés par le restaurant dans Tavola : demandez-lui de vous transmettre le secret.',
     request: 'Requête envoyée',
     events: 'Événements',
     colType: 'type',
@@ -218,7 +218,7 @@ const fr = {
       ['menu.updated', 'Un produit ou un accompagnement est créé, modifié, désactivé ou supprimé', 'product_id ou accompaniment_id, change → relisez GET /menu'],
       ['delivery_zones.updated', 'Une zone de livraison est créée, modifiée, activée ou désactivée', '— → relisez GET /delivery-zones'],
       ['point.paused / point.resumed', 'Le restaurant suspend ou reprend les commandes', 'paused'],
-      ['ping', 'Test envoyé depuis Shede', '—'],
+      ['ping', 'Test envoyé depuis Tavola', '—'],
     ],
     replyTitle: 'Répondre',
     reply: 'Répondez 2xx en moins de 8 secondes et traitez l’événement ensuite. Sinon, l’envoi est retenté après 1 min, 5 min, 30 min, 2 h, 12 h et 24 h, puis abandonné. Un même événement peut arriver plusieurs fois : ignorez un Shede-Delivery déjà traité. L’ordre d’arrivée n’est pas garanti : fiez-vous à order.updated_at.',
@@ -257,15 +257,15 @@ const fr = {
     menuHint: 'Astuce : appelez d’abord GET /menu, un produit disponible sera prérempli dans POST /orders.',
     orderHint: 'L’id de la dernière commande créée est prérempli.',
   },
-  footer: { version: 'API v1 · {year}', support: 'Une question sur l’intégration ? Contactez le support Shede.' },
+  footer: { version: 'API v1 · {year}', support: 'Une question sur l’intégration ? Contactez le support Tavola.' },
 };
 
 export type ApiDocsContent = typeof fr;
 
 const en: ApiDocsContent = {
   meta: {
-    title: 'Shede API v1 — Documentation',
-    description: 'Connect Shede restaurants to your delivery marketplace: menu, orders, delivery and webhooks.',
+    title: 'Tavola API v1 — Documentation',
+    description: 'Connect Tavola restaurants to your delivery marketplace: menu, orders, delivery and webhooks.',
   },
   header: {
     docs: 'Documentation',
@@ -280,7 +280,7 @@ const en: ApiDocsContent = {
   },
   prompt: {
     intro:
-      'You are a developer integrating the Shede API (restaurant software) into a delivery platform. Below is the complete API v1 documentation (base URL: {api}). Rely only on this documentation: do not invent endpoints, fields or error codes. If something is missing, say so and ask.',
+      'You are a developer integrating the Tavola API (restaurant software) into a delivery platform. Below is the complete API v1 documentation (base URL: {api}). Rely only on this documentation: do not invent endpoints, fields or error codes. If something is missing, say so and ask.',
   },
   nav: {
     intro: 'Introduction',
@@ -304,20 +304,20 @@ const en: ApiDocsContent = {
   groups: { start: 'Getting started', resources: 'Outlet, menu and delivery', orders: 'Orders', webhooks: 'Webhooks' },
   intro: {
     badge: 'API v1',
-    title: 'Connect Shede to your marketplace',
-    text: 'The Shede API lets a delivery marketplace read a restaurant’s menu, send it orders and follow their preparation in real time. All requests and responses are JSON over HTTPS.',
+    title: 'Connect Tavola to your marketplace',
+    text: 'The Tavola API lets a delivery marketplace read a restaurant’s menu, send it orders and follow their preparation in real time. All requests and responses are JSON over HTTPS.',
     baseUrl: 'Base URL',
     flow: [
       'The restaurant sends you its API key.',
       'You sync its menu with GET /menu.',
       'You send each order with POST /orders.',
-      'The restaurant accepts or declines it in Shede; you are notified by webhook.',
+      'The restaurant accepts or declines it in Tavola; you are notified by webhook.',
       'Your courier picks it up: report it with POST /orders/{id}/delivery-events.',
     ],
   },
   auth: {
     title: 'Authentication',
-    text: 'Each outlet has its own key (shd_live_…), generated by the organization administrator in Shede (Outlets & license → outlet page → API). The key identifies the outlet: no other identifier is needed. A test key (shd_test_…) lets you try the API without saving anything (see Test mode).',
+    text: 'Each outlet has its own key (shd_live_…), generated by the organization administrator in Tavola (Outlets & license → outlet page → API). The key identifies the outlet: no other identifier is needed. A test key (shd_test_…) lets you try the API without saving anything (see Test mode).',
     header: 'Send it in the Authorization header (the X-Api-Key header is also accepted):',
     warning: 'Keep the key on your server: never embed it in a mobile app or a web page. A regenerated or revoked key stops working immediately.',
   },
@@ -388,15 +388,15 @@ const en: ApiDocsContent = {
     modes: 'Two ways to deliver an order (delivery_by field of POST /orders):',
     modeList: [
       ['marketplace', 'Default. Your courier picks up the order at the restaurant; you report the trip with POST /orders/{id}/delivery-events.'],
-      ['restaurant', 'A restaurant courier delivers the customer in the chosen zone (delivery.zone_id). The zone fee is added to the total. Tracking happens in Shede: delivery.status goes from to_assign to assigned, in_transit then delivered (or failed). The sale is closed on delivery.'],
+      ['restaurant', 'A restaurant courier delivers the customer in the chosen zone (delivery.zone_id). The zone fee is added to the total. Tracking happens in Tavola: delivery.status goes from to_assign to assigned, in_transit then delivered (or failed). The sale is closed on delivery.'],
     ],
   },
   lifecycle: {
     title: 'Order lifecycle',
     rules: [
-      'The restaurant accepts or declines each order in Shede and announces a preparation time (prep_minutes, estimated_ready_at).',
-      'Shede is the source of truth for prices: the total (VAT included) is calculated from the restaurant’s prices and returned in amounts.',
-      'You charge the customer and pay the restaurant back: the sale is closed in Shede when your courier picks up the order (PICKED_UP).',
+      'The restaurant accepts or declines each order in Tavola and announces a preparation time (prep_minutes, estimated_ready_at).',
+      'Tavola is the source of truth for prices: the total (VAT included) is calculated from the restaurant’s prices and returned in amounts.',
+      'You charge the customer and pay the restaurant back: the sale is closed in Tavola when your courier picks up the order (PICKED_UP).',
     ],
     statuses: 'Statuses',
     statusList: [
@@ -440,7 +440,7 @@ const en: ApiDocsContent = {
     idempotency: 'Idempotency: sending the same request again (same external_id) does not create a duplicate; the existing order is returned with a 200 code. After a network failure, simply send the request again.',
     validation: 'Validation errors (422) — details[].code:',
   },
-  getOrder: { title: 'Get an order', text: '{id} is the Shede id or your external_id.' },
+  getOrder: { title: 'Get an order', text: '{id} is the Tavola id or your external_id.' },
   listOrders: {
     title: 'List orders',
     text: 'Two uses: resynchronize after an outage (updated_since) and reconcile your payouts (creation period and status). Filters can be combined.',
@@ -466,7 +466,7 @@ const en: ApiDocsContent = {
   },
   webhooks: {
     title: 'Webhooks',
-    text: 'Shede notifies your server as soon as something happens at the outlet. The address (HTTPS) and the signing secret are set up by the restaurant in Shede: ask them to send you the secret.',
+    text: 'Tavola notifies your server as soon as something happens at the outlet. The address (HTTPS) and the signing secret are set up by the restaurant in Tavola: ask them to send you the secret.',
     request: 'Request sent',
     events: 'Events',
     colType: 'type',
@@ -477,7 +477,7 @@ const en: ApiDocsContent = {
       ['menu.updated', 'A product or side dish is created, changed, disabled or deleted', 'product_id or accompaniment_id, change → read GET /menu again'],
       ['delivery_zones.updated', 'A delivery zone is created, changed, enabled or disabled', '— → read GET /delivery-zones again'],
       ['point.paused / point.resumed', 'The restaurant pauses or resumes orders', 'paused'],
-      ['ping', 'Test sent from Shede', '—'],
+      ['ping', 'Test sent from Tavola', '—'],
     ],
     replyTitle: 'Replying',
     reply: 'Reply with a 2xx within 8 seconds and process the event afterwards. Otherwise the delivery is retried after 1 min, 5 min, 30 min, 2 h, 12 h and 24 h, then dropped. The same event can arrive several times: ignore a Shede-Delivery you have already processed. Delivery order is not guaranteed: rely on order.updated_at.',
@@ -516,7 +516,7 @@ const en: ApiDocsContent = {
     menuHint: 'Tip: call GET /menu first, an available product will be prefilled in POST /orders.',
     orderHint: 'The id of the last created order is prefilled.',
   },
-  footer: { version: 'API v1 · {year}', support: 'A question about the integration? Contact Shede support.' },
+  footer: { version: 'API v1 · {year}', support: 'A question about the integration? Contact Tavola support.' },
 };
 
 export const API_DOCS_CONTENT: Record<Locale, ApiDocsContent> = { fr, en };

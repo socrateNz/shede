@@ -452,7 +452,7 @@ export default function OrderDetailPage() {
               <CardContent className="pt-4">
                 <p className="text-sm text-green-400 mb-4">{t('orders.detail.completedText')}</p>
                 <Link href="/orders">
-                  <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+                  <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white">
                     {t('orders.detail.back')}
                   </Button>
                 </Link>
@@ -521,7 +521,7 @@ export default function OrderDetailPage() {
                   <Button
                     type="submit"
                     disabled={!selectedProduct}
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     {t('orders.detail.add')}

@@ -17,7 +17,7 @@ export default async function WaiterPinLoginPage() {
         <Smartphone className="h-12 w-12 text-[#5b5e66]" aria-hidden />
         <h1 className="text-2xl font-extrabold">{t('waiter.devices.notEnrolledTitle')}</h1>
         <p className="text-[15px] text-[#3d4048]">{t('waiter.devices.notEnrolledText')}</p>
-        <Link href="/login?redirect=/serveur" className="mt-2 text-[15px] font-semibold text-[#5b21b6] underline-offset-2 hover:underline">
+        <Link href="/login?redirect=/serveur" className="mt-2 text-[15px] font-semibold text-[#6b5226] underline-offset-2 hover:underline">
           {t('waiter.devices.staffLogin')}
         </Link>
       </main>

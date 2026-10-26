@@ -78,7 +78,7 @@ export default async function EditUserPage({
         {/* Info Card */}
         <div className="mb-6 p-4 rounded-lg bg-slate-800/30 border border-slate-700">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/20">
               <span className="text-xl">{staffRoleIcon(user.role)}</span>
             </div>
             <div>
@@ -92,11 +92,11 @@ export default async function EditUserPage({
 
         {/* Formulaire Card */}
         <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-2xl hover:shadow-blue-500/5 transition-all duration-500 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/5 opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
           <CardHeader className="border-b border-slate-700/50 pb-6">
             <CardTitle className="text-2xl font-bold text-slate-50 flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl">
                 <User className="w-5 h-5 text-white" />
               </div>
               {t('team.form.editCard')}
@@ -226,7 +226,7 @@ export default async function EditUserPage({
               <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-slate-700">
                 <Button
                   type="submit"
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-2.5 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-blue-500/25"
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-2.5 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-blue-500/25"
                 >
                   <div className="flex items-center gap-2">
                     <Save className="w-4 h-4" />

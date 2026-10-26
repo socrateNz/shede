@@ -269,7 +269,7 @@ export const generateBookingReceipt = async (
   const logo = await loadTicketLogo(structure?.logo_url);
 
   await saveTicket((w) => {
-    ticketHeader(w, i18n, structure, 'Shede', logo);
+    ticketHeader(w, i18n, structure, 'Tavola', logo);
     w.gap(0.5);
     w.center(
       booking.invoice_number ? t('documents.receipt.invoiceTitle', { number: booking.invoice_number }) : t('documents.booking.title'),
@@ -351,7 +351,7 @@ export const generateOrderReceipt = async (
 ) => {
   const { t, format } = i18n;
   const date = format.dateTime(order.paid_at || order.created_at);
-  const structureName = order.structures?.name || 'SHEDE SYSTEM';
+  const structureName = order.structures?.name || 'TAVOLA';
   const currency = documentCurrency(order.structures);
   const money = (num: number | null | undefined) => formatDocumentAmount(num, currency, format.intl);
   const isPaid = order.status === 'COMPLETED';
@@ -371,7 +371,7 @@ export const generateOrderReceipt = async (
   const logo = await loadTicketLogo(order.structures?.logo_url);
 
   await saveTicket((w) => {
-    ticketHeader(w, i18n, order.structures, 'SHEDE SYSTEM', logo);
+    ticketHeader(w, i18n, order.structures, 'Tavola', logo);
     w.gap(0.5);
     w.center(
       isPaid && order.invoice_number ? t('documents.receipt.invoiceTitle', { number: order.invoice_number }) : t('documents.receipt.orderReceipt'),
@@ -505,14 +505,14 @@ export async function generateSalesDocumentPdf(
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.setTextColor(...accent);
-    doc.text(initialsOf(structure?.name || 'Shede'), left + 11, 23, { align: 'center', baseline: 'middle' });
+    doc.text(initialsOf(structure?.name || 'Tavola'), left + 11, 23, { align: 'center', baseline: 'middle' });
     headerBottom = 34;
   }
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(20);
   let y = 16;
-  for (const line of doc.splitTextToSize(pdfText((structure?.name || 'Shede').toUpperCase()), 100) as string[]) {
+  for (const line of doc.splitTextToSize(pdfText((structure?.name || 'Tavola').toUpperCase()), 100) as string[]) {
     doc.text(line, right, y, { align: 'right' });
     y += 5.5;
   }

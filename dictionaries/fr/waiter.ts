@@ -1,6 +1,6 @@
 /** Mode serveur (prise de commande sur téléphone). */
 const waiter = {
-  meta: { title: 'Shede Serveur' },
+  meta: { title: 'Tavola Serveur' },
   nav: { floor: 'Salle', orders: 'Commandes', backOffice: 'Retour au tableau de bord' },
   floor: {
     partial: 'Places libres',

@@ -2,7 +2,7 @@ import type fr from '../fr/floor';
 
 const floor: typeof fr = {
   meta: {
-    title: 'Floor plan — Shede',
+    title: 'Floor plan — Tavola',
     description: 'Interactive table management',
   },
   shapes: {

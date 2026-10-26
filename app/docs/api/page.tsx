@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { TavolaLogo } from '@/components/brand/tavola-logo';
 import { headers } from 'next/headers';
 import { ArrowLeft, ChevronRight, KeyRound, ShieldCheck } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -17,7 +18,7 @@ export async function generateMetadata() {
 async function baseUrl() {
   if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, '');
   const h = await headers();
-  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'shede.example';
+  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'tavola.example';
   const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https');
   return `${proto}://${host}`;
 }
@@ -109,7 +110,7 @@ const examples = (api: string) => ({
   delivery: `curl -X POST ${api}/orders/GLV-48213/delivery-events \\
   -H "Authorization: Bearer $SHEDE_KEY" -H "Content-Type: application/json" \\
   -d '{ "status": "PICKED_UP", "courier_name": "Paul", "courier_phone": "677000000" }'`,
-  webhookRequest: `POST https://votre-serveur/webhooks/shede
+  webhookRequest: `POST https://votre-serveur/webhooks/tavola
 Content-Type: application/json
 Shede-Event: order.status_changed
 Shede-Delivery: 6f1c…
@@ -239,13 +240,12 @@ export default async function ApiDocsPage() {
 
   return (
     <TryItProvider c={c} locale={locale}>
-    <div className="flex min-h-screen flex-col bg-[#fdfdff]">
+    <div className="tavola-marque flex min-h-screen flex-col bg-[#fdfdff]">
       <header className="fixed inset-x-0 top-0 z-50 h-16 border-b border-slate-200/60 bg-white/80 backdrop-blur-xl">
         <div className="mx-auto flex h-full max-w-screen-xl items-center justify-between gap-4 px-4">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2">
-              <img src="/logo.webp" alt="Shede" className="h-7 w-7 rounded-lg border-2 border-purple-600" />
-              <span className="text-lg font-bold text-slate-900">Shede</span>
+              <TavolaLogo tone="light" size={26} withSignature={false} />
             </Link>
             <span className="hidden items-center gap-1 text-sm text-slate-400 sm:inline-flex">
               <ChevronRight className="h-4 w-4" />

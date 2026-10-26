@@ -266,7 +266,7 @@ export function CategoriesManager({ initialCategories }: { initialCategories: Ca
           <Button
             type="button"
             onClick={() => openCreate()}
-            className="border-none bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20 transition-all duration-300 hover:scale-105 hover:from-blue-700 hover:to-indigo-700"
+            className="border-none bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 transition-all duration-300 hover:scale-105 hover:from-blue-700 hover:to-blue-800"
           >
             <Plus className="mr-2 h-4 w-4" />
             {t('categories.newButton')}

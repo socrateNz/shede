@@ -2,7 +2,7 @@ import type fr from '../fr/accounting';
 
 const accounting: typeof fr = {
   meta: {
-    title: 'Accounting — Shede',
+    title: 'Accounting — Tavola',
     description: 'SYSCOHADA accounting for the outlet',
   },
   nav: {
@@ -280,7 +280,7 @@ const accounting: typeof fr = {
     equityResult: 'Result for the year (unallocated)',
     totalAssets: 'Total assets',
     totalLiabilities: 'Total equity and liabilities',
-    note: 'Simplified balance sheet based on the entries recorded in Shede. Post opening balances (capital, fixed assets, loans…) in the opening balances journal for a complete balance sheet.',
+    note: 'Simplified balance sheet based on the entries recorded in Tavola. Post opening balances (capital, fixed assets, loans…) in the opening balances journal for a complete balance sheet.',
     exportFile: 'financial-statements_{from}_{to}',
   },
   vat: {

@@ -77,7 +77,7 @@ export function NotificationsList({ initial }: { initial: Paginated<any, Notific
               {notifications.map((notif) => (
                 <li
                   key={notif.id}
-                  className={`p-4 hover:bg-slate-700/30 transition-colors flex items-start gap-4 ${!notif.is_read ? 'bg-blue-500/5 shadow-[inset_4px_0_0_0_#3b82f6]' : ''}`}
+                  className={`p-4 hover:bg-slate-700/30 transition-colors flex items-start gap-4 ${!notif.is_read ? 'bg-blue-500/5 shadow-[inset_4px_0_0_0_var(--color-blue-500)]' : ''}`}
                 >
                   <div className={`mt-1 p-2 rounded-full ${!notif.is_read ? 'bg-blue-500/10 text-blue-400' : 'bg-slate-700 text-slate-500'}`}>
                     <Bell className="w-4 h-4" />

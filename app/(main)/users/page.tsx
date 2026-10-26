@@ -39,7 +39,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
             <p className="text-slate-400">{t('team.list.subtitle')}</p>
           </div>
           <Link href="/users/new">
-            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
               <Plus className="w-4 h-4 mr-2" />
               {t('team.list.add')}
             </Button>
@@ -99,7 +99,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
 
         {/* Users List Card */}
         <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-xl overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/5 pointer-events-none" />
           <CardHeader className="border-b border-slate-700/50">
             <CardTitle className="text-slate-50 flex items-center gap-2">
               <Users className="w-5 h-5 text-blue-400" />

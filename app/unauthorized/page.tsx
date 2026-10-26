@@ -13,7 +13,7 @@ export default async function UnauthorizedPage({
   const { error, module } = await searchParams;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+    <div className="tavola-sombre min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-slate-800 border-slate-700">
         <CardContent className="pt-6 text-center space-y-4">
           <div className="text-6xl font-bold text-red-400">403</div>

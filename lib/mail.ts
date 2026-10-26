@@ -82,19 +82,22 @@ export function renderMail(content: MailContent): { html: string; text: string }
 
   const action = content.action
     ? `<p style="margin:24px 0">
-        <a href="${escapeHtml(content.action.url)}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600;font-size:14px">${escapeHtml(content.action.label)}</a>
+        <a href="${escapeHtml(content.action.url)}" style="display:inline-block;background:#c6a56b;color:#0b0b0b;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600;font-size:14px">${escapeHtml(content.action.label)}</a>
       </p>`
     : '';
 
   const html = `<!doctype html>
 <html lang="${escapeHtml(content.lang ?? 'fr')}">
-  <body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px 12px">
+  <body style="margin:0;padding:0;background:#f4f1ea;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1ea;padding:24px 12px">
       <tr><td align="center">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden">
-          <tr><td style="background:#0f172a;padding:16px 24px;color:#ffffff;font-size:18px;font-weight:700">Shede</td></tr>
+          <tr><td style="background:#0b0b0b;padding:18px 24px">
+            <span style="font-family:Georgia,'Times New Roman',serif;font-size:20px;letter-spacing:6px;color:#f4f1ea">TAVOLA</span>
+            <span style="display:block;margin-top:4px;font-size:10px;letter-spacing:4px;color:#c6a56b">BY TACYNT</span>
+          </td></tr>
           <tr><td style="padding:24px">
-            <h1 style="margin:0 0 16px;font-size:20px;color:#0f172a">${escapeHtml(content.title)}</h1>
+            <h1 style="margin:0 0 16px;font-size:20px;color:#0b0b0b">${escapeHtml(content.title)}</h1>
             ${content.paragraphs
               .map((p) => `<p style="margin:0 0 12px;font-size:15px;line-height:1.5;color:#334155">${escapeHtml(p)}</p>`)
               .join('')}
@@ -103,7 +106,7 @@ export function renderMail(content: MailContent): { html: string; text: string }
             ${content.footnote ? `<p style="margin:16px 0 0;font-size:12px;color:#94a3b8">${escapeHtml(content.footnote)}</p>` : ''}
           </td></tr>
         </table>
-        <p style="margin:12px 0 0;font-size:12px;color:#94a3b8">${escapeHtml(content.footer ?? 'Email automatique envoyé par Shede — merci de ne pas y répondre.')}</p>
+        <p style="margin:12px 0 0;font-size:12px;color:#94a3b8">${escapeHtml(content.footer ?? 'Email automatique envoyé par Tavola — merci de ne pas y répondre.')}</p>
       </td></tr>
     </table>
   </body>

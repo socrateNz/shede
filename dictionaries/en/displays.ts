@@ -2,9 +2,9 @@ import type fr from '../fr/displays';
 
 const displays: typeof fr = {
   meta: {
-    kitchenTitle: 'Kitchen — Shede',
+    kitchenTitle: 'Kitchen — Tavola',
     kitchenDescription: 'Kitchen display',
-    barTitle: 'Bar — Shede',
+    barTitle: 'Bar — Tavola',
     barDescription: 'Bar display',
   },
   noStructure: 'No establishment is linked to this account.',

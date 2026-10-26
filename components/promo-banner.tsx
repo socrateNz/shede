@@ -44,7 +44,7 @@ export function PromoBanner({ promotions, isGlobal = false }: { promotions: Prom
   }
 
   const bannerContent = (
-    <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 p-6 shadow-lg mb-8 ${isGlobal ? 'hover:shadow-indigo-500/30' : ''}`}>
+    <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 p-6 shadow-lg mb-8 ${isGlobal ? 'hover:shadow-indigo-500/30' : ''}`}>
       {/* Decorative elements */}
       <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
       <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-24 w-24 rounded-full bg-blue-400/20 blur-2xl" />

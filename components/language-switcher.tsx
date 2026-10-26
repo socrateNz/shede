@@ -44,7 +44,7 @@ export function LanguageSwitcher({ tone = 'dark', className }: { tone?: 'dark' |
             'min-h-8 min-w-9 rounded-md px-2 py-1 uppercase transition-colors',
             tone === 'waiter' && 'min-h-10 min-w-11 rounded-full',
             locale === code
-              ? tone === 'waiter' ? 'bg-[#4c1d95] text-white' : 'bg-blue-600 text-white'
+              ? tone === 'waiter' ? 'bg-[#7a5e2c] text-white' : 'bg-blue-600 text-white'
               : tone === 'dark'
                 ? 'text-slate-300 hover:bg-slate-700'
                 : tone === 'waiter'

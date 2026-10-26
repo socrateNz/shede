@@ -62,17 +62,17 @@ const fr = {
   intro: {
     badge: 'Documentation',
     titleBefore: 'Bienvenue sur',
-    text: 'Shede est une plateforme SaaS multi-établissements conçue pour les hôtels et restaurants. Elle connecte les professionnels de l’hôtellerie-restauration avec leurs clients via une interface unifiée, intuitive et puissante.',
+    text: 'Tavola est une plateforme SaaS multi-établissements conçue pour les hôtels et restaurants. Elle connecte les professionnels de l’hôtellerie-restauration avec leurs clients via une interface unifiée, intuitive et puissante.',
     cards: [
       { title: 'Restaurants', desc: 'Caisse, commandes, stocks' },
       { title: 'Hôtels', desc: 'Réservations, chambres' },
       { title: 'Clients B2C', desc: 'Application et portail client' },
     ],
-    callout: 'Cette documentation couvre l’ensemble des fonctionnalités de Shede. Naviguez avec la barre latérale ou utilisez la recherche pour trouver rapidement ce dont vous avez besoin.',
+    callout: 'Cette documentation couvre l’ensemble des fonctionnalités de Tavola. Naviguez avec la barre latérale ou utilisez la recherche pour trouver rapidement ce dont vous avez besoin.',
   },
   quickstart: {
     title: 'Démarrage rapide',
-    text: 'Créez votre compte et commencez à utiliser Shede en moins de 5 minutes.',
+    text: 'Créez votre compte et commencez à utiliser Tavola en moins de 5 minutes.',
     steps: [
       { title: 'Créer un compte', desc: 'Rendez-vous sur /register-client (client) ou contactez-nous pour un compte professionnel.' },
       { title: 'Configurer votre établissement', desc: 'Renseignez le nom, le type (restaurant, hôtel ou mixte), les horaires et le logo.' },
@@ -82,7 +82,7 @@ const fr = {
   },
   architecture: {
     title: 'Architecture',
-    text: 'Shede repose sur une architecture multi-établissements moderne.',
+    text: 'Tavola repose sur une architecture multi-établissements moderne.',
     codeTitle: '# Structure des rôles',
     roles: [
       { code: 'SUPER_ADMIN', desc: 'Gère toutes les organisations', indent: 0 },
@@ -97,7 +97,7 @@ const fr = {
   clientAccount: {
     badge: 'Côté client',
     title: 'Compte client',
-    text: 'Le compte client est gratuit et donne accès à tous les établissements partenaires Shede.',
+    text: 'Le compte client est gratuit et donne accès à tous les établissements partenaires Tavola.',
     items: [
       'Inscription via /register-client',
       'Connexion avec e-mail et mot de passe',
@@ -213,7 +213,7 @@ GET /client/structures → Établissements partenaires`,
   roles: {
     badge: 'Sécurité et accès',
     title: 'Rôles et permissions',
-    text: 'Shede applique un contrôle d’accès strict basé sur les rôles.',
+    text: 'Tavola applique un contrôle d’accès strict basé sur les rôles.',
     headers: ['Fonctionnalité', 'Super admin', 'Admin', 'Caissier', 'Serveur', 'Client'],
     rows: [
       ['Gérer les structures', '✅', '❌', '❌', '❌', '❌'],
@@ -227,7 +227,7 @@ GET /client/structures → Établissements partenaires`,
     superAdmin: {
       title: 'Super admin',
       text: 'Accès complet à tout le système. Peut créer, modifier et supprimer des structures.',
-      callout: 'Ce rôle est attribué uniquement par l’équipe Shede. Ne le partagez jamais.',
+      callout: 'Ce rôle est attribué uniquement par l’équipe Tavola. Ne le partagez jamais.',
     },
     cashier: {
       title: 'Caissier',
@@ -241,14 +241,14 @@ GET /client/structures → Établissements partenaires`,
   qr: {
     badge: 'Intégrations',
     title: 'QR code et commande autonome',
-    text: 'Chaque table dispose d’un QR code unique généré automatiquement par Shede.',
+    text: 'Chaque table dispose d’un QR code unique généré automatiquement par Tavola.',
     codeLabel: 'Lien du QR code',
     code: `https://<votre-domaine>/client/structure/{structureId}?tableId={tableId}&tableName={nom}`,
     callout: 'Les QR codes se téléchargent en PDF depuis le plan de salle, prêts à imprimer et à plastifier.',
   },
   payments: {
     title: 'Paiements',
-    text: 'Shede prend en charge plusieurs moyens de paiement adaptés au marché local et international.',
+    text: 'Tavola prend en charge plusieurs moyens de paiement adaptés au marché local et international.',
     methods: [
       { method: 'Espèces', desc: 'Paiement manuel enregistré' },
       { method: 'Mobile Money', desc: 'MTN MoMo, Orange Money…' },
@@ -258,10 +258,10 @@ GET /client/structures → Établissements partenaires`,
   faq: {
     title: 'Questions fréquentes',
     items: [
-      { q: 'Shede est-il gratuit pour les clients ?', a: 'Oui, totalement. Le compte client est 100 % gratuit et sans commission sur les commandes.' },
+      { q: 'Tavola est-il gratuit pour les clients ?', a: 'Oui, totalement. Le compte client est 100 % gratuit et sans commission sur les commandes.' },
       { q: 'Puis-je gérer plusieurs établissements ?', a: 'Oui. En tant qu’administrateur d’organisation, vous pilotez plusieurs restaurants et hôtels depuis un seul compte.' },
       { q: 'Les données sont-elles sécurisées ?', a: 'Oui. Les données sont chiffrées, hébergées sur des serveurs sécurisés et cloisonnées par établissement.' },
-      { q: 'Faut-il installer une application ?', a: 'Non. Shede est une application web progressive (PWA) accessible depuis n’importe quel navigateur, sur mobile comme sur ordinateur.' },
+      { q: 'Faut-il installer une application ?', a: 'Non. Tavola est une application web progressive (PWA) accessible depuis n’importe quel navigateur, sur mobile comme sur ordinateur.' },
       { q: 'Comment obtenir un compte professionnel ?', a: 'Inscrivez votre établissement sur /register-business ou appelez-nous au +237 656 954 474. Un de nos experts vous accompagnera.' },
     ],
   },
@@ -272,7 +272,7 @@ GET /client/structures → Établissements partenaires`,
     portfolio: 'Portfolio du développeur',
   },
   footer: {
-    version: '© {year} Shede Tech · Documentation v1.0',
+    version: '© {year} Tavola Tech · Documentation v1.0',
     backHome: '← Retour à l’accueil',
   },
 };
@@ -338,17 +338,17 @@ const en: DocsContent = {
   intro: {
     badge: 'Documentation',
     titleBefore: 'Welcome to',
-    text: 'Shede is a multi-establishment SaaS platform built for hotels and restaurants. It connects hospitality professionals with their customers through a unified, intuitive and powerful interface.',
+    text: 'Tavola is a multi-establishment SaaS platform built for hotels and restaurants. It connects hospitality professionals with their customers through a unified, intuitive and powerful interface.',
     cards: [
       { title: 'Restaurants', desc: 'Register, orders, stock' },
       { title: 'Hotels', desc: 'Bookings, rooms' },
       { title: 'B2C customers', desc: 'Customer app and portal' },
     ],
-    callout: 'This documentation covers all of Shede’s features. Use the sidebar or the search to quickly find what you need.',
+    callout: 'This documentation covers all of Tavola’s features. Use the sidebar or the search to quickly find what you need.',
   },
   quickstart: {
     title: 'Quick start',
-    text: 'Create your account and start using Shede in under 5 minutes.',
+    text: 'Create your account and start using Tavola in under 5 minutes.',
     steps: [
       { title: 'Create an account', desc: 'Go to /register-client (customers) or contact us for a professional account.' },
       { title: 'Set up your establishment', desc: 'Enter the name, type (restaurant, hotel or both), opening hours and logo.' },
@@ -358,7 +358,7 @@ const en: DocsContent = {
   },
   architecture: {
     title: 'Architecture',
-    text: 'Shede is built on a modern multi-establishment architecture.',
+    text: 'Tavola is built on a modern multi-establishment architecture.',
     codeTitle: '# Role structure',
     roles: [
       { code: 'SUPER_ADMIN', desc: 'Manages every organisation', indent: 0 },
@@ -373,7 +373,7 @@ const en: DocsContent = {
   clientAccount: {
     badge: 'Customer side',
     title: 'Customer account',
-    text: 'The customer account is free and gives access to every Shede partner establishment.',
+    text: 'The customer account is free and gives access to every Tavola partner establishment.',
     items: [
       'Sign up at /register-client',
       'Log in with email and password',
@@ -489,7 +489,7 @@ GET /client/structures → Partner establishments`,
   roles: {
     badge: 'Security and access',
     title: 'Roles and permissions',
-    text: 'Shede enforces strict role-based access control.',
+    text: 'Tavola enforces strict role-based access control.',
     headers: ['Feature', 'Super admin', 'Admin', 'Cashier', 'Waiter', 'Customer'],
     rows: [
       ['Manage structures', '✅', '❌', '❌', '❌', '❌'],
@@ -503,7 +503,7 @@ GET /client/structures → Partner establishments`,
     superAdmin: {
       title: 'Super admin',
       text: 'Full access to the whole system. Can create, edit and delete structures.',
-      callout: 'This role is only granted by the Shede team. Never share it.',
+      callout: 'This role is only granted by the Tavola team. Never share it.',
     },
     cashier: {
       title: 'Cashier',
@@ -517,14 +517,14 @@ GET /client/structures → Partner establishments`,
   qr: {
     badge: 'Integrations',
     title: 'QR codes and self-ordering',
-    text: 'Every table has a unique QR code generated automatically by Shede.',
+    text: 'Every table has a unique QR code generated automatically by Tavola.',
     codeLabel: 'QR code link',
     code: `https://<your-domain>/client/structure/{structureId}?tableId={tableId}&tableName={name}`,
     callout: 'QR codes can be downloaded as a PDF from the floor plan, ready to print and laminate.',
   },
   payments: {
     title: 'Payments',
-    text: 'Shede supports several payment methods suited to local and international markets.',
+    text: 'Tavola supports several payment methods suited to local and international markets.',
     methods: [
       { method: 'Cash', desc: 'Manual payment recorded' },
       { method: 'Mobile Money', desc: 'MTN MoMo, Orange Money…' },
@@ -534,10 +534,10 @@ GET /client/structures → Partner establishments`,
   faq: {
     title: 'Frequently asked questions',
     items: [
-      { q: 'Is Shede free for customers?', a: 'Yes, completely. The customer account is 100% free with no commission on orders.' },
+      { q: 'Is Tavola free for customers?', a: 'Yes, completely. The customer account is 100% free with no commission on orders.' },
       { q: 'Can I manage several establishments?', a: 'Yes. As an organisation administrator, you run several restaurants and hotels from a single account.' },
       { q: 'Is the data secure?', a: 'Yes. Data is encrypted, hosted on secure servers and isolated per establishment.' },
-      { q: 'Do I need to install an app?', a: 'No. Shede is a progressive web app (PWA) that works in any browser, on mobile and desktop.' },
+      { q: 'Do I need to install an app?', a: 'No. Tavola is a progressive web app (PWA) that works in any browser, on mobile and desktop.' },
       { q: 'How do I get a professional account?', a: 'Register your establishment at /register-business or call us on +237 656 954 474. One of our experts will help you.' },
     ],
   },
@@ -548,7 +548,7 @@ GET /client/structures → Partner establishments`,
     portfolio: 'Developer portfolio',
   },
   footer: {
-    version: '© {year} Shede Tech · Documentation v1.0',
+    version: '© {year} Tavola Tech · Documentation v1.0',
     backHome: '← Back to home',
   },
 };

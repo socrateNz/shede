@@ -58,7 +58,7 @@ const api: typeof fr = {
   },
   webhooks: {
     title: 'Webhook',
-    subtitle: 'Address where Shede notifies the marketplace (order status, menu, pause). Every request is signed with the secret below.',
+    subtitle: 'Address where Tavola notifies the marketplace (order status, menu, pause). Every request is signed with the secret below.',
     url: 'Webhook address',
     saved: 'Webhook saved',
     invalidUrl: 'Invalid address: it must start with https:// and must not point to a private network.',

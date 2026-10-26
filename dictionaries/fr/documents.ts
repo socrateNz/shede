@@ -48,7 +48,7 @@ const documents = {
     totalPaid: 'TOTAL PAYÉ',
     totalDue: 'TOTAL À PAYER',
     thanks: 'Merci de votre visite !',
-    generatedBy: 'Généré par Shede ERP',
+    generatedBy: 'Généré par Tavola',
     officialReceipt: 'Merci de votre visite ! Ce document fait office de reçu officiel.',
     printSuccess: 'Reçu généré avec succès',
     printError: 'Erreur lors de la génération du reçu',
@@ -121,7 +121,7 @@ const documents = {
     notes: 'Observations générales :',
     cashierSignature: 'Visa du caissier ({name})',
     managementSignature: 'Visa de la direction',
-    footer: 'Document généré électroniquement par Shede.',
+    footer: 'Document généré électroniquement par Tavola.',
   },
 };
 

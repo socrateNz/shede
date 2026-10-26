@@ -1,13 +1,13 @@
 {
-  "name": "Shede",
-  "short_name": "Shede",
-  "description": "Caisse, cuisine, stock, hôtel et comptabilité pour restaurants et hôtels.",
+  "name": "Tavola — by Tacynt",
+  "short_name": "Tavola",
+  "description": "L’art de gérer l’art de recevoir. Caisse, cuisine, stock, hôtel et comptabilité pour restaurants, bars, hôtels et cafés.",
   "id": "/",
   "start_url": "/login",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#0b0b0b",
+  "theme_color": "#0b0b0b",
   "lang": "fr",
   "categories": ["business", "productivity", "food"],
   "icons": [

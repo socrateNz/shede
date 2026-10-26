@@ -209,11 +209,11 @@ export function ProductCreateForm({
         </div>
 
         <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-xl overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/5 pointer-events-none" />
 
           <CardHeader className="border-b border-slate-700/50">
             <CardTitle className="text-slate-50 flex items-center gap-2">
-              <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+              <div className="p-1.5 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg">
                 <Plus className="w-4 h-4 text-white" />
               </div>
               {t('products.form.createCard')}
@@ -500,7 +500,7 @@ export function ProductCreateForm({
                 <Button
                   type="submit"
                   disabled={isPending}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-2.5 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-2.5 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   {isPending ? (
                     <div className="flex items-center gap-2">

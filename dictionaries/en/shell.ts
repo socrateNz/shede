@@ -2,8 +2,8 @@ import type fr from '../fr/shell';
 
 const shell: typeof fr = {
   meta: {
-    title: 'Shede — Restaurant & hotel management',
-    description: 'Point of sale, orders, stock, hotel and delivery for businesses in Cameroon.',
+    title: 'Tavola — Restaurant & hotel management',
+    description: 'The art of managing the art of hospitality. Point of sale, kitchen, stock, hotel and accounting for restaurants, bars, hotels and cafés.',
   },
   roles: {
     SUPER_ADMIN: 'Super admin',

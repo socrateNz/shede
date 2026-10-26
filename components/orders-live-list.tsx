@@ -107,7 +107,7 @@ export function OrdersLiveList({ initial, status, canManageStatus = false }: Ord
 
       <div className="overflow-hidden rounded-xl border border-slate-700/50 bg-slate-800/50 shadow-xl backdrop-blur-sm">
         {hasNewOrder && (
-          <div className="mx-4 mt-4 flex items-center justify-between rounded-xl border border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-purple-500/10 px-4 py-3 text-sm text-blue-300 backdrop-blur-sm">
+          <div className="mx-4 mt-4 flex items-center justify-between rounded-xl border border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-blue-500/10 px-4 py-3 text-sm text-blue-300 backdrop-blur-sm">
             <div className="flex items-center gap-2">
               <Bell className="h-4 w-4 animate-pulse" />
               <span className="font-medium">{t('orders.live.newOrder')}</span>
